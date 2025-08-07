@@ -202,11 +202,47 @@ export default function ProductsPage() {
                                 </div>
                             </div>
 
-                            {/* Results Count */}
+                            {/* Stock Summary */}
                             <div className="pt-4 border-t border-gray-200">
-                                <p className="text-sm text-gray-600">
-                                    Showing {filteredProducts.length} of {products.length} products
-                                </p>
+                                <h3 className="text-sm font-semibold text-gray-900 mb-3">Stock Overview</h3>
+                                <div className="space-y-2 text-xs">
+                                    <div className="flex justify-between">
+                                        <span>Total Products:</span>
+                                        <span className="font-medium">{products.length}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Showing:</span>
+                                        <span className="font-medium">{filteredProducts.length}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>In Stock:</span>
+                                        <span className="font-medium text-green-600">
+                                            {filteredProducts.filter(p => p.stock && p.stock.current > 0).length}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Low Stock:</span>
+                                        <span className="font-medium text-orange-600">
+                                            {filteredProducts.filter(p => p.stock && p.stock.current > 0 && p.stock.current <= p.stock.minimum).length}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Out of Stock:</span>
+                                        <span className="font-medium text-red-600">
+                                            {filteredProducts.filter(p => !p.stock || p.stock.current <= 0).length}
+                                        </span>
+                                    </div>
+                                    <div className="mt-3 pt-2 border-t border-gray-100">
+                                        <div className="flex justify-between">
+                                            <span>Total Stock Value:</span>
+                                            <span className="font-medium text-purple-600">
+                                                Rs. {filteredProducts.reduce((total, p) => 
+                                                    total + (p.stock && p.price ? p.stock.current * p.price : 0), 0
+                                                ).toLocaleString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -244,14 +280,16 @@ export default function ProductsPage() {
                                         </div>
 
                                         {/* Stock Badge */}
-                                        {product.stock !== undefined && (
+                                        {product.stock && (
                                             <div className="absolute top-4 right-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                                    product.stock > 0 
-                                                        ? 'bg-green-100 text-green-800' 
+                                                    product.stock.current > 0 
+                                                        ? product.stock.current <= product.stock.minimum 
+                                                            ? 'bg-orange-100 text-orange-800' 
+                                                            : 'bg-green-100 text-green-800'
                                                         : 'bg-red-100 text-red-800'
                                                 }`}>
-                                                    {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                                                    {product.stock.current > 0 ? `${product.stock.current} in stock` : 'Out of stock'}
                                                 </span>
                                             </div>
                                         )}
@@ -289,8 +327,81 @@ export default function ProductsPage() {
                                                 </p>
                                             </div>
 
-                                            {/* Action Buttons */}
+                                            {/* Stock Monitoring Information */}
+                                            {product.stock && (
+                                                <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <h4 className="text-sm font-semibold text-gray-700">Stock Monitoring</h4>
+                                                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                            product.stock.current <= product.stock.minimum
+                                                                ? 'bg-red-100 text-red-700'
+                                                                : product.stock.current <= (product.stock.maximum * 0.3)
+                                                                ? 'bg-orange-100 text-orange-700'
+                                                                : 'bg-green-100 text-green-700'
+                                                        }`}>
+                                                            {
+                                                                product.stock.current <= product.stock.minimum ? 'Low Stock' :
+                                                                product.stock.current <= (product.stock.maximum * 0.3) ? 'Moderate' : 'Good Stock'
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">Current:</span>
+                                                            <span className="font-medium text-gray-900">{product.stock.current}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">Maximum:</span>
+                                                            <span className="font-medium text-gray-900">{product.stock.maximum}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">Minimum:</span>
+                                                            <span className="font-medium text-gray-900">{product.stock.minimum}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">Average:</span>
+                                                            <span className="font-medium text-gray-900">{product.stock.average}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Stock Level Progress Bar */}
+                                                    <div className="mt-3">
+                                                        <div className="flex justify-between text-xs mb-1">
+                                                            <span className="text-gray-600">Stock Level</span>
+                                                            <span className="text-gray-900">{Math.round((product.stock.current / product.stock.maximum) * 100)}%</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                                            <div 
+                                                                className={`h-2 rounded-full transition-all duration-300 ${
+                                                                    product.stock.current <= product.stock.minimum
+                                                                        ? 'bg-red-500'
+                                                                        : product.stock.current <= (product.stock.maximum * 0.3)
+                                                                        ? 'bg-orange-500'
+                                                                        : 'bg-green-500'
+                                                                }`}
+                                                                style={{ width: `${Math.min((product.stock.current / product.stock.maximum) * 100, 100)}%` }}
+                                                            >
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Last Restocked */}
+                                                    {product.stock.lastRestocked && (
+                                                        <div className="mt-2 text-xs text-gray-600">
+                                                            Last restocked: {new Date(product.stock.lastRestocked).toLocaleDateString()}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Reserved Stock */}
+                                                    {product.stock.reservedStock > 0 && (
+                                                        <div className="mt-1 text-xs text-orange-600">
+                                                            Reserved: {product.stock.reservedStock} units
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
+                                            {/* Action Buttons */}
                                             <div className="flex space-x-2 flex items-center justify-center mb-4">
                                                     <Link to={"/oneProduct/"+product._id} >    
 
@@ -307,7 +418,12 @@ export default function ProductsPage() {
                                                     addToCart(product, 1);
                                                     toast.success(`${product.name} added to cart!`);
                                                 }}
-                                                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                                                disabled={!product.stock || product.stock.current <= 0}
+                                                className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                                                    !product.stock || product.stock.current <= 0
+                                                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                                                        : 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+                                                }`}
                                                 >
                                                 <FaShoppingCart className="w-5 h-5" />
                                                 </button>

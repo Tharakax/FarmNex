@@ -13,6 +13,10 @@ import OneProduct from './pages/client/OneProduct.jsx'
 import Cart from './pages/client/cart.jsx'
 import EnterShipping from './pages/client/EnterShipping.jsx'
 import EnterPayment from './pages/client/EnterPayment.jsx'
+import TrainingHomePage from './pages/TrainingHomePage.jsx'
+import AddEditTraining from './pages/farmer/AddEditTraining.jsx'
+import ViewTraining from './pages/farmer/ViewTraining.jsx'
+import AboutPage from './pages/AboutPage.jsx'
 
 function App() {
 
@@ -30,8 +34,15 @@ function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/shipping/:id" element={<EnterShipping />} />
         <Route path="/:id/payment" element={<EnterPayment />} />
-
-
+        
+        {/* Training Management Routes */}
+        <Route path="/training" element={<TrainingHomePage />} />
+        <Route path="/add" element={<AddEditTraining />} />
+        <Route path="/edit/:id" element={<AddEditTraining />} />
+        <Route path="/view/:id" element={<ViewTraining />} />
+        
+        {/* About Page Route */}
+        <Route path="/about" element={<AboutPage />} />
 
         {/* Add more routes as needed */}
 

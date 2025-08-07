@@ -45,9 +45,39 @@ const productSchema = new mongoose.Schema({
   }
 ,
   stock: {
-    type: Number,
-    required: [true, 'Please enter product stock'],
-    default: 0
+    current: {
+      type: Number,
+      required: [true, 'Please enter current stock'],
+      default: 0,
+      min: [0, 'Stock cannot be negative']
+    },
+    maximum: {
+      type: Number,
+      required: [false, 'Maximum stock capacity'],
+      default: 100,
+      min: [0, 'Maximum stock cannot be negative']
+    },
+    minimum: {
+      type: Number,
+      required: [false, 'Minimum stock threshold'],
+      default: 5,
+      min: [0, 'Minimum stock cannot be negative']
+    },
+    average: {
+      type: Number,
+      required: [false, 'Average stock level'],
+      default: 50,
+      min: [0, 'Average stock cannot be negative']
+    },
+    lastRestocked: {
+      type: Date,
+      default: Date.now
+    },
+    reservedStock: {
+      type: Number,
+      default: 0,
+      min: [0, 'Reserved stock cannot be negative']
+    }
   },
   unit: {
     type: String,

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
-import { FiShoppingCart, FiUser, FiSearch, FiHeart, FiMenu, FiX } from 'react-icons/fi';
-import { FaLeaf } from 'react-icons/fa';
+import { FiShoppingCart, FiUser, FiSearch, FiHeart, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
+import { FaLeaf, FaGraduationCap, FaBook, FaPlus, FaEye } from 'react-icons/fa';
 import HomePage from '../pages/homePage.jsx';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [isTrainingDropdownOpen, setIsTrainingDropdownOpen] = useState(false);
   const Navigate = useNavigate();
 
   useEffect(() => {
@@ -87,7 +88,7 @@ const Navigation = () => {
                   )}
                 </NavLink>
                 <NavLink 
-                  to="/farmers" 
+                  to="/training" 
                   className={({ isActive }) => 
                     `relative px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
                       isActive 
@@ -98,7 +99,7 @@ const Navigation = () => {
                 >
                   {({ isActive }) => (
                     <>
-                      Our Farmers
+                      Training
                       {isActive && (
                         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       )}
@@ -274,7 +275,7 @@ const Navigation = () => {
             </NavLink>
             
             <NavLink 
-              to="/farmers" 
+              to="/training" 
               className={({ isActive }) => 
                 `block px-4 py-3 rounded-xl text-base font-semibold transition-all duration-300 transform hover:scale-105 ${
                   isActive 
@@ -285,8 +286,8 @@ const Navigation = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               <div className="flex items-center">
-                <span>👨‍🌾</span>
-                <span className="ml-3">Our Farmers</span>
+                <span>📚</span>
+                <span className="ml-3">Training</span>
               </div>
             </NavLink>
             
