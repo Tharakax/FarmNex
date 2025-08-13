@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X } from 'lucide-react';
 import Navigation from '../components/navigation';
+import SimpleChatbot from '../components/SimpleChatbot';
 import { NavLink } from 'react-router-dom';
 
 
@@ -347,6 +348,9 @@ const HomePage = () => {
           </div>
         </footer>
       </div>
+      
+      {/* Chatbot Widget */}
+      <SimpleChatbot />
     </div>
   );
 };
