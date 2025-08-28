@@ -1,0 +1,236 @@
+import React, { useState, Suspense } from 'react';
+import { 
+  Home, 
+  Cloud, 
+  Package, 
+  FileText, 
+  Settings, 
+  Bell, 
+  LogOut, 
+  User,
+  Menu,
+  ShoppingBag,
+  Truck,
+  BookOpen
+} from 'lucide-react';
+
+
+// Reusable Card Component
+const Card = ({ children, className = "" }) => {
+  return (
+    <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+      {children}
+    </div>
+  );
+};
+
+// Sidebar Component
+const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
+  const menuItems = [
+    { name: 'Home', icon: Home },
+    { name: 'Products', icon: ShoppingBag },
+    { name: 'Supplies', icon: Truck },
+    { name: 'Weather', icon: Cloud },
+    { name: 'Inventory', icon: Package },
+    { name: 'Training', icon: BookOpen },
+    { name: 'Reports', icon: FileText },
+    { name: 'Settings', icon: Settings }
+  ];
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed left-0 top-0 h-full bg-green-800 text-white w-64 transform transition-transform duration-300 ease-in-out z-30 lg:translate-x-0 lg:static lg:z-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="p-6 border-b border-green-700">
+          <h2 className="text-xl font-bold">Farm Manager</h2>
+        </div>
+        
+        <nav className="mt-6">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.name}
+                onClick={() => setActiveItem(item.name)}
+                className={`w-full flex items-center px-6 py-3 text-left hover:bg-green-700 transition-colors duration-200 ${
+                  activeItem === item.name ? 'bg-green-700 border-r-4 border-green-300' : ''
+                }`}
+              >
+                <Icon className="mr-3 h-5 w-5" />
+                <span>{item.name}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </>
+  );
+};
+
+// Header Component
+const Header = ({ toggleSidebar }) => {
+  return (
+    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <button
+            onClick={toggleSidebar}
+            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="ml-4 text-2xl font-semibold text-gray-800 lg:ml-0">Dashboard</h1>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <Bell className="h-6 w-6 text-gray-600" />
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+          </button>
+          
+          <div className="flex items-center space-x-3">
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-medium text-gray-700">John Smith</p>
+              <p className="text-xs text-gray-500">Farm Owner</p>
+            </div>
+            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+              <User className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
+          
+          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <LogOut className="h-6 w-6 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+
+
+
+// Lazy load components to handle errors gracefully
+const ProductManagement = React.lazy(() => import('../components/products/ProductManagement'));
+const FarmerInventoryManagement = React.lazy(() => import('../components/inventory/FarmerInventoryManagement'));
+const FarmerSuppliesManagement = React.lazy(() => import('../components/supplies/FarmerSuppliesManagement'));
+const TestSupplies = React.lazy(() => import('../components/supplies/TestSupplies'));
+const ReportsManagement = React.lazy(() => import('../components/reports/ReportsManagement'));
+const TrainingManagement = React.lazy(() => import('../components/training/TrainingManagement'));
+
+// Main Dashboard Component
+const FarmerDashboard = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeItem, setActiveItem] = useState('Home');
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  // Render the appropriate content based on active sidebar item
+  const renderContent = () => {
+    console.log('Current active item:', activeItem);
+    switch (activeItem) {
+      case 'Products':
+        console.log('Rendering ProductManagement');
+        return <ProductManagement />;
+      case 'Inventory':
+        console.log('Rendering FarmerInventoryManagement');
+        return <FarmerInventoryManagement />;
+      case 'Supplies':
+        console.log('Rendering FarmerSuppliesManagement');
+        try {
+          return <FarmerSuppliesManagement />;
+        } catch (error) {
+          console.error('Error rendering FarmerSuppliesManagement:', error);
+          return (
+            <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+              <h2 className="text-lg font-bold text-red-800 mb-2">Error Loading Supplies</h2>
+              <p className="text-red-600 mb-4">There was an error loading the supplies management component.</p>
+              <pre className="text-sm text-red-700 bg-red-100 p-3 rounded overflow-auto">
+                {error.message || error.toString()}
+              </pre>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Reload Page
+              </button>
+            </div>
+          );
+        }
+      case 'Weather':
+        return (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Weather Information</h2>
+              <p className="text-gray-600">Weather dashboard functionality coming soon.</p>
+            </div>
+          </div>
+        );
+      case 'Training':
+        return <TrainingManagement />;
+      case 'Reports':
+        return <ReportsManagement />;
+      case 'Settings':
+        return (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Settings</h2>
+              <p className="text-gray-600">Settings panel coming soon.</p>
+            </div>
+          </div>
+        );
+      case 'Home':
+      default:
+        return (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Welcome to Farm Manager</h2>
+              <p className="text-gray-600">Use the navigation menu to access different sections of your farm management system.</p>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        toggleSidebar={toggleSidebar} 
+        activeItem={activeItem}
+        setActiveItem={setActiveItem}
+      />
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header toggleSidebar={toggleSidebar} />
+        
+        <main className="flex-1 overflow-y-auto p-6">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading...</p>
+              </div>
+            </div>
+          }>
+            {renderContent()}
+          </Suspense>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default FarmerDashboard;

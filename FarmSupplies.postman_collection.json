@@ -1,0 +1,264 @@
+{
+  "info": {
+    "name": "Farm Supplies API",
+    "description": "Complete API testing collection for farm supplies management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "JWT_TOKEN",
+      "value": "your-jwt-token-here",
+      "type": "string"
+    },
+    {
+      "key": "supplyId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": ["{{baseUrl}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Farm Supplies",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Farm Supply - Seeds",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Tomato Seeds - Hybrid\",\n  \"description\": \"High-yield hybrid tomato seeds suitable for greenhouse and outdoor cultivation. Disease resistant variety.\",\n  \"category\": \"seeds\",\n  \"price\": 25.50,\n  \"unit\": \"pack\",\n  \"quantity\": 100,\n  \"minQuantity\": 10,\n  \"maxQuantity\": 500,\n  \"supplier\": {\n    \"name\": \"Green Valley Seeds Co.\",\n    \"contact\": \"+1-555-0123\",\n    \"email\": \"orders@greenvalleyseeds.com\"\n  },\n  \"expiryDate\": \"2025-12-31T00:00:00.000Z\",\n  \"batchNumber\": \"GVS-2024-TOM-001\",\n  \"storage\": {\n    \"location\": \"Warehouse A - Section 2\",\n    \"temperature\": \"cool\",\n    \"instructions\": \"Store in cool, dry place. Keep away from direct sunlight.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Farm Supply - Fertilizer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"NPK 10-10-10 Fertilizer\",\n  \"description\": \"Balanced nitrogen, phosphorus, and potassium fertilizer for all-purpose crop nutrition.\",\n  \"category\": \"fertilizers\",\n  \"price\": 45.00,\n  \"unit\": \"bag\",\n  \"quantity\": 50,\n  \"minQuantity\": 5,\n  \"maxQuantity\": 200,\n  \"supplier\": {\n    \"name\": \"AgriChem Solutions\",\n    \"contact\": \"+1-555-0456\",\n    \"email\": \"sales@agrichem.com\"\n  },\n  \"expiryDate\": \"2026-06-30T00:00:00.000Z\",\n  \"batchNumber\": \"AC-NPK-2024-Q1-789\",\n  \"storage\": {\n    \"location\": \"Warehouse B - Chemicals Section\",\n    \"temperature\": \"room-temp\",\n    \"instructions\": \"Keep in original packaging. Store in dry area away from water sources.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Create Farm Supply - Tools",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Professional Garden Hoe\",\n  \"description\": \"Heavy-duty steel garden hoe with ergonomic wooden handle. Perfect for soil cultivation and weed removal.\",\n  \"category\": \"tools\",\n  \"price\": 35.99,\n  \"unit\": \"piece\",\n  \"quantity\": 25,\n  \"minQuantity\": 3,\n  \"maxQuantity\": 100,\n  \"supplier\": {\n    \"name\": \"Farm Tools Direct\",\n    \"contact\": \"+1-555-0789\",\n    \"email\": \"info@farmtoolsdirect.com\"\n  },\n  \"batchNumber\": \"FTD-HOE-2024-PRO\",\n  \"storage\": {\n    \"location\": \"Tool Shed - Rack 3\",\n    \"temperature\": \"room-temp\",\n    \"instructions\": \"Store in dry location to prevent rust. Oil metal parts monthly.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Farm Supply by ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies/{{supplyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies", "{{supplyId}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Farm Supply",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 75,\n  \"price\": 27.99,\n  \"storage\": {\n    \"location\": \"Warehouse A - Section 3\",\n    \"temperature\": \"cool\",\n    \"instructions\": \"Updated storage instructions: Store in cool, dry place. Check moisture levels weekly.\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies/{{supplyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies", "{{supplyId}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Low Stock Supplies",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies/low-stock",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies", "low-stock"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Supplies by Category - Seeds",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies/category/seeds",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies", "category", "seeds"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Supplies by Category - Fertilizers",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies/category/fertilizers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies", "category", "fertilizers"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Farm Supply",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{JWT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/farmsupplies/{{supplyId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "farmsupplies", "{{supplyId}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
