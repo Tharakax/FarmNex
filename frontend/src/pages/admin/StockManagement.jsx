@@ -12,6 +12,7 @@ import {
   FaCheckCircle,
   FaExclamationTriangle
 } from 'react-icons/fa';
+<<<<<<< HEAD
 import { FileText, FileSpreadsheet } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -22,6 +23,10 @@ import {
   getInventoryColumns,
   processDataForExport 
 } from '../../utils/exportUtils';
+=======
+import axios from 'axios';
+import StockDisplay, { StockSummary } from '../../components/StockDisplay.jsx';
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 
 const StockManagement = () => {
   const [products, setProducts] = useState([]);
@@ -233,6 +238,7 @@ const StockManagement = () => {
     document.body.removeChild(link);
   };
 
+<<<<<<< HEAD
   // Enhanced export handlers
   const handleExportToPDF = () => {
     try {
@@ -323,6 +329,8 @@ const StockManagement = () => {
     }
   };
 
+=======
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -375,6 +383,7 @@ const StockManagement = () => {
               <option value="out-of-stock">Out of Stock</option>
             </select>
 
+<<<<<<< HEAD
             <div className="flex gap-2">
               <button
                 onClick={() => handleExportToPDF()}
@@ -400,6 +409,15 @@ const StockManagement = () => {
                 <span>CSV</span>
               </button>
             </div>
+=======
+            <button
+              onClick={exportStockReport}
+              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <FaDownload />
+              <span>Export Report</span>
+            </button>
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
           </div>
         </div>
 

@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { Link, Route, Routes, useNavigate } from 'react-router-dom';
 import { FileText, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/productAPI';
 import ExportService from '../../services/exportService';
+=======
+import axios from 'axios';
+import { Link, Route, Routes, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 
 const ManageProducts = () => {
   const [products, setProducts] = useState([]);
@@ -14,6 +20,7 @@ const ManageProducts = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+<<<<<<< HEAD
         if(loading){
           const result = await productAPI.getAllProducts();
           if (result.success) {
@@ -23,6 +30,18 @@ const ManageProducts = () => {
           } else {
             throw new Error(result.error || 'Failed to fetch products');
           }
+=======
+
+        if(loading){
+          const response = await axios.get('http://localhost:3000/api/product/');
+        if (response.status === 200) {
+          setProducts(response.data);
+          setLoading(false);
+          console.log('Products fetched successfully:', response.data);
+        } else {
+          throw new Error('Failed to fetch products');
+        }
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
         }
         
       } catch (err) {
@@ -57,6 +76,7 @@ const ManageProducts = () => {
       if (!token) {
         return toast.error('You must be logged in to delete a product');
       }
+<<<<<<< HEAD
       
       const result = await productAPI.deleteProduct(id);
       if (result.success) {
@@ -68,10 +88,28 @@ const ManageProducts = () => {
     }catch (error) {
       console.error('Error deleting product:', error);
       toast.error(error.message || 'Failed to delete product');
+=======
+      const response = await axios.delete(import.meta.env.VITE_BACKEND_URL+`/api/product/${id}`,
+        {
+          headers: {
+          Authorization: "Bearer " + token
+          }
+        }
+      );
+      if (response.status === 200) {
+        toast.success('Product deleted successfully');
+        setLoading(true); // Reset loading state to refetch productsW
+      } else {
+        throw new Error('Failed to delete product');
+      }
+    }catch (error) {
+      console.error('Error deleting product:', error);
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
       setError('Failed to delete product');
     }
   }
 
+<<<<<<< HEAD
   // Export handlers
   const handleExportToPDF = () => {
     try {
@@ -121,6 +159,8 @@ const ManageProducts = () => {
     }
   };
 
+=======
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   return (
     
     <div className="container mx-auto px-4 py-8">
@@ -129,6 +169,7 @@ const ManageProducts = () => {
       </main>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Manage Products</h1>
+<<<<<<< HEAD
         <div className="flex items-center space-x-3">
           {/* Export Buttons */}
           <div className="flex gap-2">
@@ -165,6 +206,11 @@ const ManageProducts = () => {
             Add Product
           </Link>
         </div>
+=======
+    <Link to={"addproducts"} className="text-green-700 text-xl hover:text-white border border-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 dark:border-green-500 dark:text-green-500 dark:hover:text-white dark:hover:bg-green-600 dark:focus:ring-green-800">
+          Add Product
+        </Link>
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
       </div>
 
       {loading ? (
@@ -223,7 +269,11 @@ const ManageProducts = () => {
                       ${product.price ? product.price.toFixed(2) : '0.00'}/{product.unit || 'unit'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+<<<<<<< HEAD
                       {product.stock && typeof product.stock === 'object' ? product.stock.current : (product.stock !== undefined ? product.stock : 'N/A')}
+=======
+                      {product.stock !== undefined ? product.stock : 'N/A'}
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button

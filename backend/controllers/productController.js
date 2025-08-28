@@ -7,6 +7,7 @@ import JWTauth from '../middleware/auth.js';
 // Save a new product
 
 export async function saveProduct(req, res) {
+<<<<<<< HEAD
   try {
     // Get user ID from authenticated user (if available)
     const userId = req.user?.id || null;
@@ -46,6 +47,43 @@ export async function saveProduct(req, res) {
       error: error.message
     });
   }
+=======
+  // Get user ID from authenticated user
+
+   console.log("params "+  req.user.id); 
+
+  // Assuming User._id is the ID of the authenticated user
+  // If images are uploaded, process them
+  
+
+  // Create product data object
+  const productData = {
+    name: req.body.name,
+    description: req.body.description,
+    price: req.body.price,
+    displayprice: req.body.displayprice || req.body.price, // Default to price if not provided
+    category: req.body.category,
+    stock: req.body.stock,
+    unit: req.body.unit,
+    images: req.body.images || [], // Default to empty array if no images
+    isFeatured: req.body.isFeatured || false,
+    discount: req.body.discount || 0,
+    tags: req.body.tags || [],
+    createdBy: req.user.id || null, // Use authenticated user's ID
+    shelfLife: req.body.shelfLife,
+    storageInstructions: req.body.storageInstructions
+  };
+
+  // Create product in database
+  const product = await Product.create(productData);
+  console.log(productData.images);
+    console.log(req.body.images);
+
+  res.status(201).json({
+    success: true,
+    product
+  });
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 };
 
 export async function getAllProducts(req, res) {
@@ -53,6 +91,7 @@ export async function getAllProducts(req, res) {
     const products = await Product.find().populate('createdBy', 'firstName lastName email');
     res.status(200).json(products);
   } catch (error) {
+<<<<<<< HEAD
     // If database connection fails, return mock data for development
     console.log('Database connection failed, returning mock data');
     const mockProducts = [
@@ -127,6 +166,9 @@ export async function getAllProducts(req, res) {
       }
     ];
     res.status(200).json(mockProducts);
+=======
+    res.status(500).json({ message: 'Error fetching products', error: error.message });
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   }
 }
 
@@ -138,6 +180,7 @@ export async function getProductById(req, res) {
     }
     res.status(200).json(product);
   } catch (error) {
+<<<<<<< HEAD
     // If database connection fails, return mock data for development
     console.log('Database connection failed, returning mock product data');
     const mockProduct = {
@@ -164,6 +207,9 @@ export async function getProductById(req, res) {
       createdAt: new Date().toISOString()
     };
     res.status(200).json(mockProduct);
+=======
+    res.status(500).json({ message: 'Error fetching product', error: error.message });
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   }
 }
 

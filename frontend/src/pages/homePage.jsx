@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
+<<<<<<< HEAD
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
+=======
+import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X } from 'lucide-react';
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 import Navigation from '../components/navigation';
 import SimpleChatbot from '../components/SimpleChatbot';
 import { NavLink } from 'react-router-dom';
@@ -54,6 +58,7 @@ const HomePage = () => {
     }
   ];
 
+<<<<<<< HEAD
   const trainingHighlights = [
     {
       icon: Video,
@@ -78,6 +83,8 @@ const HomePage = () => {
     }
   ];
 
+=======
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
       <div>
@@ -110,6 +117,7 @@ const HomePage = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <NavLink to="/products">
+<<<<<<< HEAD
                   <button className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg">
                     Shop Now
                   </button>
@@ -120,6 +128,19 @@ const HomePage = () => {
                     Explore Training
                   </button>
                 </NavLink>
+=======
+                <button 
+            
+                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg">
+                  Shop Now
+                </button>
+                </NavLink>
+                <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-green-600 transition-colors backdrop-blur-sm"
+                 
+                >
+                  Learn More
+                </button>
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
               </div>
             </div>
           </div>
@@ -183,6 +204,7 @@ const HomePage = () => {
           </div>
         </section>
 
+<<<<<<< HEAD
         {/* Training Section */}
         <section 
           id="training" 
@@ -235,6 +257,8 @@ const HomePage = () => {
           </div>
         </section>
 
+=======
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
         {/* Featured Products with Subtle Background */}
         <section 
           id="products" 
@@ -390,10 +414,17 @@ const HomePage = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
                 <ul className="space-y-2 text-gray-300">
+<<<<<<< HEAD
                   <li><NavLink to="/" className="hover:text-white transition-colors">Home</NavLink></li>
                   <li><NavLink to="/products" className="hover:text-white transition-colors">Products</NavLink></li>
                   <li><NavLink to="/training" className="hover:text-white transition-colors">Training</NavLink></li>
                   <li><NavLink to="/about" className="hover:text-white transition-colors">About Us</NavLink></li>
+=======
+                  <li><a href="#" className="hover:text-white transition-colors">Home</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Products</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
+                  <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
                 </ul>
               </div>
               

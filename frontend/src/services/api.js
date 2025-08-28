@@ -7,9 +7,12 @@ const createFormData = (data) => {
   Object.keys(data).forEach(key => {
     if (key === 'file' && data[key]) {
       formData.append('file', data[key]);
+<<<<<<< HEAD
     } else if (key === 'tags' && Array.isArray(data[key])) {
       // Convert array back to comma-separated string for backend
       formData.append(key, data[key].join(', '));
+=======
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
     } else if (data[key] !== null && data[key] !== undefined) {
       formData.append(key, data[key]);
     }
@@ -50,8 +53,12 @@ export const trainingAPI = {
       throw new Error('Failed to fetch training material');
     }
     
+<<<<<<< HEAD
     const data = await response.json();
     return data; // Return material directly to match backend response
+=======
+    return response.json();
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   },
 
   // Create new training material
@@ -120,6 +127,7 @@ export const trainingAPI = {
   },
 };
 
+<<<<<<< HEAD
 // Farm Supplies API methods
 export const farmSuppliesAPI = {
   // Get all farm supplies
@@ -209,5 +217,10 @@ export const farmSuppliesAPI = {
 export default {
   trainingAPI,
   farmSuppliesAPI,
+=======
+// Export for other components that might need general API functionality
+export default {
+  trainingAPI,
+>>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   API_BASE_URL,
 };
