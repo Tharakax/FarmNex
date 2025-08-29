@@ -1,18 +1,11 @@
-<<<<<<< HEAD
 import React, { useState, Suspense } from 'react';
-import { 
-  Home, 
-  Cloud, 
-=======
-import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Home, 
   Wheat, 
   Users, 
   Cloud, 
-  TrendingUp, 
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
+  TrendingUp,
   Package, 
   FileText, 
   Settings, 
@@ -20,13 +13,9 @@ import {
   LogOut, 
   User,
   Menu,
-<<<<<<< HEAD
   ShoppingBag,
   Truck,
-  BookOpen
-} from 'lucide-react';
-
-=======
+  BookOpen,
   X,
   AlertTriangle,
   Calendar,
@@ -52,7 +41,6 @@ const recentActivities = [
   { id: 4, activity: 'Applied fertilizer to wheat field', date: '2024-08-06', time: '14:20' },
   { id: 5, activity: 'Veterinary checkup for cattle', date: '2024-08-05', time: '11:00' }
 ];
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 
 // Reusable Card Component
 const Card = ({ children, className = "" }) => {
@@ -63,116 +51,6 @@ const Card = ({ children, className = "" }) => {
   );
 };
 
-// Sidebar Component
-<<<<<<< HEAD
-const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
-  const menuItems = [
-    { name: 'Home', icon: Home },
-    { name: 'Products', icon: ShoppingBag },
-    { name: 'Supplies', icon: Truck },
-    { name: 'Weather', icon: Cloud },
-    { name: 'Inventory', icon: Package },
-    { name: 'Training', icon: BookOpen },
-=======
-const Sidebar = ({ isOpen, toggleSidebar }) => {
-  const [activeItem, setActiveItem] = useState('Home');
-  
-  const menuItems = [
-    { name: 'Home', icon: Home },
-    { name: 'Crops', icon: Wheat },
-    { name: 'Livestock', icon: Users },
-    { name: 'Weather', icon: Cloud },
-    { name: 'Market Prices', icon: TrendingUp },
-    { name: 'Inventory', icon: Package },
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
-    { name: 'Reports', icon: FileText },
-    { name: 'Settings', icon: Settings }
-  ];
-
-  return (
-    <>
-      {/* Mobile overlay */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
-          onClick={toggleSidebar}
-        />
-      )}
-      
-      {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full bg-green-800 text-white w-64 transform transition-transform duration-300 ease-in-out z-30 lg:translate-x-0 lg:static lg:z-0 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <div className="p-6 border-b border-green-700">
-          <h2 className="text-xl font-bold">Farm Manager</h2>
-        </div>
-        
-        <nav className="mt-6">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.name}
-                onClick={() => setActiveItem(item.name)}
-                className={`w-full flex items-center px-6 py-3 text-left hover:bg-green-700 transition-colors duration-200 ${
-                  activeItem === item.name ? 'bg-green-700 border-r-4 border-green-300' : ''
-                }`}
-              >
-                <Icon className="mr-3 h-5 w-5" />
-                <span>{item.name}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-    </>
-  );
-};
-
-// Header Component
-const Header = ({ toggleSidebar }) => {
-  return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <button
-            onClick={toggleSidebar}
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <h1 className="ml-4 text-2xl font-semibold text-gray-800 lg:ml-0">Dashboard</h1>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-            <Bell className="h-6 w-6 text-gray-600" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
-          </button>
-          
-          <div className="flex items-center space-x-3">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-gray-700">John Smith</p>
-              <p className="text-xs text-gray-500">Farm Owner</p>
-            </div>
-            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-              <User className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-          
-          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-            <LogOut className="h-6 w-6 text-gray-600" />
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-};
-
-<<<<<<< HEAD
-
-
-
 // Lazy load components to handle errors gracefully
 const ProductManagement = React.lazy(() => import('../components/products/ProductManagement'));
 const FarmerInventoryManagement = React.lazy(() => import('../components/inventory/FarmerInventoryManagement'));
@@ -180,7 +58,7 @@ const FarmerSuppliesManagement = React.lazy(() => import('../components/supplies
 const TestSupplies = React.lazy(() => import('../components/supplies/TestSupplies'));
 const ReportsManagement = React.lazy(() => import('../components/reports/ReportsManagement'));
 const TrainingManagement = React.lazy(() => import('../components/training/TrainingManagement'));
-=======
+
 // Dashboard Stats Component
 const DashboardStats = () => {
   const stats = [
@@ -312,21 +190,109 @@ const ActivityTable = () => {
     </Card>
   );
 };
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
+
+// Sidebar Component
+const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
+  const menuItems = [
+    { name: 'Home', icon: Home },
+    { name: 'Products', icon: ShoppingBag },
+    { name: 'Supplies', icon: Truck },
+    { name: 'Weather', icon: Cloud },
+    { name: 'Inventory', icon: Package },
+    { name: 'Training', icon: BookOpen },
+    { name: 'Reports', icon: FileText },
+    { name: 'Settings', icon: Settings }
+  ];
+
+  return (
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`fixed left-0 top-0 h-full bg-green-800 text-white w-64 transform transition-transform duration-300 ease-in-out z-30 lg:translate-x-0 lg:static lg:z-0 ${
+        isOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="p-6 border-b border-green-700">
+          <h2 className="text-xl font-bold">Farm Manager</h2>
+        </div>
+        
+        <nav className="mt-6">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.name}
+                onClick={() => setActiveItem(item.name)}
+                className={`w-full flex items-center px-6 py-3 text-left hover:bg-green-700 transition-colors duration-200 ${
+                  activeItem === item.name ? 'bg-green-700 border-r-4 border-green-300' : ''
+                }`}
+              >
+                <Icon className="mr-3 h-5 w-5" />
+                <span>{item.name}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </>
+  );
+};
+
+// Header Component
+const Header = ({ toggleSidebar }) => {
+  return (
+    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <button
+            onClick={toggleSidebar}
+            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="ml-4 text-2xl font-semibold text-gray-800 lg:ml-0">Dashboard</h1>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <Bell className="h-6 w-6 text-gray-600" />
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+          </button>
+          
+          <div className="flex items-center space-x-3">
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-medium text-gray-700">John Smith</p>
+              <p className="text-xs text-gray-500">Farm Owner</p>
+            </div>
+            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+              <User className="h-6 w-6 text-green-600" />
+            </div>
+          </div>
+          
+          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <LogOut className="h-6 w-6 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+};
 
 // Main Dashboard Component
 const FarmerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-<<<<<<< HEAD
   const [activeItem, setActiveItem] = useState('Home');
-=======
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-<<<<<<< HEAD
   // Render the appropriate content based on active sidebar item
   const renderContent = () => {
     console.log('Current active item:', activeItem);
@@ -384,11 +350,10 @@ const FarmerDashboard = () => {
       case 'Home':
       default:
         return (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Welcome to Farm Manager</h2>
-              <p className="text-gray-600">Use the navigation menu to access different sections of your farm management system.</p>
-            </div>
+          <div>
+            <DashboardStats />
+            <ChartSection />
+            <ActivityTable />
           </div>
         );
     }
@@ -402,17 +367,11 @@ const FarmerDashboard = () => {
         activeItem={activeItem}
         setActiveItem={setActiveItem}
       />
-=======
-  return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header toggleSidebar={toggleSidebar} />
         
         <main className="flex-1 overflow-y-auto p-6">
-<<<<<<< HEAD
           <Suspense fallback={
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -423,11 +382,6 @@ const FarmerDashboard = () => {
           }>
             {renderContent()}
           </Suspense>
-=======
-          <DashboardStats />
-          <ChartSection />
-          <ActivityTable />
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
         </main>
       </div>
     </div>

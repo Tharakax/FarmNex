@@ -1,16 +1,10 @@
-<<<<<<< HEAD
-=======
 import axios from "axios";
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 import { useEffect, useState } from "react";
 import Navigation from "../../components/navigation";
 import { FaShoppingCart } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { addToCart } from "../../utils/cart.js";
-<<<<<<< HEAD
 import { productAPI } from "../../services/productAPI";
-=======
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 import toast from "react-hot-toast";
 
 export default function ProductsPage() {
@@ -35,7 +29,6 @@ export default function ProductsPage() {
     useEffect(() => {
         async function fetchProducts() {
             try {
-<<<<<<< HEAD
                 const result = await productAPI.getAllProducts();
                 if (result.success) {
                     setProducts(result.data);
@@ -48,18 +41,6 @@ export default function ProductsPage() {
             } catch (error) {
                 console.error("Error fetching products:", error);
                 toast.error(error.message || 'Failed to load products');
-=======
-                console.log(import.meta.env) 
-                const response = await axios.get(import.meta.env.VITE_BACKEND_URL+"/api/product/");
-                if (response.status === 200) {
-                    setProducts(response.data);
-                    setFilteredProducts(response.data);
-                    setLoading(false);
-                    console.log('Products fetched successfully:', response.data);
-                }
-            } catch (error) {
-                console.error("Error fetching products:", error);
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
                 setLoading(false);
             }
         }

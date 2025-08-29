@@ -3,11 +3,9 @@ import Product from '../models/product.js';
 import validator from 'validator';
 import User from '../models/user.js';
 import JWTauth from '../middleware/auth.js';
-
 // Save a new product
 
 export async function saveProduct(req, res) {
-<<<<<<< HEAD
   try {
     // Get user ID from authenticated user (if available)
     const userId = req.user?.id || null;
@@ -34,6 +32,8 @@ export async function saveProduct(req, res) {
     // Create product in database
     const product = await Product.create(productData);
     console.log('Product created successfully:', product.name);
+    console.log(productData.images);
+    console.log(req.body.images);
 
     res.status(201).json({
       success: true,
@@ -47,43 +47,6 @@ export async function saveProduct(req, res) {
       error: error.message
     });
   }
-=======
-  // Get user ID from authenticated user
-
-   console.log("params "+  req.user.id); 
-
-  // Assuming User._id is the ID of the authenticated user
-  // If images are uploaded, process them
-  
-
-  // Create product data object
-  const productData = {
-    name: req.body.name,
-    description: req.body.description,
-    price: req.body.price,
-    displayprice: req.body.displayprice || req.body.price, // Default to price if not provided
-    category: req.body.category,
-    stock: req.body.stock,
-    unit: req.body.unit,
-    images: req.body.images || [], // Default to empty array if no images
-    isFeatured: req.body.isFeatured || false,
-    discount: req.body.discount || 0,
-    tags: req.body.tags || [],
-    createdBy: req.user.id || null, // Use authenticated user's ID
-    shelfLife: req.body.shelfLife,
-    storageInstructions: req.body.storageInstructions
-  };
-
-  // Create product in database
-  const product = await Product.create(productData);
-  console.log(productData.images);
-    console.log(req.body.images);
-
-  res.status(201).json({
-    success: true,
-    product
-  });
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
 };
 
 export async function getAllProducts(req, res) {
@@ -91,84 +54,8 @@ export async function getAllProducts(req, res) {
     const products = await Product.find().populate('createdBy', 'firstName lastName email');
     res.status(200).json(products);
   } catch (error) {
-<<<<<<< HEAD
-    // If database connection fails, return mock data for development
-    console.log('Database connection failed, returning mock data');
-    const mockProducts = [
-      {
-        _id: '1',
-        name: 'Fresh Tomatoes',
-        description: 'Organic fresh tomatoes from local farm',
-        price: 5.99,
-        displayprice: 5.99,
-        category: 'Vegetables',
-        stock: 50,
-        unit: 'kg',
-        images: ['https://images.unsplash.com/photo-1546470427-e0b63eaf8b93?w=300'],
-        isFeatured: true,
-        discount: 0,
-        tags: ['organic', 'fresh', 'local'],
-        createdBy: {
-          _id: 'user1',
-          firstName: 'John',
-          lastName: 'Farmer',
-          email: 'john@farm.com'
-        },
-        shelfLife: '5-7 days',
-        storageInstructions: 'Store in cool, dry place',
-        createdAt: new Date().toISOString()
-      },
-      {
-        _id: '2',
-        name: 'Fresh Carrots',
-        description: 'Crunchy orange carrots rich in beta-carotene',
-        price: 3.99,
-        displayprice: 3.99,
-        category: 'Vegetables',
-        stock: 30,
-        unit: 'kg',
-        images: ['https://images.unsplash.com/photo-1445282768818-728615cc7b17?w=300'],
-        isFeatured: false,
-        discount: 10,
-        tags: ['healthy', 'vitamin-a'],
-        createdBy: {
-          _id: 'user1',
-          firstName: 'John',
-          lastName: 'Farmer',
-          email: 'john@farm.com'
-        },
-        shelfLife: '2-3 weeks',
-        storageInstructions: 'Refrigerate in vegetable drawer',
-        createdAt: new Date().toISOString()
-      },
-      {
-        _id: '3',
-        name: 'Free Range Eggs',
-        description: 'Fresh eggs from free-range chickens',
-        price: 8.99,
-        displayprice: 8.99,
-        category: 'Dairy & Eggs',
-        stock: 20,
-        unit: 'dozen',
-        images: ['https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=300'],
-        isFeatured: true,
-        discount: 0,
-        tags: ['free-range', 'protein'],
-        createdBy: {
-          _id: 'user2',
-          firstName: 'Sarah',
-          lastName: 'Poultry',
-          email: 'sarah@farm.com'
-        },
-        shelfLife: '3-4 weeks',
-        storageInstructions: 'Refrigerate immediately',
-        createdAt: new Date().toISOString()
-      }
-    ];
-    res.status(200).json(mockProducts);
-=======
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: 'Error fetching products', error: error.message });
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   }
 }
 
@@ -180,36 +67,8 @@ export async function getProductById(req, res) {
     }
     res.status(200).json(product);
   } catch (error) {
-<<<<<<< HEAD
-    // If database connection fails, return mock data for development
-    console.log('Database connection failed, returning mock product data');
-    const mockProduct = {
-      _id: req.params.id,
-      name: 'Mock Product',
-      description: 'This is a mock product for development',
-      price: 9.99,
-      displayprice: 9.99,
-      category: 'Mock Category',
-      stock: 10,
-      unit: 'piece',
-      images: ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'],
-      isFeatured: false,
-      discount: 0,
-      tags: ['mock', 'development'],
-      createdBy: {
-        _id: 'mock-user',
-        firstName: 'Mock',
-        lastName: 'User',
-        email: 'mock@example.com'
-      },
-      shelfLife: 'N/A',
-      storageInstructions: 'N/A',
-      createdAt: new Date().toISOString()
-    };
-    res.status(200).json(mockProduct);
-=======
+    console.error('Error fetching product:', error);
     res.status(500).json({ message: 'Error fetching product', error: error.message });
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
   }
 }
 

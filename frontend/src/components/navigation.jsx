@@ -144,7 +144,6 @@ const Navigation = () => {
                     </>
                   )}
                 </NavLink>
-<<<<<<< HEAD
                 <NavLink 
                   to="/farmer-dashboard" 
                   className={({ isActive }) => 
@@ -164,8 +163,6 @@ const Navigation = () => {
                     </>
                   )}
                 </NavLink>
-=======
->>>>>>> 9d4ce885325407505be00e0308db71a082e385c5
               </div>
             </div>
 
