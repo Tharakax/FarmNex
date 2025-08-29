@@ -12,7 +12,7 @@ const HomePage = () => {
   const featuredProducts = [
     {
       id: 1,
-      name: "Organic Tomatoes",
+      name: "Fresh Tomatoes",
       price: "$4.99/lb",
       image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&h=300&fit=crop",
       rating: 4.8,
@@ -20,11 +20,11 @@ const HomePage = () => {
     },
     {
       id: 2,
-      name: "Fresh Spinach",
-      price: "$3.49/bunch",
-      image: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400&h=300&fit=crop",
+      name: "Farm Eggs",
+      price: "$5.99/dozen",
+      image: "https://images.unsplash.com/photo-1518569656558-1f25e69d93d7?w=400&h=300&fit=crop",
       rating: 4.9,
-      badge: "Organic"
+      badge: "Premium"
     },
     {
       id: 3,
@@ -39,17 +39,17 @@ const HomePage = () => {
   const testimonials = [
     {
       name: "Sarah Johnson",
-      text: "The freshest organic produce I've ever purchased! CropCart has become my go-to for all vegetables.",
+      text: "The freshest farm products I've ever purchased! FarmNex has become my go-to for all farm produce.",
       rating: 5
     },
     {
       name: "Michael Chen",
-      text: "Excellent quality and fast delivery. Love supporting local organic farmers through CropCart.",
+      text: "Excellent quality and fast delivery. Love supporting local farmers through FarmNex.",
       rating: 5
     },
     {
       name: "Emma Rodriguez",
-      text: "Amazing selection and the produce stays fresh for weeks. Highly recommend!",
+      text: "Amazing selection of both crops and animal products. Everything stays fresh for weeks!",
       rating: 5
     }
   ];
@@ -78,43 +78,83 @@ const HomePage = () => {
     }
   ];
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-100 relative overflow-hidden">
+      {/* 3D Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-green-400/20 to-emerald-600/20 rounded-full blur-xl animate-pulse transform rotate-45 shadow-2xl"></div>
+        <div className="absolute top-60 right-20 w-48 h-48 bg-gradient-to-tl from-teal-300/15 to-green-500/15 rounded-full blur-2xl animate-bounce transform -rotate-12 shadow-2xl"></div>
+        <div className="absolute bottom-40 left-1/4 w-24 h-24 bg-gradient-to-r from-emerald-400/25 to-green-600/25 rounded-full blur-lg animate-ping transform rotate-90 shadow-xl"></div>
+        <div className="absolute top-1/2 right-1/3 w-40 h-40 bg-gradient-to-bl from-green-300/10 to-teal-400/10 rounded-full blur-xl animate-pulse transform rotate-180 shadow-2xl"></div>
+      </div>
+      
       <div>
         <Navigation />
       </div>
 
       <div className='pt-10'>
         
-        {/* Hero Section with Background Image */}
+        {/* Hero Section with 3D Background */}
         <section 
           id="home" 
-          className="relative py-20 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center"
+          className="relative py-20 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center transform-gpu"
           style={{
-            backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.pexels.com/photos/8633675/pexels-photo-8633675.jpeg')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed'
+            background: `
+              linear-gradient(135deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 30%, rgba(0, 0, 0, 0.65) 100%),
+              radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.3) 0%, transparent 70%),
+              url('https://images.unsplash.com/photo-1500651230702-0e2d8a49d4ad?w=1920&h=1080&fit=crop&crop=center')
+            `,
+            backgroundSize: 'cover, 100% 100%, cover',
+            backgroundPosition: 'center, center, center',
+            backgroundAttachment: 'fixed, scroll, fixed',
+            boxShadow: 'inset 0 0 200px rgba(0, 0, 0, 0.4)'
           }}
         >
           <div className="max-w-7xl mx-auto relative z-10">
             <div className="text-center">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 drop-shadow-lg">
-                Fresh <span className="text-green-400">Organic</span> Crops
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 transform-gpu" style={{
+                textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 4px 8px rgba(0,0,0,0.7), 0 8px 16px rgba(0,0,0,0.5)',
+                transform: 'perspective(1000px) rotateX(5deg)',
+                filter: 'drop-shadow(0 0 10px rgba(0,0,0,0.8))'
+              }}>
+                Fresh <span className="text-green-300 animate-pulse" style={{
+                  textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(34, 197, 94, 0.8), 0 0 40px rgba(34, 197, 94, 0.6)',
+                  filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.8))'
+                }}>Farm</span> Products
                 <br />
-                <span className="text-green-400">Delivered</span> to Your Door
+                <span className="text-green-300 animate-pulse" style={{
+                  textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(34, 197, 94, 0.8), 0 0 40px rgba(34, 197, 94, 0.6)',
+                  filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.8))'
+                }}>Delivered</span> to Your Door
               </h1>
-              <p className="text-xl text-white mb-8 max-w-3xl mx-auto drop-shadow-md">
-                Experience the finest organic produce sourced directly from local farms. 
+              <p className="text-xl text-white mb-8 max-w-3xl mx-auto transform-gpu" style={{
+                textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 4px 8px rgba(0,0,0,0.7)',
+                transform: 'perspective(800px) rotateX(2deg)',
+                filter: 'drop-shadow(0 0 6px rgba(0,0,0,0.7))',
+                backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                backdropFilter: 'blur(8px)'
+              }}>
+                Experience the finest farm products including fresh crops and quality animal products sourced directly from local farms. 
                 Fresh, healthy, and sustainable - that's our promise to you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <NavLink to="/products">
-                  <button className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg">
+                  <button className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-green-700 hover:via-green-600 hover:to-emerald-700 transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
+                    boxShadow: '0 8px 25px rgba(34, 197, 94, 0.6), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                    transform: 'perspective(500px) rotateX(-5deg)',
+                    filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))'
+                  }}>
                     Shop Now
                   </button>
                 </NavLink>
                 <NavLink to="/training">
-                  <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-green-600 transition-colors backdrop-blur-sm inline-flex items-center">
+                  <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-green-600 transition-all backdrop-blur-sm inline-flex items-center transform hover:scale-105 hover:-rotate-1 transform-gpu" style={{
+                    boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)',
+                    transform: 'perspective(500px) rotateX(-5deg)',
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                    filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))'
+                  }}>
                     <BookOpen className="mr-2 h-5 w-5" />
                     Explore Training
                   </button>
@@ -123,56 +163,95 @@ const HomePage = () => {
             </div>
           </div>
           
-          {/* Floating animation elements */}
-          <div className="absolute top-20 left-10 animate-bounce">
-            <div className="w-8 h-8 bg-green-400 rounded-full opacity-70"></div>
+          {/* 3D Floating animation elements */}
+          <div className="absolute top-20 left-10 animate-bounce transform-gpu" style={{
+            transform: 'perspective(400px) rotateX(45deg) rotateY(45deg)'
+          }}>
+            <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full opacity-70 shadow-2xl" style={{
+              boxShadow: '0 8px 25px rgba(34, 197, 94, 0.6), inset 0 2px 4px rgba(255,255,255,0.3)'
+            }}></div>
           </div>
-          <div className="absolute top-40 right-20 animate-pulse">
-            <div className="w-6 h-6 bg-yellow-400 rounded-full opacity-60"></div>
+          <div className="absolute top-40 right-20 animate-pulse transform-gpu" style={{
+            transform: 'perspective(400px) rotateX(-30deg) rotateY(-30deg)'
+          }}>
+            <div className="w-6 h-6 bg-gradient-to-tr from-yellow-400 to-orange-500 rounded-full opacity-60 shadow-xl" style={{
+              boxShadow: '0 6px 20px rgba(251, 191, 36, 0.5), inset 0 1px 2px rgba(255,255,255,0.4)'
+            }}></div>
           </div>
-          <div className="absolute bottom-32 left-1/4 animate-bounce" style={{animationDelay: '1s'}}>
-            <div className="w-4 h-4 bg-orange-400 rounded-full opacity-50"></div>
+          <div className="absolute bottom-32 left-1/4 animate-bounce transform-gpu" style={{animationDelay: '1s', transform: 'perspective(300px) rotateX(60deg)'}}>
+            <div className="w-4 h-4 bg-gradient-to-bl from-orange-400 to-red-500 rounded-full opacity-50 shadow-lg" style={{
+              boxShadow: '0 4px 15px rgba(249, 115, 22, 0.4), inset 0 1px 2px rgba(255,255,255,0.3)'
+            }}></div>
           </div>
         </section>
 
-        {/* Features Section with Background Pattern */}
+        {/* Features Section with 3D Background Pattern */}
         <section 
-          className="py-16 relative"
+          className="py-16 relative transform-gpu"
           style={{
-            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95)), url('https://images.pexels.com/photos/128402/pexels-photo-128402.jpeg')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed'
+            background: `
+              linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(34, 197, 94, 0.05) 50%, rgba(255, 255, 255, 0.95) 100%),
+              radial-gradient(circle at 20% 30%, rgba(34, 197, 94, 0.1) 0%, transparent 40%),
+              radial-gradient(circle at 80% 70%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+              url('https://images.unsplash.com/photo-1574943320219-553eb213f72d?w=1920&h=1080&fit=crop&crop=center')
+            `,
+            backgroundSize: 'cover, 100% 100%, 100% 100%, cover',
+            backgroundAttachment: 'scroll, scroll, scroll, fixed',
+            boxShadow: 'inset 0 0 50px rgba(34, 197, 94, 0.1), 0 -10px 30px rgba(34, 197, 94, 0.1)'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose CropCart?</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose FarmNex?</h2>
               <p className="text-gray-600 max-w-2xl mx-auto">
-                We're committed to bringing you the freshest, highest quality organic produce 
+                We're committed to bringing you the freshest, highest quality farm products including crops and animal products 
                 while supporting sustainable farming practices.
               </p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center p-6 rounded-lg hover:shadow-xl transition-all transform hover:scale-105 bg-white/80 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <div className="text-center p-6 rounded-xl hover:shadow-2xl transition-all transform hover:scale-105 hover:-rotate-1 transform-gpu" style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(34, 197, 94, 0.05) 100%)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 32px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
+                transform: 'perspective(500px) rotateX(-2deg)'
+              }}>
+                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
+                  boxShadow: '0 8px 25px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255,255,255,0.8)',
+                  transform: 'perspective(300px) rotateX(-10deg)'
+                }}>
                   <Leaf className="h-8 w-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">100% Organic</h3>
-                <p className="text-gray-600">Certified organic produce grown without harmful pesticides or chemicals.</p>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Quality Assured</h3>
+                <p className="text-gray-600">Premium quality farm products including fresh crops and ethically sourced animal products.</p>
               </div>
               
-              <div className="text-center p-6 rounded-lg hover:shadow-xl transition-all transform hover:scale-105 bg-white/80 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <div className="text-center p-6 rounded-xl hover:shadow-2xl transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(34, 197, 94, 0.05) 100%)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 32px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
+                transform: 'perspective(500px) rotateX(-2deg)'
+              }}>
+                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
+                  boxShadow: '0 8px 25px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255,255,255,0.8)',
+                  transform: 'perspective(300px) rotateX(-10deg)'
+                }}>
                   <Truck className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Fast Delivery</h3>
                 <p className="text-gray-600">Same-day delivery available to ensure maximum freshness.</p>
               </div>
               
-              <div className="text-center p-6 rounded-lg hover:shadow-xl transition-all transform hover:scale-105 bg-white/80 backdrop-blur-sm">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <div className="text-center p-6 rounded-xl hover:shadow-2xl transition-all transform hover:scale-105 hover:-rotate-1 transform-gpu" style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(34, 197, 94, 0.05) 100%)',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 8px 32px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
+                transform: 'perspective(500px) rotateX(-2deg)'
+              }}>
+                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
+                  boxShadow: '0 8px 25px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255,255,255,0.8)',
+                  transform: 'perspective(300px) rotateX(-10deg)'
+                }}>
                   <Shield className="h-8 w-8 text-green-600" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Quality Guarantee</h3>
@@ -182,15 +261,21 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* Training Section */}
+        {/* Training Section with 3D Background */}
         <section 
           id="training" 
-          className="py-16 relative"
+          className="py-16 relative transform-gpu"
           style={{
-            backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.95)), url('https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=1200&h=800&fit=crop')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed'
+            background: `
+              linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(34, 197, 94, 0.2) 30%, rgba(15, 23, 42, 0.95) 70%, rgba(21, 128, 61, 0.3) 100%),
+              radial-gradient(circle at 25% 25%, rgba(34, 197, 94, 0.3) 0%, transparent 50%),
+              radial-gradient(circle at 75% 75%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
+              url('https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1920&h=1080&fit=crop&crop=center')
+            `,
+            backgroundSize: 'cover, 100% 100%, 100% 100%, cover',
+            backgroundPosition: 'center, center, center, center',
+            backgroundAttachment: 'fixed, scroll, scroll, fixed',
+            boxShadow: 'inset 0 0 100px rgba(34, 197, 94, 0.2)'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -206,8 +291,16 @@ const HomePage = () => {
               {trainingHighlights.map((highlight, index) => {
                 const IconComponent = highlight.icon;
                 return (
-                  <div key={index} className="bg-white/95 backdrop-blur-sm p-6 rounded-lg hover:shadow-xl transition-all transform hover:scale-105">
-                    <div className={`w-16 h-16 ${highlight.color} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                  <div key={index} className="transform-gpu p-6 rounded-xl hover:shadow-2xl transition-all transform hover:scale-105 hover:rotate-1" style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(34, 197, 94, 0.08) 100%)',
+                    backdropFilter: 'blur(15px)',
+                    boxShadow: '0 10px 40px rgba(34, 197, 94, 0.2), inset 0 1px 0 rgba(255,255,255,0.9)',
+                    transform: 'perspective(600px) rotateX(-3deg)'
+                  }}>
+                    <div className={`w-16 h-16 ${highlight.color} rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu`} style={{
+                      boxShadow: '0 10px 30px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255,255,255,0.9)',
+                      transform: 'perspective(400px) rotateX(-15deg)'
+                    }}>
                       <IconComponent className="h-8 w-8" />
                     </div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-2 text-center">{highlight.title}</h3>
@@ -233,32 +326,46 @@ const HomePage = () => {
             </div>
           </div>
         </section>
-        {/* Featured Products with Subtle Background */}
+        {/* Featured Products with 3D Background */}
         <section 
           id="products" 
-          className="py-16 relative"
+          className="py-16 relative transform-gpu"
           style={{
-            backgroundImage: `linear-gradient(rgba(249, 250, 251, 0.9), rgba(249, 250, 251, 0.9)), url('https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&h=800&fit=crop')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
+            background: `
+              linear-gradient(145deg, rgba(249, 250, 251, 0.95) 0%, rgba(34, 197, 94, 0.03) 40%, rgba(249, 250, 251, 0.9) 100%),
+              radial-gradient(circle at 30% 40%, rgba(34, 197, 94, 0.06) 0%, transparent 50%),
+              radial-gradient(circle at 70% 60%, rgba(16, 185, 129, 0.04) 0%, transparent 50%),
+              url('https://images.unsplash.com/photo-1500937386664-56d1dfef3854?w=1920&h=1080&fit=crop&crop=center')
+            `,
+            backgroundSize: 'cover, 100% 100%, 100% 100%, cover',
+            backgroundPosition: 'center, center, center, center',
+            boxShadow: 'inset 0 0 80px rgba(34, 197, 94, 0.05)'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Products</h2>
-              <p className="text-gray-600">Handpicked fresh produce from our trusted local farmers</p>
+              <p className="text-gray-600">Handpicked fresh crops and quality animal products from our trusted local farmers</p>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {featuredProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105">
+                <div key={product.id} className="rounded-xl overflow-hidden hover:shadow-2xl transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(34, 197, 94, 0.02) 100%)',
+                  boxShadow: '0 10px 40px rgba(34, 197, 94, 0.15), inset 0 1px 0 rgba(255,255,255,0.9)',
+                  transform: 'perspective(800px) rotateX(-2deg)'
+                }}>
                   <div className="relative overflow-hidden">
                     <img 
                       src={product.image} 
                       alt={product.name}
                       className="w-full h-48 object-cover transition-transform hover:scale-110"
                     />
-                    <span className="absolute top-4 left-4 bg-green-600 text-white px-2 py-1 rounded-full text-sm font-medium shadow-lg">
+                    <span className="absolute top-4 left-4 text-white px-2 py-1 rounded-full text-sm font-medium transform-gpu" style={{
+                      background: 'linear-gradient(135deg, #16a34a 0%, #059669 100%)',
+                      boxShadow: '0 6px 20px rgba(34, 197, 94, 0.4), inset 0 1px 2px rgba(255,255,255,0.3)',
+                      transform: 'perspective(200px) rotateX(-10deg)'
+                    }}>
                       {product.badge}
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 hover:opacity-100 transition-opacity"></div>
@@ -278,7 +385,11 @@ const HomePage = () => {
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-2xl font-bold text-green-600">{product.price}</span>
-                      <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all transform hover:scale-105 shadow-md">
+                      <button className="text-white px-4 py-2 rounded-lg hover:shadow-xl transition-all transform hover:scale-105 hover:-rotate-1 transform-gpu" style={{
+                        background: 'linear-gradient(135deg, #16a34a 0%, #059669 100%)',
+                        boxShadow: '0 6px 20px rgba(34, 197, 94, 0.3), inset 0 1px 2px rgba(255,255,255,0.2)',
+                        transform: 'perspective(300px) rotateX(-5deg)'
+                      }}>
                         Add to Cart
                       </button>
                     </div>
@@ -288,7 +399,11 @@ const HomePage = () => {
             </div>
             
             <div className="text-center mt-12">
-              <button className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-all transform hover:scale-105 inline-flex items-center shadow-lg">
+              <button className="text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 hover:rotate-1 inline-flex items-center transform-gpu" style={{
+                background: 'linear-gradient(135deg, #16a34a 0%, #059669 100%)',
+                boxShadow: '0 8px 30px rgba(34, 197, 94, 0.4), inset 0 1px 2px rgba(255,255,255,0.2)',
+                transform: 'perspective(400px) rotateX(-5deg)'
+              }}>
                 View All Products
                 <ArrowRight className="ml-2 h-5 w-5" />
               </button>
@@ -300,7 +415,7 @@ const HomePage = () => {
         <section 
           className="py-16 relative"
           style={{
-            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95)), url('https://images.pexels.com/photos/219794/pexels-photo-219794.jpeg')`,
+            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95)), url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1920&h=1080&fit=crop&crop=center')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundAttachment: 'fixed'
@@ -309,12 +424,17 @@ const HomePage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
-              <p className="text-gray-600">Join thousands of satisfied customers who trust CropCart</p>
+              <p className="text-gray-600">Join thousands of satisfied customers who trust FarmNex</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {testimonials.map((testimonial, index) => (
-                <div key={index} className="bg-white/90 backdrop-blur-sm p-6 rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                <div key={index} className="p-6 rounded-xl hover:shadow-2xl transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(34, 197, 94, 0.03) 100%)',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: '0 10px 40px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
+                  transform: 'perspective(600px) rotateX(-2deg)'
+                }}>
                   <div className="flex items-center mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
                       <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
@@ -337,16 +457,16 @@ const HomePage = () => {
         <section 
           className="py-16 relative overflow-hidden"
           style={{
-            backgroundImage: `linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(21, 128, 61, 0.9)), url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1200&h=800&fit=crop')`,
+            backgroundImage: `linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(21, 128, 61, 0.9)), url('https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&h=1080&fit=crop&crop=center')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundAttachment: 'fixed'
           }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-lg">Ready to Start Your Organic Journey?</h2>
+            <h2 className="text-3xl font-bold text-white mb-4 drop-shadow-lg">Ready to Start Your Farm Fresh Journey?</h2>
             <p className="text-green-100 text-xl mb-8 max-w-2xl mx-auto drop-shadow-md">
-              Join our community of health-conscious customers and enjoy fresh, organic produce delivered to your doorstep.
+              Join our community of health-conscious customers and enjoy fresh farm products including crops and animal products delivered to your doorstep.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg">
@@ -368,7 +488,7 @@ const HomePage = () => {
         <footer 
           className="relative py-12"
           style={{
-            backgroundImage: `linear-gradient(rgba(17, 24, 39, 0.95), rgba(17, 24, 39, 0.95)), url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=800&fit=crop')`,
+            backgroundImage: `linear-gradient(rgba(17, 24, 39, 0.95), rgba(17, 24, 39, 0.95)), url('https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=1920&h=1080&fit=crop&crop=center')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -378,10 +498,10 @@ const HomePage = () => {
               <div>
                 <div className="flex items-center space-x-2 mb-4">
                   <Leaf className="h-8 w-8 text-green-400" />
-                  <span className="text-2xl font-bold">CropCart</span>
+                  <span className="text-2xl font-bold">FarmNex</span>
                 </div>
                 <p className="text-gray-300">
-                  Your trusted source for fresh, organic produce delivered straight from local farms.
+                  Your trusted source for fresh farm products including crops and animal products delivered straight from local farms.
                 </p>
               </div>
               
@@ -408,7 +528,7 @@ const HomePage = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Contact Info</h3>
                 <div className="space-y-2 text-gray-300">
-                  <p>Email: info@cropcart.com</p>
+                  <p>Email: info@farmnex.com</p>
                   <p>Phone: (555) 123-4567</p>
                   <p>Address: 123 Farm Street, Green Valley, CA 90210</p>
                 </div>
@@ -416,7 +536,7 @@ const HomePage = () => {
             </div>
             
             <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-              <p>&copy; 2024 CropCart. All rights reserved.</p>
+              <p>&copy; 2024 FarmNex. All rights reserved.</p>
             </div>
           </div>
         </footer>
