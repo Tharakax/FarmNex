@@ -7,6 +7,9 @@ const createFormData = (data) => {
   Object.keys(data).forEach(key => {
     if (key === 'file' && data[key]) {
       formData.append('file', data[key]);
+    } else if (key === 'tags' && Array.isArray(data[key])) {
+      // Convert array back to comma-separated string for backend
+      formData.append(key, data[key].join(', '));
     } else if (data[key] !== null && data[key] !== undefined) {
       formData.append(key, data[key]);
     }
@@ -47,7 +50,8 @@ export const trainingAPI = {
       throw new Error('Failed to fetch training material');
     }
     
-    return response.json();
+    const data = await response.json();
+    return data; // Return material directly to match backend response
   },
 
   // Create new training material
@@ -116,8 +120,94 @@ export const trainingAPI = {
   },
 };
 
+// Farm Supplies API methods
+export const farmSuppliesAPI = {
+  // Get all farm supplies
+  getAllSupplies: async () => {
+    const response = await fetch(`${API_BASE_URL}/farmsupplies`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch farm supplies');
+    }
+    
+    return response.json();
+  },
+
+  // Get single farm supply by ID
+  getSupplyById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/farmsupplies/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch farm supply');
+    }
+    
+    return response.json();
+  },
+
+  // Create new farm supply
+  createSupply: async (data) => {
+    const response = await fetch(`${API_BASE_URL}/farmsupplies`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to create farm supply');
+    }
+    
+    return response.json();
+  },
+
+  // Update farm supply
+  updateSupply: async (id, data) => {
+    const response = await fetch(`${API_BASE_URL}/farmsupplies/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to update farm supply');
+    }
+    
+    return response.json();
+  },
+
+  // Delete farm supply
+  deleteSupply: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/farmsupplies/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete farm supply');
+    }
+    
+    return response.json();
+  },
+};
+
 // Export for other components that might need general API functionality
 export default {
   trainingAPI,
+  farmSuppliesAPI,
   API_BASE_URL,
 };

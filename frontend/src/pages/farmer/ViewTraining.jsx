@@ -17,7 +17,7 @@ const ViewTraining = () => {
   const fetchMaterial = async () => {
     try {
       const response = await trainingAPI.getMaterialById(id);
-      setMaterial(response.data);
+      setMaterial(response.data || response);
     } catch (err) {
       console.error('Error fetching material:', err);
       setError('Failed to load training material');

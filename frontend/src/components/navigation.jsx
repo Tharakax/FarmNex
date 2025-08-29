@@ -41,7 +41,7 @@ const Navigation = () => {
                   <div className="absolute inset-0 bg-green-400 rounded-full opacity-0 group-hover:opacity-20 transform scale-0 group-hover:scale-150 transition-all duration-300"></div>
                 </div>
                 <span className="ml-3 text-2xl font-bold bg-gradient-to-r from-green-700 to-green-500 bg-clip-text text-transparent group-hover:from-green-600 group-hover:to-green-400 transition-all duration-300">
-                  CropCart
+                  FarmNex
                 </span>
               </Link>
             </div>
@@ -144,6 +144,25 @@ const Navigation = () => {
                     </>
                   )}
                 </NavLink>
+                <NavLink 
+                  to="/farmer-dashboard" 
+                  className={({ isActive }) => 
+                    `relative px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
+                      isActive 
+                        ? 'text-white bg-gradient-to-r from-green-600 to-green-500 shadow-lg shadow-green-200' 
+                        : 'text-gray-700 hover:text-green-600 hover:bg-green-50/80 hover:shadow-md'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      Dashboard
+                      {isActive && (
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      )}
+                    </>
+                  )}
+                </NavLink>
               </div>
             </div>
 
@@ -161,7 +180,7 @@ const Navigation = () => {
                     className={`block w-64 pl-12 pr-4 py-3 border-2 rounded-full leading-5 bg-white/80 backdrop-blur-sm placeholder-gray-500 transition-all duration-300 focus:outline-none focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm shadow-md hover:shadow-lg ${
                       searchFocused ? 'border-green-400 shadow-lg shadow-green-100' : 'border-gray-200 hover:border-green-300'
                     }`}
-                    placeholder="Search for organic produce..."
+                    placeholder="Search for farm products..."
                     type="search"
                   />
                   {searchFocused && (
@@ -233,7 +252,7 @@ const Navigation = () => {
                 </div>
                 <input
                   className="block w-full pl-12 pr-4 py-3 border-2 border-green-200 rounded-full leading-5 bg-white/90 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm shadow-md transition-all duration-300"
-                  placeholder="Search for organic produce..."
+                  placeholder="Search for farm products..."
                   type="search"
                 />
               </div>
