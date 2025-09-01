@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Export Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <h1>PDF Export Test</h1>
+    <button onclick="testPDFExport()">Test PDF Export</button>
+    
+    <script>
+        function testPDFExport() {
+            try {
+                console.log('Testing PDF export...');
+                
+                // Create a new PDF document
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                
+                // Add some basic content
+                pdf.setFontSize(20);
+                pdf.setTextColor('#22c55e');
+                pdf.text('FarmNex Dashboard', pageWidth / 2, 30, { align: 'center' });
+                
+                pdf.setFontSize(16);
+                pdf.setTextColor('#374151');
+                pdf.text('Products Report Test', pageWidth / 2, 45, { align: 'center' });
+                
+                // Test auto table functionality
+                const sampleData = [
+                    ['Product 1', 'Vegetables', '$10.00', '100', 'In Stock'],
+                    ['Product 2', 'Fruits', '$15.00', '50', 'Low Stock'],
+                    ['Product 3', 'Dairy', '$5.00', '200', 'In Stock']
+                ];
+                
+                pdf.autoTable({
+                    head: [['Name', 'Category', 'Price', 'Stock', 'Status']],
+                    body: sampleData,
+                    startY: 70,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [34, 197, 94],
+                        textColor: 255,
+                        fontSize: 11,
+                        fontStyle: 'bold'
+                    },
+                    bodyStyles: {
+                        fontSize: 9,
+                        cellPadding: 3
+                    }
+                });
+                
+                // Try to save the PDF
+                pdf.save('test-products-report.pdf');
+                console.log('PDF export test successful!');
+                alert('PDF exported successfully!');
+                return true;
+            } catch (error) {
+                console.error('PDF export test failed:', error);
+                alert('PDF export failed: ' + error.message);
+                return false;
+            }
+        }
+    </script>
+</body>
+</html>

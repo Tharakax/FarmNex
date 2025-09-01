@@ -32,73 +32,161 @@ const BRAND_COLORS = {
  */
 export const exportToPDF = (data, title, columns, filename = 'export') => {
   try {
+    console.log('Starting PDF export with data:', data.length, 'items');
+    
+    // Validate input data
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('No data available to export');
+    }
+    
+    if (!columns || !Array.isArray(columns) || columns.length === 0) {
+      throw new Error('No columns defined for export');
+    }
+
+    // Create PDF instance
     const pdf = new jsPDF('p', 'mm', 'a4');
+    
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     
+    console.log('PDF instance created, dimensions:', pageWidth, 'x', pageHeight);
+    console.log('Checking autoTable availability...');
+    
     // Add company header
-    pdf.setFontSize(PDF_STYLES.titleFontSize);
-    pdf.setTextColor(BRAND_COLORS.primary);
+    pdf.setFontSize(20);
+    pdf.setTextColor(34, 197, 94);
     pdf.text('FarmNex Dashboard', pageWidth / 2, 30, { align: 'center' });
     
     // Add title
-    pdf.setFontSize(PDF_STYLES.headerFontSize);
-    pdf.setTextColor(BRAND_COLORS.secondary);
-    pdf.text(title, pageWidth / 2, 45, { align: 'center' });
+    pdf.setFontSize(16);
+    pdf.setTextColor(55, 65, 81);
+    pdf.text(title || 'Report', pageWidth / 2, 45, { align: 'center' });
     
     // Add export date
     pdf.setFontSize(10);
-    pdf.setTextColor(BRAND_COLORS.secondary);
-    const currentDate = new Date().toLocaleDateString();
-    pdf.text(`Generated on: ${currentDate}`, pageWidth / 2, 55, { align: 'center' });
+    pdf.setTextColor(55, 65, 81);
+    pdf.text(`Generated on: ${new Date().toLocaleDateString()}`, pageWidth / 2, 55, { align: 'center' });
     
     // Prepare table data
-    const headers = columns.map(col => col.header);
+    const headers = columns.map(col => col.header || col.key || '');
     const rows = data.map(item => 
       columns.map(col => {
-        const value = item[col.key];
-        return value !== null && value !== undefined ? String(value) : '';
+        let value = item[col.key];
+        if (value === null || value === undefined) return '';
+        
+        const stringValue = String(value).replace(/[\r\n\t]/g, ' ').trim();
+        return stringValue.length > 35 ? stringValue.substring(0, 32) + '...' : stringValue;
       })
     );
     
-    // Add table
-    pdf.autoTable({
-      head: [headers],
-      body: rows,
-      startY: 70,
-      theme: 'striped',
-      headStyles: {
-        fillColor: BRAND_COLORS.primary,
-        textColor: 255,
-        fontSize: 11,
-        fontStyle: 'bold'
-      },
-      bodyStyles: {
-        fontSize: 9,
-        cellPadding: 3
-      },
-      alternateRowStyles: {
-        fillColor: [245, 245, 245]
-      },
-      margin: { top: 70, left: PDF_STYLES.margin, right: PDF_STYLES.margin },
-      columnStyles: {},
-      didDrawPage: (data) => {
-        // Add footer with page numbers
-        pdf.setFontSize(8);
-        pdf.setTextColor(BRAND_COLORS.secondary);
-        const pageNum = pdf.internal.getNumberOfPages();
-        const currentPage = data.pageNumber;
-        pdf.text(`Page ${currentPage} of ${pageNum}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    console.log('Table data prepared. Headers:', headers.length, 'Rows:', rows.length);
+    
+    // Use autoTable through the pdf instance (attached by side-effect import)
+    console.log('Using pdf.autoTable method');
+    
+    try {
+      // Check if autoTable is available on the pdf instance
+      if (typeof pdf.autoTable !== 'function') {
+        throw new Error('autoTable plugin not properly loaded');
       }
-    });
+      
+      pdf.autoTable({
+        head: [headers],
+        body: rows,
+        startY: 65,
+        theme: 'striped',
+        margin: { left: 10, right: 10 },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: 'linebreak'
+        },
+        headStyles: {
+          fillColor: [34, 197, 94],
+          textColor: [255, 255, 255],
+          fontSize: 9,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [50, 50, 50]
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        }
+      });
+    } catch (autoTableError) {
+      console.error('AutoTable failed, using manual table generation:', autoTableError);
+      
+      // Manual table creation as fallback
+      let yPosition = 70;
+      const rowHeight = 8;
+      const colWidth = Math.max(15, (pageWidth - 20) / headers.length);
+      let xStart = 10;
+      
+      // Header
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFillColor(34, 197, 94);
+      pdf.rect(xStart, yPosition - 5, pageWidth - 20, rowHeight, 'F');
+      
+      let x = xStart + 2;
+      headers.forEach((header, i) => {
+        pdf.text(String(header).substring(0, 12), x, yPosition);
+        x += colWidth;
+      });
+      
+      yPosition += rowHeight;
+      
+      // Data rows
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(0, 0, 0);
+      
+      rows.forEach((row, rowIndex) => {
+        // Alternate row colors
+        if (rowIndex % 2 === 0) {
+          pdf.setFillColor(248, 250, 252);
+          pdf.rect(xStart, yPosition - 5, pageWidth - 20, rowHeight, 'F');
+        }
+        
+        x = xStart + 2;
+        row.forEach((cell, i) => {
+          const cellText = String(cell).substring(0, 12);
+          pdf.text(cellText, x, yPosition);
+          x += colWidth;
+        });
+        yPosition += rowHeight;
+        
+        // Page break check
+        if (yPosition > pageHeight - 30) {
+          pdf.addPage();
+          yPosition = 30;
+        }
+      });
+    }
+    
+    // Add page numbers
+    const pageCount = pdf.internal.getNumberOfPages();
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
+    
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    }
+    
+    console.log('PDF generation completed, saving file');
     
     // Save the PDF
     pdf.save(`${filename}.pdf`);
     return true;
+    
   } catch (error) {
     console.error('Error exporting to PDF:', error);
-    alert('Failed to export PDF. Please try again.');
-    return false;
+    throw new Error(`PDF Export Failed: ${error.message || 'Unknown error occurred'}`);
   }
 };
 

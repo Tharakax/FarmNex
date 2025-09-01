@@ -175,50 +175,109 @@ const ProductManagement = () => {
   };
 
   // Export handlers
-  const handleExportToPDF = () => {
+  const handleExportToPDF = async () => {
+    // Show loading toast
+    const loadingToast = toast.loading('Generating PDF report...');
+    
     try {
-      // Prepare data for export
-      const exportData = filteredProducts.map(product => ({
-        id: product._id || product.id,
-        name: product.name,
-        category: product.category,
-        description: product.description,
-        price: product.price || 0,
-        stockQuantity: product.stock?.current || 0,
-        unit: product.unit || 'units',
-        status: (() => {
-          const current = product.stock?.current || 0;
-          const minimum = product.stock?.minimum || 5;
-          if (current === 0) return 'Out of Stock';
-          if (current <= minimum) return 'Low Stock';
-          return 'In Stock';
-        })(),
-        createdDate: product.createdAt || new Date().toISOString().split('T')[0]
-      }));
+      // Validate data
+      if (!filteredProducts || filteredProducts.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.error('No products available to export');
+        return;
+      }
 
-      // Process data with formatting
-      const processedData = processDataForExport(
-        exportData, 
-        ['price'], 
-        ['createdDate']
-      );
+      // Prepare data for export with better error handling
+      const exportData = filteredProducts.map((product, index) => {
+        try {
+          return {
+            id: product._id || product.id || `P${index + 1}`,
+            name: product.name || 'Unknown Product',
+            category: product.category || 'Uncategorized',
+            description: (product.description || 'No description available').substring(0, 80),
+            price: product.price || 0,
+            stockQuantity: product.stock?.current ?? product.stockQuantity ?? 0,
+            unit: product.unit || 'units',
+            status: (() => {
+              const current = product.stock?.current ?? product.stockQuantity ?? 0;
+              const minimum = product.stock?.minimum || 5;
+              if (current === 0) return 'Out of Stock';
+              if (current <= minimum) return 'Low Stock';
+              return 'In Stock';
+            })(),
+            createdDate: product.createdAt || product.createdDate || new Date().toISOString().split('T')[0]
+          };
+        } catch (productError) {
+          console.warn('Error processing product:', product, productError);
+          return {
+            id: `P${index + 1}`,
+            name: 'Error loading product',
+            category: 'Unknown',
+            description: 'Data unavailable',
+            price: 0,
+            stockQuantity: 0,
+            unit: 'units',
+            status: 'Unknown',
+            createdDate: new Date().toISOString().split('T')[0]
+          };
+        }
+      });
+
+      // Process data with formatting (skip this if causing issues)
+      let processedData;
+      try {
+        processedData = processDataForExport(
+          exportData, 
+          ['price'], 
+          ['createdDate']
+        );
+      } catch (processError) {
+        console.warn('Error in processDataForExport, using raw data:', processError);
+        processedData = exportData;
+      }
 
       // Generate filename with current filters
       const categoryFilter = selectedCategory !== 'all' ? `_${selectedCategory}` : '';
       const stockFilterText = stockFilter !== 'all' ? `_${stockFilter}` : '';
-      const filename = `products_report${categoryFilter}${stockFilterText}_${new Date().toISOString().split('T')[0]}`;
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `products_report${categoryFilter}${stockFilterText}_${timestamp}`;
 
-      exportToPDF(
+      // Add a small delay to ensure loading toast is visible
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Call the export function and handle both success and failure
+      const success = await exportToPDF(
         processedData,
         'Products Management Report',
         getProductsColumns(),
         filename
       );
       
-      toast.success('Products exported to PDF successfully!');
+      toast.dismiss(loadingToast);
+      
+      if (success) {
+        toast.success(`PDF report exported successfully! (${exportData.length} products)`);
+      } else {
+        toast.error('Failed to export PDF report');
+      }
+      
     } catch (error) {
       console.error('Error exporting products to PDF:', error);
-      toast.error('Failed to export products to PDF');
+      toast.dismiss(loadingToast);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Export failed: ';
+      if (error.message?.includes('autoTable')) {
+        errorMessage += 'PDF library not loaded properly. Please refresh the page.';
+      } else if (error.message?.includes('data')) {
+        errorMessage += 'Invalid product data detected.';
+      } else if (error.message?.includes('download')) {
+        errorMessage += 'Download blocked. Please allow downloads in your browser.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred';
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
