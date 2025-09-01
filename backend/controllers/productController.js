@@ -7,40 +7,166 @@ import JWTauth from '../middleware/auth.js';
 // Save a new product
 
 export async function saveProduct(req, res) {
-  // Get user ID from authenticated user
+  try {
+    // Get user ID from authenticated user
+    console.log("User ID: " + req.user?.id); 
 
-   console.log("params "+  req.user.id); 
+    // Log the received data for debugging
+    console.log('Received form data:', req.body);
+    console.log('Received file:', req.file);
 
+    // Validate required fields
+    const { name, description, price, category, unit } = req.body;
+    
+    if (!name || !description || !price || !category || !unit) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: name, description, price, category, and unit are required'
+      });
+    }
 
-  
+    // Parse and structure stock data properly
+    let stockData;
+    
+    // Check for individual stock fields in form data
+    if (req.body['stock.current'] !== undefined) {
+      // Handle individual stock fields from form data
+      stockData = {
+        current: parseFloat(req.body['stock.current']) || 0,
+        maximum: parseFloat(req.body['stock.maximum']) || 100,
+        minimum: parseFloat(req.body['stock.minimum']) || 5,
+        average: parseFloat(req.body['stock.average']) || 50
+      };
+      console.log('Using individual stock fields:', stockData);
+    } else if (req.body.stock) {
+      try {
+        // Form data comes as strings, so we need to parse numbers
+        if (typeof req.body.stock === 'string') {
+          try {
+            // Try to parse as JSON object
+            const parsedStock = JSON.parse(req.body.stock);
+            stockData = parsedStock;
+            console.log('Parsed stock JSON:', stockData);
+          } catch (jsonError) {
+            // If not valid JSON, try as a number
+            const stockValue = parseFloat(req.body.stock);
+            if (!isNaN(stockValue)) {
+              stockData = {
+                current: stockValue,
+                maximum: req.body.maxStock ? parseFloat(req.body.maxStock) : 100,
+                minimum: req.body.minStock ? parseFloat(req.body.minStock) : 5,
+                average: req.body.avgStock ? parseFloat(req.body.avgStock) : 50
+              };
+              console.log('Using stock as number:', stockData);
+            } else {
+              throw new Error('Stock is not valid JSON or number');
+            }
+          }
+        } else if (typeof req.body.stock === 'object') {
+          // If it's already an object, use it directly
+          stockData = req.body.stock;
+          console.log('Using stock as object:', stockData);
+        } else {
+          throw new Error('Unsupported stock data type');
+        }
+      } catch (error) {
+        console.error('Error parsing stock data:', error);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid stock data format'
+        });
+      }
+    } else {
+      // Default stock structure
+      stockData = {
+        current: 0,
+        maximum: 100,
+        minimum: 5,
+        average: 50
+      };
+    }
 
-  // Create product data object
-  const productData = {
-    name: req.body.name,
-    description: req.body.description,
-    price: req.body.price,
-    displayprice: req.body.displayprice || req.body.price, // Default to price if not provided
-    category: req.body.category,
-    stock: req.body.stock,
-    unit: req.body.unit,
-    images: req.body.images || [], // Default to empty array if no images
-    isFeatured: req.body.isFeatured || false,
-    discount: req.body.discount || 0,
-    tags: req.body.tags || [],
-    createdBy: req.user.id || null, // Use authenticated user's ID
-    shelfLife: req.body.shelfLife,
-    storageInstructions: req.body.storageInstructions
-  };
+    // Parse tags if they come as JSON string
+    let parsedTags = [];
+    if (req.body.tags) {
+      try {
+        parsedTags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
+      } catch (error) {
+        console.warn('Failed to parse tags, using empty array:', error);
+        parsedTags = [];
+      }
+    }
 
-  // Create product in database
-  const product = await Product.create(productData);
-  console.log(productData.images);
-    console.log(req.body.images);
+    // Parse images if they come as JSON string
+    let parsedImages = [];
+    if (req.body.images) {
+      try {
+        parsedImages = typeof req.body.images === 'string' ? JSON.parse(req.body.images) : req.body.images;
+      } catch (error) {
+        console.warn('Failed to parse images, using empty array:', error);
+        parsedImages = [];
+      }
+    }
 
-  res.status(201).json({
-    success: true,
-    product
-  });
+    // Create product data object
+    const productData = {
+      name: name.trim(),
+      description: description.trim(),
+      price: parseFloat(price),
+      displayprice: req.body.displayprice ? parseFloat(req.body.displayprice) : parseFloat(price),
+      category: category,
+      stock: stockData,
+      unit: unit,
+      images: parsedImages,
+      isFeatured: req.body.isFeatured === 'true' || req.body.isFeatured === true,
+      discount: req.body.discount ? parseFloat(req.body.discount) : 0,
+      tags: parsedTags,
+      createdBy: req.user?.id || null,
+      shelfLife: req.body.shelfLife ? parseInt(req.body.shelfLife) : undefined,
+      storageInstructions: req.body.storageInstructions || undefined
+    };
+
+    console.log('Creating product with data:', JSON.stringify(productData, null, 2));
+
+    // Create product in database
+    const product = await Product.create(productData);
+    
+    console.log('Product created successfully:', product._id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Product created successfully',
+      product
+    });
+
+  } catch (error) {
+    console.error('Error creating product:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product with this name already exists'
+      });
+    }
+
+    // Handle other errors
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create product',
+      error: error.message
+    });
+  }
 };
 
 export async function getAllProducts(req, res) {

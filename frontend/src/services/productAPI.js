@@ -110,20 +110,65 @@ export const productAPI = {
 
   // Create new product
   createProduct: async (productData) => {
-    try {
-      const response = await api.post('/api/product', productData);
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error) {
-      console.error('Error creating product:', error);
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Failed to create product',
-      };
+  try {
+    console.log('📦 Sending product data:', productData);
+
+    // Prepare FormData for multipart/form-data requests
+    const formData = new FormData();
+    Object.keys(productData).forEach((key) => {
+      if (productData[key] !== undefined && productData[key] !== null) {
+        if (key === 'stock' && typeof productData[key] === 'object') {
+          // Handle nested stock object by flattening it
+          Object.keys(productData[key]).forEach((stockKey) => {
+            formData.append(`stock.${stockKey}`, productData[key][stockKey]);
+          });
+        } else if (Array.isArray(productData[key])) {
+          // Handle arrays by converting to JSON string
+          formData.append(key, JSON.stringify(productData[key]));
+        } else {
+          formData.append(key, productData[key]);
+        }
+      }
+    });
+
+    // If productData has an image file, append it
+    if (productData.image) {
+      formData.append('image', productData.image);
     }
-  },
+
+    const response = await api.post('/api/product', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('✅ Product created successfully:', response.data);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    console.error('❌ Error creating product:', error);
+
+    let errorMessage = 'Failed to create product';
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Network error - check your connection or backend server';
+    } else if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Request timeout - server took too long to respond';
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+      errorCode: error.code,
+      errorStatus: error.response?.status,
+    };
+  }
+},
+
 
   // Update product
   updateProduct: async (id, productData) => {
