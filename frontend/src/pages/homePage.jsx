@@ -159,6 +159,16 @@ const HomePage = () => {
                     Explore Training
                   </button>
                 </NavLink>
+                <NavLink to="/login">
+                  <button className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all backdrop-blur-sm inline-flex items-center transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
+                    boxShadow: '0 8px 25px rgba(59, 130, 246, 0.6), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                    transform: 'perspective(500px) rotateX(-5deg)',
+                    filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))'
+                  }}>
+                    <Users className="mr-2 h-5 w-5" />
+                    Join Us
+                  </button>
+                </NavLink>
               </div>
             </div>
           </div>
@@ -469,9 +479,11 @@ const HomePage = () => {
               Join our community of health-conscious customers and enjoy fresh farm products including crops and animal products delivered to your doorstep.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg">
-                Start Shopping
-              </button>
+              <NavLink to="/products">
+                <button className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg">
+                  Start Shopping
+                </button>
+              </NavLink>
               <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-green-600 transition-all transform hover:scale-105 backdrop-blur-sm">
                 Subscribe to Newsletter
               </button>
