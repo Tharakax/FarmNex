@@ -49,6 +49,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
     { value: 'kg', label: 'Kilogram (kg)' },
     { value: 'lb', label: 'Pound (lb)' },
     { value: 'g', label: 'Gram (g)' },
+    { value: 'L', label: 'Liter (L)' },
     { value: 'piece', label: 'Piece' },
     { value: 'bunch', label: 'Bunch' },
     { value: 'pack', label: 'Pack' },
