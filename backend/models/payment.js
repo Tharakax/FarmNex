@@ -125,4 +125,6 @@ PaymentSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = mongoose.model('Payment', PaymentSchema);
+const Payment = mongoose.model('Payment', PaymentSchema);
+
+export default Payment;

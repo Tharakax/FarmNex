@@ -9,9 +9,7 @@ export const createOrder = async (req, res) => {
       shipping,
       discount,
       total,
-      paymentMethod,
-      contactPhone,
-      contactEmail,
+
      
     } = req.body;
 
@@ -27,9 +25,7 @@ export const createOrder = async (req, res) => {
       shipping,
       discount,
       total,
-      paymentMethod,
-      contactPhone,
-      contactEmail,
+ 
       status: 'pending',
       
       
@@ -55,55 +51,6 @@ export const createOrder = async (req, res) => {
 
 
 
-// Save shipping information to an existing order
-export const saveShipping = async (req, res) => {
-  console.log('Saving shipping information:', req.body);
-  try {
-    const { id } = req.params;
-    const {
-      contactName,
-      shippingAddress,
-      contactEmail,
-      contactPhone,
-      notes
-    } = req.body;
-
-    
-
-    // Find the order by ID
-    const order = await Order.findById(id);
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
-
-    // Update order with shipping details
-    order.contactName = contactName || order.contactName;
-    order.shippingAddress = shippingAddress;
-    order.contactEmail = contactEmail;
-    order.contactPhone = contactPhone;
-    order.notes = notes || '';
-    order.updatedAt = new Date();
-    order.shippinginfo = true; // Mark shipping info as saved 
-    // Save the updated order
-    const updatedOrder = await order.save();
-
-    res.status(200).json({
-      success: true,
-      order: updatedOrder,
-      message: 'Shipping information saved successfully'
-    });
-  } catch (error) {
-    console.error('Error saving shipping information:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to save shipping information',
-      error: error.message
-    });
-  }
-};
 
 // Get order by ID
 export const getOrderById = async (req, res) => {
@@ -193,3 +140,111 @@ export const updateOrderStatus = async (req, res) => {
     });
   }
 };
+
+
+export const savePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentMethod, paymentCompleted, paymentDetails } = req.body;
+
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    order.paymentMethod = paymentMethod;
+    order.paymentcompleted = paymentCompleted;
+    if (paymentDetails) {
+      order.paymentDetails = paymentDetails;
+    }
+    order.status = paymentCompleted ? 'processing' : 'pending';
+    order.updatedAt = new Date();
+
+    const updatedOrder = await order.save();
+
+    res.status(200).json({
+      success: true,
+      order: updatedOrder,
+      message: 'Payment information saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving payment information:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save payment information',
+      error: error.message
+    });
+  }
+};
+
+// Updated saveShipping controller function
+export const saveShipping = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      contactName,
+      contactEmail,
+      contactPhone,
+      shippingAddress,
+      billingAddress,
+      notes
+    } = req.body;
+
+    // Validate required fields
+    if (!contactName || !contactEmail || !contactPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contact information is required'
+      });
+    }
+
+    if (!shippingAddress || !shippingAddress.name || !shippingAddress.street || 
+        !shippingAddress.city || !shippingAddress.state || !shippingAddress.zipCode || 
+        !shippingAddress.phone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Complete shipping address is required'
+      });
+    }
+
+    // Find the order by ID
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Update order with shipping details
+    order.contactEmail = contactEmail;
+    order.contactPhone = contactPhone;
+    order.shippingAddress = shippingAddress;
+    order.billingAddress = billingAddress || shippingAddress; // Use shipping if billing not provided
+    order.notes = notes || '';
+    order.updatedAt = new Date();
+    order.shippinginfo = true; // Mark shipping info as completed
+
+    // Save the updated order
+    const updatedOrder = await order.save();
+
+    res.status(200).json({
+      success: true,
+      order: updatedOrder,
+      message: 'Shipping information saved successfully'
+    });
+  } catch (error) {
+    console.error('Error saving shipping information:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save shipping information',
+      error: error.message
+    });
+  }
+};
+
+// Route definition (add this to your routes file)
+// router.put('/order/:id/shipping', saveShipping);
