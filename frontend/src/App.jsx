@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import './App.css'
+import PaymentCardsManager from './pages/client/PaymentCards.jsx'
 
 // Lazy load components to help with debugging
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
@@ -81,9 +82,9 @@ function App() {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/oneProduct/:id" element={<OneProduct />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/shipping/:id" element={<EnterShipping />} />
-            <Route path="/:id/payment" element={<EnterPayment />} />
-            
+            <Route path="/shipping/:orderId" element={<EnterShipping />} />
+            <Route path="/payment/:orderId" element={<EnterPayment />} />
+            <Route path="payment-methods" element={<PaymentCardsManager />} />
             {/* Training Management Routes */}
             <Route path="/training" element={<TrainingShowcase />} />
             <Route path="/training-showcase" element={<TrainingShowcase />} />

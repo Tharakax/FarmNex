@@ -3,50 +3,44 @@ import Product from '../models/product.js';
 import validator from 'validator';
 import User from '../models/user.js';
 import JWTauth from '../middleware/auth.js';
+
 // Save a new product
 
 export async function saveProduct(req, res) {
-  try {
-    // Get user ID from authenticated user (if available)
-    const userId = req.user?.id || null;
-    console.log("User ID: ", userId); 
+  // Get user ID from authenticated user
 
-    // Create product data object
-    const productData = {
-      name: req.body.name,
-      description: req.body.description,
-      price: req.body.price,
-      displayprice: req.body.displayprice || req.body.price, // Default to price if not provided
-      category: req.body.category,
-      stock: req.body.stock,
-      unit: req.body.unit,
-      images: req.body.images || [], // Default to empty array if no images
-      isFeatured: req.body.isFeatured || false,
-      discount: req.body.discount || 0,
-      tags: req.body.tags || [],
-      createdBy: userId, // Use authenticated user's ID if available
-      shelfLife: req.body.shelfLife,
-      storageInstructions: req.body.storageInstructions
-    };
+   console.log("params "+  req.user.id); 
 
-    // Create product in database
-    const product = await Product.create(productData);
-    console.log('Product created successfully:', product.name);
-    console.log(productData.images);
+
+  
+
+  // Create product data object
+  const productData = {
+    name: req.body.name,
+    description: req.body.description,
+    price: req.body.price,
+    displayprice: req.body.displayprice || req.body.price, // Default to price if not provided
+    category: req.body.category,
+    stock: req.body.stock,
+    unit: req.body.unit,
+    images: req.body.images || [], // Default to empty array if no images
+    isFeatured: req.body.isFeatured || false,
+    discount: req.body.discount || 0,
+    tags: req.body.tags || [],
+    createdBy: req.user.id || null, // Use authenticated user's ID
+    shelfLife: req.body.shelfLife,
+    storageInstructions: req.body.storageInstructions
+  };
+
+  // Create product in database
+  const product = await Product.create(productData);
+  console.log(productData.images);
     console.log(req.body.images);
 
-    res.status(201).json({
-      success: true,
-      product
-    });
-  } catch (error) {
-    console.error('Error creating product:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create product',
-      error: error.message
-    });
-  }
+  res.status(201).json({
+    success: true,
+    product
+  });
 };
 
 export async function getAllProducts(req, res) {
@@ -54,7 +48,6 @@ export async function getAllProducts(req, res) {
     const products = await Product.find().populate('createdBy', 'firstName lastName email');
     res.status(200).json(products);
   } catch (error) {
-    console.error('Error fetching products:', error);
     res.status(500).json({ message: 'Error fetching products', error: error.message });
   }
 }
@@ -67,7 +60,6 @@ export async function getProductById(req, res) {
     }
     res.status(200).json(product);
   } catch (error) {
-    console.error('Error fetching product:', error);
     res.status(500).json({ message: 'Error fetching product', error: error.message });
   }
 }

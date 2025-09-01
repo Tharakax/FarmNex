@@ -60,7 +60,7 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     enum: ['credit_card', 'paypal', 'bank_transfer', 'cash_on_delivery'],
-    required: true,
+    required: false,
   },
   shippingAddress: {
     name: String,
@@ -80,11 +80,11 @@ const orderSchema = new mongoose.Schema({
   },
   contactEmail: {
     type: String,
-    required: true,
+    required: false,
   },
   contactPhone: {
     type: String,
-    required: true,
+    required: false,
   },
   notes: {
     type: String,

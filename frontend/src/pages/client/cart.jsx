@@ -128,10 +128,7 @@ const Navigate = useNavigate();
       shipping: shipping,
       discount: discount,
       total: total,
-      status: 'pending',
-      contactPhone: '123-456-7890', // Add contact phone if needed
-      contactEmail: 'user@gmail.com', // Add contact email if needed
-      paymentMethod: 'credit_card', // Default to card
+      status: 'pending'
 
     };
 
@@ -141,7 +138,9 @@ const Navigate = useNavigate();
     // If successful, clear the cart and redirect to order confirmation
     if (response.data.success) {
       handleClearCart();
+      console.log("Order id is :"+response.data.order._id)
       Navigate(`/shipping/${response.data.order._id}`);
+
     } else {
       console.error('Checkout failed:', response.data.message);
       // Show error message to user
