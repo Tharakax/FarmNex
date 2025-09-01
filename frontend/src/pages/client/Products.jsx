@@ -4,6 +4,7 @@ import Navigation from "../../components/navigation";
 import { FaShoppingCart } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { addToCart } from "../../utils/cart.js";
+import { productAPI } from "../../services/productAPI";
 import toast from "react-hot-toast";
 
 export default function ProductsPage() {
@@ -28,16 +29,18 @@ export default function ProductsPage() {
     useEffect(() => {
         async function fetchProducts() {
             try {
-                console.log(import.meta.env) 
-                const response = await axios.get(import.meta.env.VITE_BACKEND_URL+"/api/product/");
-                if (response.status === 200) {
-                    setProducts(response.data);
-                    setFilteredProducts(response.data);
+                const result = await productAPI.getAllProducts();
+                if (result.success) {
+                    setProducts(result.data);
+                    setFilteredProducts(result.data);
                     setLoading(false);
-                    console.log('Products fetched successfully:', response.data);
+                    console.log('Products fetched successfully:', result.data);
+                } else {
+                    throw new Error(result.error || 'Failed to fetch products');
                 }
             } catch (error) {
                 console.error("Error fetching products:", error);
+                toast.error(error.message || 'Failed to load products');
                 setLoading(false);
             }
         }

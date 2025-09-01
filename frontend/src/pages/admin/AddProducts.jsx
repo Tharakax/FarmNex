@@ -53,16 +53,24 @@ const AddProduct = () => {
 
 
     setLoading(true);
+    const stockValue = parseInt(stock) || 0;
     const productData = {
       name : name,
       description: description,
       category: category,
       price: parseFloat(price),
       displayprice: parseFloat(displayprice),
-      stock: parseInt(stock),
+      stock: {
+        current: stockValue,
+        maximum: stockValue * 2, // Set maximum as 2x current stock
+        minimum: Math.max(5, Math.floor(stockValue * 0.2)), // Set minimum as 20% of stock or 5, whichever is higher
+        average: Math.floor(stockValue * 1.5), // Set average as 1.5x current stock
+        lastRestocked: new Date(),
+        reservedStock: 0
+      },
       unit: unit,
-      discount: discount,
-      shelfLife: shelfLife,
+      discount: parseFloat(discount) || 0,
+      shelfLife: parseInt(shelfLife) || 7,
       tags: tags.split(',').map(tag => tag.trim()), // Convert comma-separated string to array
       storageInstructions: storageInstructions,
       isFeatured: isFeatured,

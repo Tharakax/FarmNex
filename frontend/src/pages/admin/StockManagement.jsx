@@ -12,8 +12,16 @@ import {
   FaCheckCircle,
   FaExclamationTriangle
 } from 'react-icons/fa';
+import { FileText, FileSpreadsheet } from 'lucide-react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import StockDisplay, { StockSummary } from '../../components/StockDisplay.jsx';
+import { 
+  exportToPDF, 
+  exportToExcel, 
+  getInventoryColumns,
+  processDataForExport 
+} from '../../utils/exportUtils';
 
 const StockManagement = () => {
   const [products, setProducts] = useState([]);
@@ -225,6 +233,95 @@ const StockManagement = () => {
     document.body.removeChild(link);
   };
 
+  // Enhanced export handlers
+  const handleExportToPDF = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredProducts.map(product => {
+        const currentStock = typeof product.stock === 'number' ? product.stock : product.stock?.current || 0;
+        const minStock = product.stock?.minimum || 5;
+        const maxStock = product.stock?.maximum || 100;
+        const { status } = getStockStatus(product);
+        
+        return {
+          id: product._id || product.id,
+          productName: product.name,
+          category: product.category,
+          quantity: currentStock,
+          unit: product.unit || 'units',
+          pricePerUnit: product.price || 0,
+          totalValue: currentStock * (product.price || 0),
+          location: 'Stock Management',
+          status: status === 'out' ? 'Out of Stock' : status === 'low' ? 'Low Stock' : 'In Stock',
+          lastUpdated: product.updatedAt || product.createdAt || new Date().toISOString().split('T')[0]
+        };
+      });
+
+      // Process data with formatting
+      const processedData = processDataForExport(
+        exportData, 
+        ['pricePerUnit', 'totalValue'], 
+        ['lastUpdated']
+      );
+
+      // Generate filename with current filters
+      const filterSuffix = stockFilter !== 'all' ? `_${stockFilter}` : '';
+      const filename = `stock_management_report${filterSuffix}_${new Date().toISOString().split('T')[0]}`;
+
+      exportToPDF(
+        processedData,
+        'Stock Management Report',
+        getInventoryColumns(),
+        filename
+      );
+      
+      toast.success('Stock report exported to PDF successfully!');
+    } catch (error) {
+      console.error('Error exporting stock report to PDF:', error);
+      toast.error('Failed to export stock report to PDF');
+    }
+  };
+
+  const handleExportToExcel = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredProducts.map(product => {
+        const currentStock = typeof product.stock === 'number' ? product.stock : product.stock?.current || 0;
+        const minStock = product.stock?.minimum || 5;
+        const maxStock = product.stock?.maximum || 100;
+        const { status } = getStockStatus(product);
+        
+        return {
+          id: product._id || product.id,
+          productName: product.name,
+          category: product.category,
+          quantity: currentStock,
+          unit: product.unit || 'units',
+          pricePerUnit: product.price || 0,
+          totalValue: currentStock * (product.price || 0),
+          location: 'Stock Management',
+          status: status === 'out' ? 'Out of Stock' : status === 'low' ? 'Low Stock' : 'In Stock',
+          lastUpdated: product.updatedAt || product.createdAt || new Date().toISOString().split('T')[0]
+        };
+      });
+
+      // Generate filename with current filters
+      const filterSuffix = stockFilter !== 'all' ? `_${stockFilter}` : '';
+      const filename = `stock_management_report${filterSuffix}_${new Date().toISOString().split('T')[0]}`;
+
+      exportToExcel(
+        exportData,
+        'Stock Management Report',
+        getInventoryColumns(),
+        filename
+      );
+      
+      toast.success('Stock report exported to Excel successfully!');
+    } catch (error) {
+      console.error('Error exporting stock report to Excel:', error);
+      toast.error('Failed to export stock report to Excel');
+    }
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -277,13 +374,31 @@ const StockManagement = () => {
               <option value="out-of-stock">Out of Stock</option>
             </select>
 
-            <button
-              onClick={exportStockReport}
-              className="flex items-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <FaDownload />
-              <span>Export Report</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleExportToPDF()}
+                disabled={loading || filteredProducts.length === 0}
+                className="flex items-center space-x-2 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                <FileText className="h-4 w-4" />
+                <span>PDF</span>
+              </button>
+              <button
+                onClick={() => handleExportToExcel()}
+                disabled={loading || filteredProducts.length === 0}
+                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Excel</span>
+              </button>
+              <button
+                onClick={exportStockReport}
+                className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <FaDownload />
+                <span>CSV</span>
+              </button>
+            </div>
           </div>
         </div>
 
