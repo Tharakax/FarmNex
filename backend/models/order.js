@@ -78,6 +78,10 @@ const orderSchema = new mongoose.Schema({
     zipCode: String,
     country: String,
   },
+  contactName: {
+  type: String,
+  required: false,
+},
   contactEmail: {
     type: String,
     required: false,
@@ -105,6 +109,14 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // Add this to your order schema
+  emailSent: {
+    type: Boolean,
+    default: false,
+  },
+  emailSentAt: {
+    type: Date,
+},
 }, {
   timestamps: true, // This automatically adds createdAt and updatedAt fields
 });

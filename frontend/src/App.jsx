@@ -20,6 +20,10 @@ const AddEditTraining = React.lazy(() => import('./pages/farmer/AddEditTraining.
 const ViewTraining = React.lazy(() => import('./pages/farmer/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
+const PaymentSuccess = React.lazy(() => import('./pages/PaymentSuccess.jsx'))
+const PaymentUnsuccess = React.lazy(() => import('./pages/PaymentUnsuccess.jsx'))
+
+
 
 // Loading component
 const Loading = () => (
@@ -85,6 +89,8 @@ function App() {
             <Route path="/shipping/:orderId" element={<EnterShipping />} />
             <Route path="/payment/:orderId" element={<EnterPayment />} />
             <Route path="payment-methods" element={<PaymentCardsManager />} />
+            <Route path="/order-success/:orderId" element={<PaymentSuccess />} />
+            <Route path="/order-unsuccess/:orderId" element={<PaymentUnsuccess />} />
             {/* Training Management Routes */}
             <Route path="/training" element={<TrainingShowcase />} />
             <Route path="/training-showcase" element={<TrainingShowcase />} />

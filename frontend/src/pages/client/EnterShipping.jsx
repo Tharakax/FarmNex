@@ -161,58 +161,58 @@ export default function ShippingDetails() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateForm()) {
+    return;
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+  setLoading(true);
 
+  try {
+    // Prepare shipping data
+    const shippingData = {
+      contactName: formData.contactName,
+      contactEmail: formData.contactEmail,
+      contactPhone: formData.contactPhone,
+      shippingAddress: formData.shippingAddress,
+      billingAddress: formData.sameAsShipping ? formData.shippingAddress : formData.billingAddress,
+      notes: formData.notes
+    };
 
+    // Save shipping information to the order
+    const response = await axios.put(
+      `${import.meta.env.VITE_BACKEND_URL}/api/order/shipping/${orderId}`,
+      shippingData
+    );
 
-    setLoading(true);
-
-    try {
-        console.log(orderId);
-
-      // Prepare shipping data
-      const shippingData = {
-        contactName: formData.contactName,
-        contactEmail: formData.contactEmail,
-        contactPhone: formData.contactPhone,
-        shippingAddress: formData.shippingAddress,
-        billingAddress: formData.sameAsShipping ? formData.shippingAddress : formData.billingAddress,
-        notes: formData.notes
+    if (response.data.success) {
+      // Store updated order data
+      const updatedOrderData = {
+        ...orderData,
+        ...shippingData
       };
-
-      // Save shipping information to the order
-      const response = await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/order/shipping/${orderId}`,
-        shippingData
-      );
-
-      if (response.data.success) {
-        // Store updated order data
-        const updatedOrderData = {
-          ...orderData,
-          ...shippingData
-        };
-        localStorage.setItem("orderData", JSON.stringify(updatedOrderData));
-        console.log("Hi")
-        // Navigate to payment page
-        navigate(`/payment/${orderId}`);
-      } else {
-        console.error('Failed to save shipping information:', response.data.message);
-        alert('Failed to save shipping information. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error saving shipping information:', error);
-      alert('An error occurred. Please try again.');
-    } finally {
-      setLoading(false);
+      localStorage.setItem("orderData", JSON.stringify(updatedOrderData));
+      
+      // Navigate to payment page
+      navigate(`/payment/${orderId}`);
+    } else {
+      console.error('Failed to save shipping information:', response.data.message);
+      alert('Failed to save shipping information. Please try again.');
     }
-  };
+  } catch (error) {
+    console.error('Error saving shipping information:', error);
+    if (error.response?.data?.errors) {
+      // Show validation errors from server
+      setErrors(error.response.data.errors);
+    } else {
+      alert('An error occurred. Please try again.');
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!orderData) {
     return (
