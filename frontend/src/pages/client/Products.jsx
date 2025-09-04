@@ -296,7 +296,7 @@ export default function ProductsPage() {
                                             )}
                                         </div>
 
-                                        {/* Stock Badge */}
+                                        {/* Stock Badge - Customer View */}
                                         {product.stock && (
                                             <div className="absolute top-4 right-4">
                                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -306,7 +306,12 @@ export default function ProductsPage() {
                                                             : 'bg-green-100 text-green-800'
                                                         : 'bg-red-100 text-red-800'
                                                 }`}>
-                                                    {product.stock.current > 0 ? `${product.stock.current} in stock` : 'Out of stock'}
+                                                    {product.stock.current > 0 
+                                                        ? product.stock.current <= product.stock.minimum 
+                                                            ? 'Limited Stock' 
+                                                            : 'Available'
+                                                        : 'Out of Stock'
+                                                    }
                                                 </span>
                                             </div>
                                         )}
@@ -344,73 +349,31 @@ export default function ProductsPage() {
                                                 </p>
                                             </div>
 
-                                            {/* Stock Monitoring Information */}
+                                            {/* Availability Information - Customer View */}
                                             {product.stock && (
                                                 <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <h4 className="text-sm font-semibold text-gray-700">Stock Monitoring</h4>
+                                                    <div className="flex items-center justify-between">
+                                                        <h4 className="text-sm font-semibold text-gray-700">Availability</h4>
                                                         <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                            product.stock.current <= product.stock.minimum
+                                                            product.stock.current <= 0
                                                                 ? 'bg-red-100 text-red-700'
-                                                                : product.stock.current <= (product.stock.maximum * 0.3)
+                                                                : product.stock.current <= product.stock.minimum
                                                                 ? 'bg-orange-100 text-orange-700'
                                                                 : 'bg-green-100 text-green-700'
                                                         }`}>
                                                             {
-                                                                product.stock.current <= product.stock.minimum ? 'Low Stock' :
-                                                                product.stock.current <= (product.stock.maximum * 0.3) ? 'Moderate' : 'Good Stock'
+                                                                product.stock.current <= 0 ? 'Out of Stock' :
+                                                                product.stock.current <= product.stock.minimum ? 'Limited Stock' : 'Available'
                                                             }
                                                         </div>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Current:</span>
-                                                            <span className="font-medium text-gray-900">{product.stock.current}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Maximum:</span>
-                                                            <span className="font-medium text-gray-900">{product.stock.maximum}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Minimum:</span>
-                                                            <span className="font-medium text-gray-900">{product.stock.minimum}</span>
-                                                        </div>
+                                                    <div className="mt-2 text-xs text-gray-600">
+                                                        {
+                                                            product.stock.current <= 0 ? 'This product is currently unavailable.' :
+                                                            product.stock.current <= product.stock.minimum ? 'Limited quantities available - order soon!' :
+                                                            'Ready to ship - in stock now!'
+                                                        }
                                                     </div>
-                                                    
-                                                    {/* Stock Level Progress Bar */}
-                                                    <div className="mt-3">
-                                                        <div className="flex justify-between text-xs mb-1">
-                                                            <span className="text-gray-600">Stock Level</span>
-                                                            <span className="text-gray-900">{Math.round((product.stock.current / product.stock.maximum) * 100)}%</span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                                            <div 
-                                                                className={`h-2 rounded-full transition-all duration-300 ${
-                                                                    product.stock.current <= product.stock.minimum
-                                                                        ? 'bg-red-500'
-                                                                        : product.stock.current <= (product.stock.maximum * 0.3)
-                                                                        ? 'bg-orange-500'
-                                                                        : 'bg-green-500'
-                                                                }`}
-                                                                style={{ width: `${Math.min((product.stock.current / product.stock.maximum) * 100, 100)}%` }}
-                                                            >
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    {/* Last Restocked */}
-                                                    {product.stock.lastRestocked && (
-                                                        <div className="mt-2 text-xs text-gray-600">
-                                                            Last restocked: {new Date(product.stock.lastRestocked).toLocaleDateString()}
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {/* Reserved Stock */}
-                                                    {product.stock.reservedStock > 0 && (
-                                                        <div className="mt-1 text-xs text-orange-600">
-                                                            Reserved: {product.stock.reservedStock} units
-                                                        </div>
-                                                    )}
                                                 </div>
                                             )}
 

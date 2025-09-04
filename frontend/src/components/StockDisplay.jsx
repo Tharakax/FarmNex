@@ -9,7 +9,7 @@ import {
   FaChartBar
 } from 'react-icons/fa';
 
-const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
+const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false, publicView = false }) => {
   // Handle both old and new stock formats
   const getCurrentStock = () => {
     if (typeof stock === 'number') return stock;
@@ -110,13 +110,43 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
       <div className="flex items-center space-x-2">
         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${classes.badge}`}>
           <StatusIcon className="inline w-3 h-3 mr-1" />
-          {currentStock > 0 ? `${currentStock} ${unit}` : 'Out of stock'}
+          {publicView ? getStatusMessage() : (currentStock > 0 ? `${currentStock} ${unit}` : 'Out of stock')}
         </span>
       </div>
     );
   }
 
-  // Detailed view for product detail pages
+  // Public view - only show availability status
+  if (publicView && showDetailedView) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <FaChartBar className="mr-2 text-blue-600" />
+            Availability
+          </h3>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${classes.badge}`}>
+            <StatusIcon className="inline w-4 h-4 mr-1" />
+            {getStatusMessage()}
+          </span>
+        </div>
+        
+        {/* Simple availability message */}
+        <div className="text-center py-8">
+          <StatusIcon className="h-16 w-16 mx-auto mb-4" style={{ color: color === 'red' ? '#ef4444' : color === 'orange' ? '#f97316' : color === 'yellow' ? '#eab308' : '#10b981' }} />
+          <h4 className="text-xl font-semibold text-gray-900 mb-2">{getStatusMessage()}</h4>
+          <p className="text-gray-600">
+            {status === 'out' && 'This product is currently unavailable.'}
+            {status === 'low' && 'Limited quantities available - order soon!'}
+            {status === 'moderate' && 'Available for purchase.'}
+            {status === 'good' && 'Ready to ship - in stock now!'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Detailed view for product detail pages (admin/farmer only)
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
       <div className="flex items-center justify-between">

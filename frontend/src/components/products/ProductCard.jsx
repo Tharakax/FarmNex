@@ -14,7 +14,7 @@ import {
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/productAPI';
 
-const ProductCard = ({ product, onEdit, onDelete, onView }) => {
+const ProductCard = ({ product, onEdit, onDelete, onView, isPublicView = false }) => {
   const [loading, setLoading] = useState(false);
   
   const handleDelete = async () => {
@@ -99,34 +99,36 @@ const ProductCard = ({ product, onEdit, onDelete, onView }) => {
           <h3 className="text-lg font-semibold text-gray-900 truncate flex-1 mr-2">
             {product.name}
           </h3>
-          <div className="flex space-x-1">
-            <button
-              onClick={() => onView?.(product)}
-              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-              title="View Details"
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => onEdit?.(product)}
-              className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
-              title="Edit Product"
-            >
-              <Edit2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={loading}
-              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-              title="Delete Product"
-            >
-              {loading ? (
-                <div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-            </button>
-          </div>
+          {!isPublicView && (
+            <div className="flex space-x-1">
+              <button
+                onClick={() => onView?.(product)}
+                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="View Details"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => onEdit?.(product)}
+                className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                title="Edit Product"
+              >
+                <Edit2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
+                title="Delete Product"
+              >
+                {loading ? (
+                  <div className="h-4 w-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Category */}
@@ -155,24 +157,26 @@ const ProductCard = ({ product, onEdit, onDelete, onView }) => {
             )}
           </div>
           
-          <div className="flex items-center text-sm text-gray-500">
-            <Package className="h-4 w-4 mr-1" />
-            <span>{product.stock?.current || 0} {product.unit}</span>
-          </div>
+          {!isPublicView && (
+            <div className="flex items-center text-sm text-gray-500">
+              <Package className="h-4 w-4 mr-1" />
+              <span>{product.stock?.current || 0} {product.unit}</span>
+            </div>
+          )}
         </div>
 
-        {/* Stock Warning */}
+        {/* Stock Warning - Modified for public view */}
         {stockStatus.status === 'low' && (
           <div className="flex items-center text-xs text-yellow-600 bg-yellow-50 p-2 rounded mb-3">
             <AlertTriangle className="h-3 w-3 mr-1" />
-            Stock running low! Only {product.stock?.current} left.
+            {isPublicView ? 'Limited quantities available - order soon!' : `Stock running low! Only ${product.stock?.current} left.`}
           </div>
         )}
 
         {stockStatus.status === 'out' && (
           <div className="flex items-center text-xs text-red-600 bg-red-50 p-2 rounded mb-3">
             <AlertTriangle className="h-3 w-3 mr-1" />
-            Product is out of stock!
+            {isPublicView ? 'This product is currently unavailable.' : 'Product is out of stock!'}
           </div>
         )}
 
