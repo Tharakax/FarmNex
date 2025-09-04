@@ -28,7 +28,7 @@ const UnifiedInventoryDemo = () => {
         category: 'vegetables',
         quantity: 150,
         unit: 'kg',
-        price: 3.50,
+        price: 350,
         minQuantity: 20,
         maxQuantity: 200
       },
@@ -39,7 +39,7 @@ const UnifiedInventoryDemo = () => {
         category: 'leafy-greens',
         quantity: 75,
         unit: 'heads',
-        price: 2.25,
+        price: 225,
         minQuantity: 10,
         maxQuantity: 100
       }
@@ -185,12 +185,12 @@ const UnifiedInventoryDemo = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 font-medium">
-                          ${(item.price || 0).toFixed(2)}
+                          LKR {(item.price || 0).toFixed(2)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 font-medium">
-                          ${totalValue.toFixed(2)}
+                          LKR {totalValue.toFixed(2)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -227,7 +227,7 @@ const UnifiedInventoryDemo = () => {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900">
-              ${allItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.price || 0)), 0).toFixed(2)}
+              LKR {allItems.reduce((sum, item) => sum + ((item.quantity || 0) * (item.price || 0)), 0).toFixed(2)}
             </div>
             <div className="text-sm text-gray-600">Total Value</div>
           </div>

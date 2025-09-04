@@ -86,7 +86,7 @@ class ExportService {
   static exportInventoryToPDF(inventoryData, stats) {
     try {
       const doc = new jsPDF();
-      const startY = this.addPDFHeader(doc, 'Inventory Management Report', `Total Items: ${stats.totalItems} | Total Value: $${stats.totalValue.toFixed(2)}`);
+      const startY = this.addPDFHeader(doc, 'Inventory Management Report', `Total Items: ${stats.totalItems} | Total Value: LKR ${stats.totalValue.toFixed(2)}`);
       
       // Prepare table data
       const tableData = inventoryData.map(item => {
@@ -98,8 +98,8 @@ class ExportService {
           item.type.toUpperCase(),
           currentStock.toString(),
           item.unit || 'units',
-          `$${(item.price || 0).toFixed(2)}`,
-          `$${stockValue.toFixed(2)}`,
+          `LKR ${(item.price || 0).toFixed(2)}`,
+          `LKR ${stockValue.toFixed(2)}`,
           this.getStockStatusText(item)
         ];
       });
@@ -164,7 +164,7 @@ class ExportService {
         ['Total Items', stats.totalItems],
         ['Total Products', stats.totalProducts],
         ['Total Supplies', stats.totalSupplies],
-        ['Total Value', `$${stats.totalValue.toFixed(2)}`],
+        ['Total Value', `LKR ${stats.totalValue.toFixed(2)}`],
         ['In Stock Items', stats.inStockItems],
         ['Low Stock Items', stats.lowStockItems],
         ['Out of Stock Items', stats.outOfStockItems],
@@ -193,15 +193,15 @@ class ExportService {
     toPDF: (suppliesData, stats) => {
       try {
         const doc = new jsPDF();
-        const startY = ExportService.addPDFHeader(doc, 'Farm Supplies Report', `Total Supplies: ${suppliesData.length} | Total Value: $${stats.totalValue.toFixed(2)}`);
+        const startY = ExportService.addPDFHeader(doc, 'Farm Supplies Report', `Total Supplies: ${suppliesData.length} | Total Value: LKR ${stats.totalValue.toFixed(2)}`);
         
         const tableData = suppliesData.map(supply => [
           supply.name,
           supply.category.replace('-', ' '),
           supply.quantity.toString(),
           supply.unit,
-          `$${supply.price.toFixed(2)}`,
-          `$${(supply.quantity * supply.price).toFixed(2)}`,
+          `LKR ${supply.price.toFixed(2)}`,
+          `LKR ${(supply.quantity * supply.price).toFixed(2)}`,
           supply.supplier?.name || 'Unknown',
           supply.status || 'Active',
           supply.expiryDate ? new Date(supply.expiryDate).toLocaleDateString() : 'N/A'
@@ -256,7 +256,7 @@ class ExportService {
         const summaryData = [
           ['Farm Supplies Summary', ''],
           ['Total Supplies', suppliesData.length],
-          ['Total Value', `$${stats.totalValue.toFixed(2)}`],
+          ['Total Value', `LKR ${stats.totalValue.toFixed(2)}`],
           ['Categories', stats.categories || 'N/A'],
           ['Low Stock Items', stats.lowStock || 0],
           ['Expired Items', stats.expired || 0],
@@ -283,15 +283,15 @@ class ExportService {
     toPDF: (productsData, stats) => {
       try {
         const doc = new jsPDF();
-        const startY = ExportService.addPDFHeader(doc, 'Products Report', `Total Products: ${productsData.length} | Total Value: $${stats.totalValue.toFixed(2)}`);
+        const startY = ExportService.addPDFHeader(doc, 'Products Report', `Total Products: ${productsData.length} | Total Value: LKR ${stats.totalValue.toFixed(2)}`);
         
         const tableData = productsData.map(product => [
           product.name,
           product.category.replace('-', ' '),
           (product.stock?.current || 0).toString(),
           product.unit || 'units',
-          `$${(product.price || 0).toFixed(2)}`,
-          `$${((product.stock?.current || 0) * (product.price || 0)).toFixed(2)}`,
+          `LKR ${(product.price || 0).toFixed(2)}`,
+          `LKR ${((product.stock?.current || 0) * (product.price || 0)).toFixed(2)}`,
           product.stock?.minimum || 5,
           product.stock?.maximum || 100,
           ExportService.getStockStatusText(product)
@@ -344,7 +344,7 @@ class ExportService {
         const summaryData = [
           ['Products Summary', ''],
           ['Total Products', productsData.length],
-          ['Total Stock Value', `$${stats.totalValue.toFixed(2)}`],
+          ['Total Stock Value', `LKR ${stats.totalValue.toFixed(2)}`],
           ['In Stock', stats.inStock || 0],
           ['Low Stock', stats.lowStock || 0],
           ['Out of Stock', stats.outOfStock || 0],
@@ -372,13 +372,13 @@ class ExportService {
       try {
         const doc = new jsPDF();
         const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
-        const startY = ExportService.addPDFHeader(doc, 'Sales Report', `Period: ${period} | Total Revenue: $${totalRevenue.toFixed(2)}`);
+        const startY = ExportService.addPDFHeader(doc, 'Sales Report', `Period: ${period} | Total Revenue: LKR ${totalRevenue.toFixed(2)}`);
         
         const tableData = salesData.map(sale => [
           sale.customer?.name || 'Unknown Customer',
           new Date(sale.createdAt || sale.date).toLocaleDateString(),
           (sale.items || []).map(item => `${item.name} (${item.quantity})`).join(', '),
-          `$${(sale.totalAmount || 0).toFixed(2)}`,
+          `LKR ${(sale.totalAmount || 0).toFixed(2)}`,
           sale.paymentMethod || 'Unknown',
           sale.status || 'Completed'
         ]);
@@ -427,8 +427,8 @@ class ExportService {
           ['Sales Summary', ''],
           ['Period', period],
           ['Total Sales', salesData.length],
-          ['Total Revenue', `$${totalRevenue.toFixed(2)}`],
-          ['Average Sale', `$${(totalRevenue / (salesData.length || 1)).toFixed(2)}`],
+          ['Total Revenue', `LKR ${totalRevenue.toFixed(2)}`],
+          ['Average Sale', `LKR ${(totalRevenue / (salesData.length || 1)).toFixed(2)}`],
           ['Generated On', new Date().toLocaleString()]
         ];
         
@@ -465,9 +465,9 @@ class ExportService {
           
           const revenueData = [
             ['Period', 'Revenue', 'Growth'],
-            ['This Month', `$${analyticsData.revenue.thisMonth || 0}`, `${analyticsData.revenue.monthlyGrowth || 0}%`],
-            ['Last Month', `$${analyticsData.revenue.lastMonth || 0}`, ''],
-            ['This Year', `$${analyticsData.revenue.thisYear || 0}`, `${analyticsData.revenue.yearlyGrowth || 0}%`]
+            ['This Month', `LKR ${analyticsData.revenue.thisMonth || 0}`, `${analyticsData.revenue.monthlyGrowth || 0}%`],
+            ['Last Month', `LKR ${analyticsData.revenue.lastMonth || 0}`, ''],
+            ['This Year', `LKR ${analyticsData.revenue.thisYear || 0}`, `${analyticsData.revenue.yearlyGrowth || 0}%`]
           ];
           
           doc.autoTable({

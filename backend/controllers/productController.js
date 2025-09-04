@@ -35,7 +35,6 @@ export async function saveProduct(req, res) {
         current: parseFloat(req.body['stock.current']) || 0,
         maximum: parseFloat(req.body['stock.maximum']) || 100,
         minimum: parseFloat(req.body['stock.minimum']) || 5,
-        average: parseFloat(req.body['stock.average']) || 50
       };
       console.log('Using individual stock fields:', stockData);
     } else if (req.body.stock) {
@@ -55,7 +54,6 @@ export async function saveProduct(req, res) {
                 current: stockValue,
                 maximum: req.body.maxStock ? parseFloat(req.body.maxStock) : 100,
                 minimum: req.body.minStock ? parseFloat(req.body.minStock) : 5,
-                average: req.body.avgStock ? parseFloat(req.body.avgStock) : 50
               };
               console.log('Using stock as number:', stockData);
             } else {
@@ -81,8 +79,7 @@ export async function saveProduct(req, res) {
       stockData = {
         current: 0,
         maximum: 100,
-        minimum: 5,
-        average: 50
+        minimum: 5
       };
     }
 

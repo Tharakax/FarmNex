@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
 import Navigation from '../components/navigation';
 import SimpleChatbot from '../components/SimpleChatbot';
@@ -13,7 +13,7 @@ const HomePage = () => {
     {
       id: 1,
       name: "Fresh Tomatoes",
-      price: "$4.99/lb",
+      price: "LKR 499/kg",
       image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&h=300&fit=crop",
       rating: 4.8,
       badge: "Fresh"
@@ -21,7 +21,7 @@ const HomePage = () => {
     {
       id: 2,
       name: "Farm Eggs",
-      price: "$5.99/dozen",
+      price: "LKR 599/dozen",
       image: "https://images.unsplash.com/photo-1518569656558-1f25e69d93d7?w=400&h=300&fit=crop",
       rating: 4.9,
       badge: "Premium"
@@ -29,7 +29,7 @@ const HomePage = () => {
     {
       id: 3,
       name: "Bell Peppers",
-      price: "$2.99/lb",
+      price: "LKR 299/kg",
       image: "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=400&h=300&fit=crop",
       rating: 4.7,
       badge: "Local"

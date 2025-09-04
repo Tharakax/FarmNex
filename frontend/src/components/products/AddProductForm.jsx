@@ -19,7 +19,6 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
       current: '',
       maximum: '',
       minimum: '',
-      average: '',
     },
     unit: 'kg',
     images: [],
@@ -68,7 +67,6 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           current: product.stock?.current || '',
           maximum: product.stock?.maximum || '',
           minimum: product.stock?.minimum || '',
-          average: product.stock?.average || '',
         },
         unit: product.unit || 'kg',
         images: product.images || [],
@@ -95,7 +93,6 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           current: '',
           maximum: '',
           minimum: '',
-          average: '',
         },
         unit: 'kg',
         images: [],
@@ -214,7 +211,6 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           current: parseInt(formData.stock.current),
           maximum: formData.stock.maximum ? parseInt(formData.stock.maximum) : 100,
           minimum: formData.stock.minimum ? parseInt(formData.stock.minimum) : 5,
-          average: formData.stock.average ? parseInt(formData.stock.average) : 50,
         }
       };
 
@@ -332,7 +328,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price ($) *
+                Price (LKR) *
               </label>
               <input
                 type="number"
@@ -356,7 +352,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Display Price ($)
+                Display Price (LKR)
               </label>
               <input
                 type="number"
@@ -432,7 +428,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           </div>
 
           {/* Additional Stock Information */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Maximum Stock
@@ -460,21 +456,6 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 min="0"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="5"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Average Stock
-              </label>
-              <input
-                type="number"
-                name="stock.average"
-                value={formData.stock.average}
-                onChange={handleInputChange}
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="50"
               />
             </div>
           </div>

@@ -591,7 +591,7 @@ export default function EnterPayment() {
                       <div className="flex items-start space-x-2">
                         <AlertCircle size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
                         <p className="text-sm text-amber-700">
-                          Additional COD fee of Rs. 50 will be added to your total.
+                        Additional COD fee of LKR 50 will be added to your total.
                         </p>
                       </div>
                     </div>
@@ -605,7 +605,7 @@ export default function EnterPayment() {
                         className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700">
-                        I understand that I need to pay Rs. {(orderData.total + 50).toFixed(2)} in cash when my order is delivered.
+                        I understand that I need to pay LKR {(orderData.total + 50).toFixed(2)} in cash when my order is delivered.
                       </span>
                     </label>
                     {errors.codConfirmation && (
@@ -656,7 +656,7 @@ export default function EnterPayment() {
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        Rs. {(item.price * item.quantity).toFixed(2)}
+                        LKR {(item.price * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   ))}
@@ -665,13 +665,13 @@ export default function EnterPayment() {
                 <div className="border-t pt-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal:</span>
-                    <span className="font-medium">Rs. {orderData.subtotal.toFixed(2)}</span>
+                    <span className="font-medium">LKR {orderData.subtotal.toFixed(2)}</span>
                   </div>
                   
                   {orderData.discount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-green-600">Discount:</span>
-                      <span className="text-green-600 font-medium">-Rs. {orderData.discount.toFixed(2)}</span>
+                      <span className="text-green-600 font-medium">-LKR {orderData.discount.toFixed(2)}</span>
                     </div>
                   )}
                   
@@ -681,20 +681,20 @@ export default function EnterPayment() {
                       {orderData.shipping === 0 ? (
                         <span className="text-green-600">Free</span>
                       ) : (
-                        `Rs. ${orderData.shipping.toFixed(2)}`
+                        `LKR ${orderData.shipping.toFixed(2)}`
                       )}
                     </span>
                   </div>
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Tax:</span>
-                    <span className="font-medium">Rs. {orderData.tax.toFixed(2)}</span>
+                    <span className="font-medium">LKR {orderData.tax.toFixed(2)}</span>
                   </div>
 
                   {paymentMethod === 'cash_on_delivery' && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">COD Fee:</span>
-                      <span className="font-medium">Rs. 50.00</span>
+                      <span className="font-medium">LKR 50.00</span>
                     </div>
                   )}
                   
@@ -702,7 +702,7 @@ export default function EnterPayment() {
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold text-gray-900">Total:</span>
                       <span className="text-lg font-semibold text-gray-900">
-                        Rs. {(paymentMethod === 'cash_on_delivery' ? orderData.total + 50 : orderData.total).toFixed(2)}
+                        LKR {(paymentMethod === 'cash_on_delivery' ? orderData.total + 50 : orderData.total).toFixed(2)}
                       </span>
                     </div>
                   </div>

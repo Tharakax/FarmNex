@@ -22,10 +22,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
     return 100;
   };
 
-  const getAvgStock = () => {
-    if (stock && typeof stock === 'object') return stock.average || 50;
-    return 50;
-  };
 
   const getMinStock = () => {
     if (stock && typeof stock === 'object') return stock.minimum || 5;
@@ -46,7 +42,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
 
   const currentStock = getCurrentStock();
   const maxStock = getMaxStock();
-  const avgStock = getAvgStock();
   const minStock = getMinStock();
   const reservedStock = getReservedStock();
   const availableStock = currentStock - reservedStock;
@@ -58,7 +53,7 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
   const getStockStatus = () => {
     if (currentStock === 0) return { status: 'out', color: 'red', icon: FaWarning };
     if (currentStock <= minStock) return { status: 'low', color: 'orange', icon: FaExclamationTriangle };
-    if (currentStock >= avgStock) return { status: 'good', color: 'green', icon: FaCheckCircle };
+    if (currentStock >= (maxStock * 0.7)) return { status: 'good', color: 'green', icon: FaCheckCircle };
     return { status: 'moderate', color: 'yellow', icon: FaInfoCircle };
   };
 
@@ -146,11 +141,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
             className={`h-full ${classes.progress} transition-all duration-300 rounded-full`}
             style={{ width: `${Math.min(stockPercentage, 100)}%` }}
           ></div>
-          {/* Average stock indicator */}
-          <div 
-            className="absolute top-0 h-full w-0.5 bg-gray-600"
-            style={{ left: `${Math.min((avgStock / maxStock) * 100, 100)}%` }}
-          ></div>
           {/* Minimum stock indicator */}
           <div 
             className="absolute top-0 h-full w-0.5 bg-red-400"
@@ -159,7 +149,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
         </div>
         <div className="flex justify-between text-xs text-gray-500">
           <span>Min: {minStock}</span>
-          <span>Avg: {avgStock}</span>
           <span>Max: {maxStock}</span>
         </div>
       </div>
@@ -203,10 +192,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
           <div className="flex items-center">
             <div className="w-2 h-2 bg-red-400 rounded-full mr-1"></div>
             <span>Minimum Threshold</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-2 h-2 bg-gray-600 rounded-full mr-1"></div>
-            <span>Average Level</span>
           </div>
           <div className="flex items-center">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>

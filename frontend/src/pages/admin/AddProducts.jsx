@@ -64,7 +64,6 @@ const AddProduct = () => {
         current: stockValue,
         maximum: stockValue * 2, // Set maximum as 2x current stock
         minimum: Math.max(5, Math.floor(stockValue * 0.2)), // Set minimum as 20% of stock or 5, whichever is higher
-        average: Math.floor(stockValue * 1.5), // Set average as 1.5x current stock
         lastRestocked: new Date(),
         reservedStock: 0
       },

@@ -16,7 +16,6 @@ const sampleProducts = [
       current: 45,
       maximum: 100,
       minimum: 10,
-      average: 55,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -41,7 +40,6 @@ const sampleProducts = [
       current: 30,
       maximum: 80,
       minimum: 5,
-      average: 40,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -66,7 +64,6 @@ const sampleProducts = [
       current: 25,
       maximum: 60,
       minimum: 8,
-      average: 35,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -91,7 +88,6 @@ const sampleProducts = [
       current: 35,
       maximum: 70,
       minimum: 10,
-      average: 45,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -116,7 +112,6 @@ const sampleProducts = [
       current: 20,
       maximum: 50,
       minimum: 5,
-      average: 30,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -141,7 +136,6 @@ const sampleProducts = [
       current: 40,
       maximum: 80,
       minimum: 10,
-      average: 50,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -166,7 +160,6 @@ const sampleProducts = [
       current: 15,
       maximum: 40,
       minimum: 5,
-      average: 25,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -191,7 +184,6 @@ const sampleProducts = [
       current: 12,
       maximum: 30,
       minimum: 3,
-      average: 18,
       lastRestocked: new Date(),
       reservedStock: 0
     },
@@ -227,7 +219,7 @@ async function seedDatabase() {
     
     console.log('Sample products:');
     insertedProducts.forEach(product => {
-      console.log(`- ${product.name} (${product.category}) - Rs.${product.price}/${product.unit}`);
+      console.log(`- ${product.name} (${product.category}) - LKR ${product.price}/${product.unit}`);
     });
     
   } catch (error) {

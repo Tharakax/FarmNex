@@ -253,7 +253,7 @@ export default function ProductsPage() {
                                         <div className="flex justify-between">
                                             <span>Total Stock Value:</span>
                                             <span className="font-medium text-purple-600">
-                                                Rs. {filteredProducts.reduce((total, p) => 
+                                                LKR {filteredProducts.reduce((total, p) => 
                                                     total + (p.stock && p.price ? p.stock.current * p.price : 0), 0
                                                 ).toLocaleString()}
                                             </span>
@@ -331,11 +331,11 @@ export default function ProductsPage() {
                                             <div className="mb-4">
                                                 <div className="flex items-baseline space-x-2">
                                                     <span className="text-2xl font-bold text-gray-900">
-                                                        Rs. {product.price ? product.price.toFixed(2) : '0.00'}
+                                                        LKR {product.price ? product.price.toFixed(2) : '0.00'}
                                                     </span>
                                                     {product.displayPrice && product.displayPrice !== product.price && (
                                                         <span className="text-sm text-gray-500 line-through">
-                                                            Rs. {product.displayPrice.toFixed(2)}
+                                                            LKR {product.displayPrice.toFixed(2)}
                                                         </span>
                                                     )}
                                                 </div>
@@ -374,10 +374,6 @@ export default function ProductsPage() {
                                                         <div className="flex justify-between">
                                                             <span className="text-gray-600">Minimum:</span>
                                                             <span className="font-medium text-gray-900">{product.stock.minimum}</span>
-                                                        </div>
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-600">Average:</span>
-                                                            <span className="font-medium text-gray-900">{product.stock.average}</span>
                                                         </div>
                                                     </div>
                                                     

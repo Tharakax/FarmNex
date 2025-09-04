@@ -59,7 +59,7 @@ const FarmerSuppliesManagement = () => {
         unit: 'packets',
         minQuantity: 10,
         maxQuantity: 100,
-        price: 15.99,
+        price: 1599,
         supplier: 'Green Seeds Co.',
         purchaseDate: '2024-08-01',
         expiryDate: '2025-08-01',
@@ -76,7 +76,7 @@ const FarmerSuppliesManagement = () => {
       unit: 'bags (50kg)',
       minQuantity: 10,
       maxQuantity: 50,
-      price: 45.00,
+      price: 4500,
       supplier: 'Farm Supply Inc.',
       purchaseDate: '2024-07-15',
       expiryDate: '2026-07-15',
@@ -93,7 +93,7 @@ const FarmerSuppliesManagement = () => {
       unit: 'meters',
       minQuantity: 50,
       maxQuantity: 500,
-      price: 1.25,
+      price: 125,
       supplier: 'IrrigationPro',
       purchaseDate: '2024-06-01',
       expiryDate: null,
@@ -110,7 +110,7 @@ const FarmerSuppliesManagement = () => {
       unit: 'pieces',
       minQuantity: 2,
       maxQuantity: 5,
-      price: 35.00,
+      price: 3500,
       supplier: 'ToolMaster',
       purchaseDate: '2024-05-15',
       expiryDate: null,
@@ -127,7 +127,7 @@ const FarmerSuppliesManagement = () => {
       unit: 'bottles (1L)',
       minQuantity: 5,
       maxQuantity: 20,
-      price: 28.50,
+      price: 2850,
       supplier: 'EcoFarm Solutions',
       purchaseDate: '2024-07-01',
       expiryDate: '2025-07-01',
@@ -144,7 +144,7 @@ const FarmerSuppliesManagement = () => {
       unit: 'liters',
       minQuantity: 100,
       maxQuantity: 500,
-      price: 1.45,
+      price: 145,
       supplier: 'FuelStation',
       purchaseDate: '2024-08-20',
       expiryDate: null,
@@ -455,7 +455,8 @@ const FarmerSuppliesManagement = () => {
         processedData,
         'Farm Supplies Management Report',
         getSuppliesColumns(),
-        filename
+        filename,
+        'supplies'
       );
       
       toast.success('Farm supplies exported to PDF successfully!');
@@ -521,7 +522,7 @@ const FarmerSuppliesManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Value</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">${suppliesStats.totalValue.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">LKR {suppliesStats.totalValue.toFixed(2)}</p>
             </div>
             <div className="p-3 rounded-full bg-green-100">
               <DollarSign className="h-6 w-6 text-green-600" />
@@ -593,7 +594,7 @@ const FarmerSuppliesManagement = () => {
                 <Icon className="h-8 w-8 text-gray-600 mx-auto mb-2" />
                 <div className="text-lg font-bold text-gray-900">{count}</div>
                 <div className="text-sm text-gray-600">{category.label}</div>
-                <div className="text-xs text-gray-500 mt-1">${value.toFixed(2)}</div>
+                <div className="text-xs text-gray-500 mt-1">LKR {value.toFixed(2)}</div>
               </div>
             );
           })}
@@ -858,7 +859,7 @@ const FarmerSuppliesManagement = () => {
                         {supply.quantity || 0}
                       </div>
                       <div className="text-xs text-gray-500">
-                        ${((supply.quantity || 0) * (supply.price || 0)).toFixed(2)} value
+                        LKR {((supply.quantity || 0) * (supply.price || 0)).toFixed(2)} value
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -1108,13 +1109,6 @@ const FarmerSuppliesManagement = () => {
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Supply
-          </button>
-          <button
-            onClick={() => toast.success('Purchase order functionality coming soon!')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-          >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            Create Order
           </button>
         </div>
       </div>

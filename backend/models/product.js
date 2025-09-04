@@ -63,12 +63,6 @@ const productSchema = new mongoose.Schema({
       default: 5,
       min: [0, 'Minimum stock cannot be negative']
     },
-    average: {
-      type: Number,
-      required: [false, 'Average stock level'],
-      default: 50,
-      min: [0, 'Average stock cannot be negative']
-    },
     lastRestocked: {
       type: Date,
       default: Date.now

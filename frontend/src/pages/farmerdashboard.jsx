@@ -1,5 +1,6 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import { 
   Home, 
   Wheat, 
@@ -19,7 +20,9 @@ import {
   X,
   AlertTriangle,
   Calendar,
-  Activity
+  Activity,
+  Camera,
+  Upload
 } from 'lucide-react';
 
 // Sample data
@@ -193,6 +196,11 @@ const ActivityTable = () => {
 
 // Sidebar Component
 const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
+  const [profileImage, setProfileImage] = useState(() => {
+    return localStorage.getItem('farmerProfileImage') || null;
+  });
+  const fileInputRef = useRef(null);
+  
   const menuItems = [
     { name: 'Home', icon: Home },
     { name: 'Products', icon: ShoppingBag },
@@ -203,6 +211,35 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
     { name: 'Reports', icon: FileText },
     { name: 'Settings', icon: Settings }
   ];
+
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert('Please select an image smaller than 5MB');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageDataUrl = e.target.result;
+        setProfileImage(imageDataUrl);
+        localStorage.setItem('farmerProfileImage', imageDataUrl);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      alert('Please select a valid image file');
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const removeProfileImage = () => {
+    setProfileImage(null);
+    localStorage.removeItem('farmerProfileImage');
+  };
 
   return (
     <>
@@ -215,30 +252,128 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
       )}
       
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full bg-green-800 text-white w-64 transform transition-transform duration-300 ease-in-out z-30 lg:translate-x-0 lg:static lg:z-0 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
+      <div className={`fixed left-0 top-0 h-full bg-green-800 text-white w-72 sm:w-80 transform transition-transform duration-300 ease-in-out z-30 lg:translate-x-0 lg:static lg:z-0 overflow-y-auto ${
+        isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
-        <div className="p-6 border-b border-green-700">
-          <h2 className="text-xl font-bold">Farm Manager</h2>
+        {/* Header */}
+        <div className="p-4 sm:p-6 border-b border-green-700">
+          <div className="flex items-center justify-between lg:justify-center">
+            <h2 className="text-lg sm:text-xl font-bold">Farm Manager</h2>
+            <button
+              onClick={toggleSidebar}
+              className="lg:hidden p-1 rounded-md hover:bg-green-700 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Profile Section */}
+        <div className="p-4 sm:p-6 border-b border-green-700">
+          <div className="text-center">
+            {/* Profile Image */}
+            <div className="relative mx-auto mb-4">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto overflow-hidden bg-green-100 border-4 border-green-600 shadow-lg">
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <User className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Upload/Camera Button */}
+              <button
+                onClick={handleUploadClick}
+                className="absolute -bottom-1 -right-1 bg-green-600 hover:bg-green-700 text-white p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+                title="Upload Profile Photo"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Profile Info */}
+            <div className="mb-4">
+              <h3 className="font-semibold text-base sm:text-lg text-white">John Smith</h3>
+              <p className="text-sm text-green-200">Farm Owner</p>
+              <p className="text-xs text-green-300 mt-1">Since 2018</p>
+            </div>
+
+            {/* Upload Controls */}
+            <div className="space-y-2">
+              <button
+                onClick={handleUploadClick}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
+              >
+                <Upload className="h-4 w-4" />
+                <span>{profileImage ? 'Change Photo' : 'Upload Photo'}</span>
+              </button>
+              
+              {profileImage && (
+                <button
+                  onClick={removeProfileImage}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white py-1 px-4 rounded-lg text-xs font-medium transition-colors duration-200"
+                >
+                  Remove Photo
+                </button>
+              )}
+            </div>
+
+            {/* Hidden File Input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+          </div>
         </div>
         
-        <nav className="mt-6">
+        {/* Navigation Menu */}
+        <nav className="flex-1 py-4">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.name}
-                onClick={() => setActiveItem(item.name)}
-                className={`w-full flex items-center px-6 py-3 text-left hover:bg-green-700 transition-colors duration-200 ${
+                onClick={() => {
+                  setActiveItem(item.name);
+                  // Auto-close sidebar on mobile after selection
+                  if (window.innerWidth < 1024) {
+                    toggleSidebar();
+                  }
+                }}
+                className={`w-full flex items-center px-4 sm:px-6 py-3 text-left hover:bg-green-700 transition-colors duration-200 group ${
                   activeItem === item.name ? 'bg-green-700 border-r-4 border-green-300' : ''
                 }`}
               >
-                <Icon className="mr-3 h-5 w-5" />
-                <span>{item.name}</span>
+                <Icon className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                <span className="text-sm sm:text-base font-medium">{item.name}</span>
+                {activeItem === item.name && (
+                  <div className="ml-auto w-2 h-2 bg-green-300 rounded-full"></div>
+                )}
               </button>
             );
           })}
         </nav>
+
+        {/* Footer */}
+        <div className="p-4 sm:p-6 border-t border-green-700">
+          <div className="text-center">
+            <p className="text-xs text-green-300">
+              FarmNex Dashboard v2.0
+            </p>
+            <p className="text-xs text-green-400 mt-1">
+              © {new Date().getFullYear()}
+            </p>
+          </div>
+        </div>
       </div>
     </>
   );
@@ -246,37 +381,53 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
 
 // Header Component
 const Header = ({ toggleSidebar }) => {
+  const [profileImage, setProfileImage] = useState(() => {
+    return localStorage.getItem('farmerProfileImage') || null;
+  });
+
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+    <header className="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <button
             onClick={toggleSidebar}
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors mr-2"
+            aria-label="Toggle menu"
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="ml-4 text-2xl font-semibold text-gray-800 lg:ml-0">Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Dashboard</h1>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Notifications */}
           <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-            <Bell className="h-6 w-6 text-gray-600" />
+            <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
           </button>
           
-          <div className="flex items-center space-x-3">
+          {/* Profile Section */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="hidden sm:block text-right">
               <p className="text-sm font-medium text-gray-700">John Smith</p>
               <p className="text-xs text-gray-500">Farm Owner</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-              <User className="h-6 w-6 text-green-600" />
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-green-100 flex items-center justify-center overflow-hidden border-2 border-green-200">
+              {profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
+              )}
             </div>
           </div>
           
-          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-            <LogOut className="h-6 w-6 text-gray-600" />
+          {/* Logout */}
+          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Logout">
+            <LogOut className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
           </button>
         </div>
       </div>
@@ -352,7 +503,14 @@ const FarmerDashboard = () => {
         return (
           <div>
             <DashboardStats />
-            <ChartSection />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="md:col-span-2">
+                <ChartSection />
+              </div>
+              <div className="flex justify-center md:justify-start">
+                <SoilMoistureWidget deviceId="ESP32-SOIL-001" title="Field Moisture Monitor" />
+              </div>
+            </div>
             <ActivityTable />
           </div>
         );
@@ -360,7 +518,7 @@ const FarmerDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       <Sidebar 
         isOpen={sidebarOpen} 
         toggleSidebar={toggleSidebar} 
@@ -368,20 +526,22 @@ const FarmerDashboard = () => {
         setActiveItem={setActiveItem}
       />
       
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         <Header toggleSidebar={toggleSidebar} />
         
-        <main className="flex-1 overflow-y-auto p-6">
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading...</p>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="max-w-7xl mx-auto">
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading...</p>
+                </div>
               </div>
-            </div>
-          }>
-            {renderContent()}
-          </Suspense>
+            }>
+              {renderContent()}
+            </Suspense>
+          </div>
         </main>
       </div>
     </div>

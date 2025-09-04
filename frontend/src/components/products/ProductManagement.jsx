@@ -250,7 +250,8 @@ const ProductManagement = () => {
         processedData,
         'Products Management Report',
         getProductsColumns(),
-        filename
+        filename,
+        'products'
       );
       
       toast.dismiss(loadingToast);
