@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CreditCard, Truck, CheckCircle, Lock, Calendar, User, Building, AlertCircle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { FormValidator } from '../../utils/validation';
+import { showError, showSuccess, showLoading } from '../../utils/sweetAlert';
 
 export default function EnterPayment() {
   const navigate = useNavigate();
@@ -90,6 +92,8 @@ export default function EnterPayment() {
             [name]: formattedValue
           }));
         }
+        // Real-time validation for card number
+        validateField(name, formattedValue);
         return;
       }
       
@@ -102,6 +106,8 @@ export default function EnterPayment() {
             [name]: formattedValue
           }));
         }
+        // Real-time validation for expiry date
+        validateField(name, formattedValue);
         return;
       }
       
@@ -114,6 +120,8 @@ export default function EnterPayment() {
             [name]: formattedValue
           }));
         }
+        // Real-time validation for CVV
+        validateField(name, formattedValue);
         return;
       }
       
@@ -123,80 +131,153 @@ export default function EnterPayment() {
       }));
     }
     
-    // Clear error for this field
+    // Clear error for this field and perform real-time validation
     if (errors[name]) {
+      const newErrors = { ...errors };
+      delete newErrors[name];
+      setErrors(newErrors);
+    }
+    
+    // Real-time validation for other fields
+    if (name !== 'cardNumber' && name !== 'expiryDate' && name !== 'cvv') {
+      validateField(name, type === 'checkbox' ? checked : value);
+    }
+  };
+
+  // Real-time field validation
+  const validateField = (fieldName, fieldValue) => {
+    const validator = new FormValidator();
+    
+    // Only validate if the current payment method requires this field
+    switch (fieldName) {
+      case 'cardNumber':
+        if (paymentMethod === 'credit_card') {
+          const cleanValue = fieldValue.replace(/\s/g, '');
+          validator.required(cleanValue, 'Card Number')
+                   .cardNumber(cleanValue, 'Card Number');
+        }
+        break;
+      
+      case 'cardName':
+        if (paymentMethod === 'credit_card') {
+          validator.required(fieldValue, 'Cardholder Name')
+                   .minLength(fieldValue, 2, 'Cardholder Name')
+                   .maxLength(fieldValue, 50, 'Cardholder Name')
+                   .custom(/^[a-zA-Z\s]+$/.test(fieldValue || ''), 'Cardholder Name', 'Please enter a valid name (letters and spaces only)');
+        }
+        break;
+      
+      case 'expiryDate':
+        if (paymentMethod === 'credit_card') {
+          validator.required(fieldValue, 'Expiry Date')
+                   .expiryDate(fieldValue, 'Expiry Date');
+        }
+        break;
+      
+      case 'cvv':
+        if (paymentMethod === 'credit_card') {
+          validator.required(fieldValue, 'CVV')
+                   .cvv(fieldValue, 'CVV');
+        }
+        break;
+      
+      case 'paypalEmail':
+        if (paymentMethod === 'paypal') {
+          validator.required(fieldValue, 'PayPal Email')
+                   .email(fieldValue, 'PayPal Email');
+        }
+        break;
+      
+      case 'bankName':
+        if (paymentMethod === 'bank_transfer') {
+          validator.required(fieldValue, 'Bank Name');
+        }
+        break;
+      
+      case 'accountNumber':
+        if (paymentMethod === 'bank_transfer') {
+          validator.required(fieldValue, 'Account Number')
+                   .minLength(fieldValue, 8, 'Account Number')
+                   .maxLength(fieldValue, 20, 'Account Number')
+                   .custom(/^\d+$/.test(fieldValue || ''), 'Account Number', 'Account number must contain only digits');
+        }
+        break;
+      
+      case 'codConfirmation':
+        if (paymentMethod === 'cash_on_delivery') {
+          validator.custom(fieldValue === true, 'COD Confirmation', 'Please confirm cash on delivery payment');
+        }
+        break;
+    }
+
+    const fieldErrors = validator.getFieldErrors(fieldName);
+    if (fieldErrors.length > 0) {
       setErrors(prev => ({
         ...prev,
-        [name]: ''
+        [fieldName]: fieldErrors[0]
       }));
+    } else {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
     }
   };
 
   const validateForm = () => {
-    const newErrors = {};
-
+    const validator = new FormValidator();
+    
+    // Validate based on payment method
     if (paymentMethod === 'credit_card') {
-      const cardNumberDigits = formData.cardNumber.replace(/\s/g, '');
+      const cleanCardNumber = formData.cardNumber.replace(/\s/g, '');
       
-      if (!cardNumberDigits) {
-        newErrors.cardNumber = 'Card number is required';
-      } else if (cardNumberDigits.length !== 16) {
-        newErrors.cardNumber = 'Card number must be 16 digits';
-      }
+      validator.required(cleanCardNumber, 'Card Number')
+               .cardNumber(cleanCardNumber, 'Card Number');
       
-      if (!formData.cardName.trim()) {
-        newErrors.cardName = 'Cardholder name is required';
-      }
+      validator.required(formData.cardName, 'Cardholder Name')
+               .minLength(formData.cardName, 2, 'Cardholder Name')
+               .maxLength(formData.cardName, 50, 'Cardholder Name')
+               .custom(/^[a-zA-Z\s]+$/.test(formData.cardName || ''), 'Cardholder Name', 'Please enter a valid name (letters and spaces only)');
       
-      if (!formData.expiryDate) {
-        newErrors.expiryDate = 'Expiry date is required';
-      } else if (!/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
-        newErrors.expiryDate = 'Please enter expiry date in MM/YY format';
-      } else {
-        const [month, year] = formData.expiryDate.split('/');
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear() % 100;
-        const currentMonth = currentDate.getMonth() + 1;
-        
-        if (parseInt(month) < 1 || parseInt(month) > 12) {
-          newErrors.expiryDate = 'Invalid month';
-        } else if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
-          newErrors.expiryDate = 'Card has expired';
-        }
-      }
+      validator.required(formData.expiryDate, 'Expiry Date')
+               .expiryDate(formData.expiryDate, 'Expiry Date');
       
-      if (!formData.cvv) {
-        newErrors.cvv = 'CVV is required';
-      } else if (formData.cvv.length < 3) {
-        newErrors.cvv = 'CVV must be at least 3 digits';
-      }
+      validator.required(formData.cvv, 'CVV')
+               .cvv(formData.cvv, 'CVV');
     }
 
     if (paymentMethod === 'bank_transfer') {
-      if (!formData.bankName.trim()) {
-        newErrors.bankName = 'Bank name is required';
-      }
-      if (!formData.accountNumber.trim()) {
-        newErrors.accountNumber = 'Account number is required';
-      }
+      validator.required(formData.bankName, 'Bank Name');
+      
+      validator.required(formData.accountNumber, 'Account Number')
+               .minLength(formData.accountNumber, 8, 'Account Number')
+               .maxLength(formData.accountNumber, 20, 'Account Number')
+               .custom(/^\d+$/.test(formData.accountNumber || ''), 'Account Number', 'Account number must contain only digits');
     }
 
     if (paymentMethod === 'paypal') {
-      if (!formData.paypalEmail.trim()) {
-        newErrors.paypalEmail = 'PayPal email is required';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.paypalEmail)) {
-        newErrors.paypalEmail = 'Please enter a valid email address';
-      }
+      validator.required(formData.paypalEmail, 'PayPal Email')
+               .email(formData.paypalEmail, 'PayPal Email');
     }
 
     if (paymentMethod === 'cash_on_delivery') {
-      if (!formData.codConfirmation) {
-        newErrors.codConfirmation = 'Please confirm cash on delivery';
-      }
+      validator.custom(formData.codConfirmation === true, 'COD Confirmation', 'Please confirm cash on delivery payment');
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // Additional business validations
+    if (!orderData) {
+      validator.addError('Order', 'Order data is missing. Please refresh the page.');
+    }
+
+    if (orderData && orderData.items && orderData.items.length === 0) {
+      validator.addError('Cart', 'Your cart is empty. Please add items before proceeding.');
+    }
+
+    const validationErrors = validator.getAllErrors();
+    setErrors(validationErrors);
+    
+    return !validator.hasErrors();
   };
 
   const handlePaymentMethodChange = (method) => {
@@ -207,24 +288,34 @@ export default function EnterPayment() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Comprehensive validation before submission
     if (!validateForm()) {
+      await showError('Payment Validation Failed', 'Please fix the errors below and try again.');
       return;
     }
 
     setLoading(true);
-
+    
     try {
+      // Show loading dialog
+      const loadingAlert = showLoading(
+        'Processing Payment',
+        `Processing your ${paymentMethod.replace('_', ' ')} payment. Please do not close this page...`
+      );
+
       // Prepare payment data based on selected method
       let paymentData = {
         paymentMethod: paymentMethod,
-        paymentCompleted: true
+        paymentCompleted: true,
+        amount: paymentMethod === 'cash_on_delivery' ? orderData.total + 50 : orderData.total
       };
 
       // Add method-specific data (in real app, this would be handled securely)
       if (paymentMethod === 'credit_card') {
         paymentData.paymentDetails = {
-          cardLast4: formData.cardNumber.slice(-4),
-          cardName: formData.cardName
+          cardLast4: formData.cardNumber.replace(/\s/g, '').slice(-4),
+          cardName: formData.cardName,
+          cardType: getCardType(formData.cardNumber)
         };
       } else if (paymentMethod === 'paypal') {
         paymentData.paymentDetails = {
@@ -233,32 +324,100 @@ export default function EnterPayment() {
       } else if (paymentMethod === 'bank_transfer') {
         paymentData.paymentDetails = {
           bankName: formData.bankName,
-          accountNumber: formData.accountNumber.slice(-4) // Only store last 4 digits
+          accountLast4: formData.accountNumber.slice(-4) // Only store last 4 digits
+        };
+      } else if (paymentMethod === 'cash_on_delivery') {
+        paymentData.paymentDetails = {
+          codFee: 50,
+          totalWithCod: orderData.total + 50
         };
       }
 
       // Save payment information to the order
       const response = await axios.put(
         `${import.meta.env.VITE_BACKEND_URL}/api/order/${orderId}/payment`,
-        paymentData
+        paymentData,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
+
+      // Close loading dialog
+      if (loadingAlert && typeof loadingAlert.close === 'function') {
+        loadingAlert.close();
+      }
 
       if (response.data.success) {
         // Clear stored order data
         localStorage.removeItem("orderData");
         
+        // Show success message
+        await showSuccess(
+          'Payment Successful!',
+          `Your ${paymentMethod.replace('_', ' ')} payment has been processed successfully. You will be redirected to the order confirmation page.`
+        );
+        
         // Navigate to order confirmation/success page
         navigate(`/order-success/${orderId}`);
       } else {
         console.error('Failed to process payment:', response.data.message);
-        alert('Payment processing failed. Please try again.');
+        await showError(
+          'Payment Processing Failed',
+          response.data.message || 'There was an error processing your payment. Please try again or contact support.'
+        );
       }
     } catch (error) {
       console.error('Error processing payment:', error);
-      alert('An error occurred during payment processing. Please try again.');
+      
+      let errorMessage = 'An unexpected error occurred during payment processing.';
+      
+      if (error.response) {
+        switch (error.response.status) {
+          case 400:
+            errorMessage = 'Invalid payment information. Please check your details and try again.';
+            break;
+          case 401:
+            errorMessage = 'You are not authorized to complete this payment. Please log in and try again.';
+            navigate('/login');
+            return;
+          case 403:
+            errorMessage = 'Payment declined. Please check your payment method or try a different one.';
+            break;
+          case 404:
+            errorMessage = 'Order not found. Please return to your cart and try again.';
+            break;
+          case 500:
+            errorMessage = 'Server error occurred. Please try again in a few minutes.';
+            break;
+          case 502:
+          case 503:
+          case 504:
+            errorMessage = 'Payment service is temporarily unavailable. Please try again later.';
+            break;
+          default:
+            errorMessage = error.response.data?.message || 'Payment processing failed. Please try again.';
+        }
+      } else if (error.request) {
+        errorMessage = 'Unable to connect to payment server. Please check your internet connection and try again.';
+      }
+      
+      await showError('Payment Error', errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Helper function to determine card type
+  const getCardType = (cardNumber) => {
+    const cleanNumber = cardNumber.replace(/\s/g, '');
+    if (/^4/.test(cleanNumber)) return 'Visa';
+    if (/^5[1-5]/.test(cleanNumber)) return 'MasterCard';
+    if (/^3[47]/.test(cleanNumber)) return 'American Express';
+    if (/^6/.test(cleanNumber)) return 'Discover';
+    return 'Unknown';
   };
 
   if (!orderData) {

@@ -22,6 +22,7 @@ import {
   getInventoryColumns,
   processDataForExport 
 } from '../../utils/exportUtils';
+import { showError } from '../../utils/sweetAlert';
 
 const StockManagement = () => {
   const [products, setProducts] = useState([]);
@@ -196,7 +197,7 @@ const StockManagement = () => {
       setUpdateData({ productId: '', current: '', maximum: '', minimum: '', average: '' });
     } catch (error) {
       console.error('Error updating stock:', error);
-      alert('Failed to update stock');
+      await showError('Failed to update stock');
     }
   };
 

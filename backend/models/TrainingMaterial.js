@@ -49,6 +49,11 @@ const trainingMaterialSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  status: {
+    type: String,
+    enum: ['draft', 'published', 'archived'],
+    default: 'draft'
+  },
   isActive: {
     type: Boolean,
     default: true

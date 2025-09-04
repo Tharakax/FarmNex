@@ -42,6 +42,8 @@ import {
   getSuppliesColumns,
   processDataForExport 
 } from '../../utils/exportUtils';
+import { validateSupplyForm, getFieldClasses, formatSupplyData } from '../../utils/SupplyFormValidator';
+import { showDeleteConfirm, showSuccess, showError, showWarning } from '../../utils/sweetAlert';
 
 const FarmerSuppliesManagement = () => {
   // Initialize supplies data (this will be replaced with API calls later)
@@ -156,7 +158,7 @@ const FarmerSuppliesManagement = () => {
     ];
   };
 
-  // State management
+// State management
   const [supplies, setSupplies] = useState(getInitialSuppliesData());
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -168,6 +170,11 @@ const FarmerSuppliesManagement = () => {
   const [activeView, setActiveView] = useState('overview');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingSupply, setEditingSupply] = useState(null);
+  
+  // Form validation state
+  const [formErrors, setFormErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
+  const [formSubmitting, setFormSubmitting] = useState(false);
 
   // Supply categories - matching backend enum values
   const categories = [
@@ -222,9 +229,27 @@ const FarmerSuppliesManagement = () => {
 
   const addSupply = async (newSupplyData) => {
     try {
+      setFormSubmitting(true);
+      
+      // Validate form data before submission
+      const validation = validateSupplyForm(newSupplyData);
+      
+      if (!validation.isValid) {
+        setFormErrors(validation.errors);
+        
+        // Show validation errors with SweetAlert
+        const errorList = validation.errorMessages.map(error => error.message).join('\n');
+        await showError(
+          errorList,
+          'Validation Error'
+        );
+        return false;
+      }
+      
+      // Format and prepare data
+      const formattedData = formatSupplyData(newSupplyData);
       const supplyToAdd = {
-        ...newSupplyData,
-        status: getSupplyStatus(newSupplyData.quantity, newSupplyData.minQuantity, newSupplyData.expiryDate),
+        ...formattedData,
         lastUsed: new Date().toISOString().split('T')[0]
       };
       
@@ -233,27 +258,50 @@ const FarmerSuppliesManagement = () => {
       
       setSupplies(prev => [...prev, newSupply]);
       toast.success(`${newSupply.name} added successfully!`);
+      return true;
     } catch (error) {
       console.error('Error adding supply:', error);
-      toast.error('Failed to add farm supply');
+      toast.error('Failed to add farm supply: ' + (error.message || 'Unknown error'));
+      return false;
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
   const updateSupply = async (id, updatedData) => {
     try {
-      const updatedSupplyData = {
-        ...updatedData,
-        status: getSupplyStatus(updatedData.quantity, updatedData.minQuantity, updatedData.expiryDate)
-      };
+      setFormSubmitting(true);
       
-      const response = await farmSuppliesAPI.updateSupply(id, updatedSupplyData);
+      // Validate form data before submission
+      const validation = validateSupplyForm(updatedData);
+      
+      if (!validation.isValid) {
+        setFormErrors(validation.errors);
+        
+        // Show validation errors with SweetAlert
+        const errorList = validation.errorMessages.map(error => error.message).join('\n');
+        await showError(
+          errorList,
+          'Validation Error'
+        );
+        return false;
+      }
+      
+      // Format and prepare data
+      const formattedData = formatSupplyData(updatedData);
+      
+      const response = await farmSuppliesAPI.updateSupply(id, formattedData);
       const updatedSupply = response.data || response;
       
       setSupplies(prev => prev.map(supply => supply._id === id ? updatedSupply : supply));
       toast.success(`${updatedSupply.name} updated successfully!`);
+      return true;
     } catch (error) {
       console.error('Error updating supply:', error);
-      toast.error('Failed to update farm supply');
+      toast.error('Failed to update farm supply: ' + (error.message || 'Unknown error'));
+      return false;
+    } finally {
+      setFormSubmitting(false);
     }
   };
 
@@ -263,7 +311,12 @@ const FarmerSuppliesManagement = () => {
       await farmSuppliesAPI.deleteSupply(id);
       
       setSupplies(prev => prev.filter(supply => supply._id !== id));
-      toast.success(`${supplyToDelete?.name} deleted successfully!`);
+      
+      // Show success message with SweetAlert
+      await showSuccess(
+        `${supplyToDelete?.name} has been permanently deleted from your supplies.`,
+        'Supply Deleted Successfully!'
+      );
     } catch (error) {
       console.error('Error deleting supply:', error);
       toast.error('Failed to delete farm supply');
@@ -930,8 +983,9 @@ const FarmerSuppliesManagement = () => {
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete ${supply.name}?`)) {
+                          onClick={async () => {
+                            const result = await showDeleteConfirm(supply.name);
+                            if (result.isConfirmed) {
                               deleteSupply(supply._id);
                             }
                           }}
@@ -1173,7 +1227,7 @@ const FarmerSuppliesManagement = () => {
       {/* Add/Edit Supply Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Form Header */}
             <div className="sticky top-0 bg-white border-b p-6 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">
@@ -1183,6 +1237,8 @@ const FarmerSuppliesManagement = () => {
                 onClick={() => {
                   setShowAddForm(false);
                   setEditingSupply(null);
+                  setFormErrors({});
+                  setTouchedFields({});
                 }}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
               >
@@ -1192,7 +1248,7 @@ const FarmerSuppliesManagement = () => {
 
             {/* Form Content */}
             <div className="p-6">
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1202,10 +1258,27 @@ const FarmerSuppliesManagement = () => {
                       name="name"
                       type="text"
                       defaultValue={editingSupply?.name || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('name', formErrors, touchedFields)}
                       placeholder="Enter supply name"
                       required
+                      onChange={() => {
+                        if (formErrors.name) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.name;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, name: true});
+                        const validator = validateSupplyForm({name: e.target.value});
+                        if (validator.errors.name) {
+                          setFormErrors({...formErrors, name: validator.errors.name});
+                        }
+                      }}
                     />
+                    {formErrors.name && touchedFields.name && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.name[0]}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1215,8 +1288,18 @@ const FarmerSuppliesManagement = () => {
                     <select
                       name="category"
                       defaultValue={editingSupply?.category || 'tools'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('category', formErrors, touchedFields)}
                       required
+                      onChange={() => {
+                        if (formErrors.category) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.category;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, category: true});
+                      }}
                     >
                       {categories.slice(1).map(cat => (
                         <option key={cat.value} value={cat.value}>
@@ -1237,10 +1320,33 @@ const FarmerSuppliesManagement = () => {
                       type="number"
                       defaultValue={editingSupply?.quantity || ''}
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('quantity', formErrors, touchedFields)}
                       placeholder="0"
                       required
+                      onChange={() => {
+                        if (formErrors.quantity) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.quantity;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, quantity: true});
+                        const form = e.target.form;
+                        const formData = {
+                          quantity: e.target.value,
+                          minQuantity: form.elements.minQuantity.value,
+                          maxQuantity: form.elements.maxQuantity.value
+                        };
+                        const validator = validateSupplyForm(formData);
+                        if (validator.errors.quantity) {
+                          setFormErrors({...formErrors, quantity: validator.errors.quantity});
+                        }
+                      }}
                     />
+                    {formErrors.quantity && touchedFields.quantity && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.quantity[0]}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1251,10 +1357,27 @@ const FarmerSuppliesManagement = () => {
                       name="unit"
                       type="text"
                       defaultValue={editingSupply?.unit || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('unit', formErrors, touchedFields)}
                       placeholder="e.g., pieces, kg, liters"
                       required
+                      onChange={() => {
+                        if (formErrors.unit) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.unit;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, unit: true});
+                        const validator = validateSupplyForm({unit: e.target.value});
+                        if (validator.errors.unit) {
+                          setFormErrors({...formErrors, unit: validator.errors.unit});
+                        }
+                      }}
                     />
+                    {formErrors.unit && touchedFields.unit && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.unit[0]}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1267,10 +1390,27 @@ const FarmerSuppliesManagement = () => {
                       defaultValue={editingSupply?.price || ''}
                       min="0"
                       step="0.01"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('price', formErrors, touchedFields)}
                       placeholder="0.00"
                       required
+                      onChange={() => {
+                        if (formErrors.price) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.price;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, price: true});
+                        const validator = validateSupplyForm({price: e.target.value});
+                        if (validator.errors.price) {
+                          setFormErrors({...formErrors, price: validator.errors.price});
+                        }
+                      }}
                     />
+                    {formErrors.price && touchedFields.price && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.price[0]}</p>
+                    )}
                   </div>
                 </div>
 
@@ -1284,9 +1424,36 @@ const FarmerSuppliesManagement = () => {
                       type="number"
                       defaultValue={editingSupply?.minQuantity || ''}
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('minQuantity', formErrors, touchedFields)}
                       placeholder="5"
+                      onChange={() => {
+                        if (formErrors.minQuantity || formErrors.stockRange) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.minQuantity;
+                          delete newErrors.stockRange;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, minQuantity: true});
+                        const form = e.target.form;
+                        const formData = {
+                          minQuantity: e.target.value,
+                          maxQuantity: form.elements.maxQuantity.value
+                        };
+                        const validator = validateSupplyForm(formData);
+                        if (validator.errors.minQuantity || validator.errors.stockRange) {
+                          setFormErrors({
+                            ...formErrors, 
+                            minQuantity: validator.errors.minQuantity,
+                            stockRange: validator.errors.stockRange
+                          });
+                        }
+                      }}
                     />
+                    {formErrors.minQuantity && touchedFields.minQuantity && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.minQuantity[0]}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1298,11 +1465,44 @@ const FarmerSuppliesManagement = () => {
                       type="number"
                       defaultValue={editingSupply?.maxQuantity || ''}
                       min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('maxQuantity', formErrors, touchedFields)}
                       placeholder="100"
+                      onChange={() => {
+                        if (formErrors.maxQuantity || formErrors.stockRange) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.maxQuantity;
+                          delete newErrors.stockRange;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, maxQuantity: true});
+                        const form = e.target.form;
+                        const formData = {
+                          minQuantity: form.elements.minQuantity.value,
+                          maxQuantity: e.target.value
+                        };
+                        const validator = validateSupplyForm(formData);
+                        if (validator.errors.maxQuantity || validator.errors.stockRange) {
+                          setFormErrors({
+                            ...formErrors, 
+                            maxQuantity: validator.errors.maxQuantity,
+                            stockRange: validator.errors.stockRange
+                          });
+                        }
+                      }}
                     />
+                    {formErrors.maxQuantity && touchedFields.maxQuantity && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.maxQuantity[0]}</p>
+                    )}
                   </div>
                 </div>
+                
+                {formErrors.stockRange && (
+                  <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
+                    <p className="text-sm text-red-700">{formErrors.stockRange[0]}</p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1313,9 +1513,26 @@ const FarmerSuppliesManagement = () => {
                       name="supplier"
                       type="text"
                       defaultValue={editingSupply?.supplier || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('supplier', formErrors, touchedFields)}
                       placeholder="Supplier name"
+                      onChange={() => {
+                        if (formErrors.supplier) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.supplier;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, supplier: true});
+                        const validator = validateSupplyForm({supplier: e.target.value});
+                        if (validator.errors.supplier) {
+                          setFormErrors({...formErrors, supplier: validator.errors.supplier});
+                        }
+                      }}
                     />
+                    {formErrors.supplier && touchedFields.supplier && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.supplier[0]}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1326,9 +1543,26 @@ const FarmerSuppliesManagement = () => {
                       name="location"
                       type="text"
                       defaultValue={editingSupply?.location || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('location', formErrors, touchedFields)}
                       placeholder="Storage location"
+                      onChange={() => {
+                        if (formErrors.location) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.location;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, location: true});
+                        const validator = validateSupplyForm({location: e.target.value});
+                        if (validator.errors.location) {
+                          setFormErrors({...formErrors, location: validator.errors.location});
+                        }
+                      }}
                     />
+                    {formErrors.location && touchedFields.location && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.location[0]}</p>
+                    )}
                   </div>
                 </div>
 
@@ -1341,8 +1575,30 @@ const FarmerSuppliesManagement = () => {
                       name="purchaseDate"
                       type="date"
                       defaultValue={editingSupply?.purchaseDate || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('purchaseDate', formErrors, touchedFields)}
+                      onChange={() => {
+                        if (formErrors.purchaseDate) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.purchaseDate;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, purchaseDate: true});
+                        const form = e.target.form;
+                        const formData = {
+                          purchaseDate: e.target.value,
+                          expiryDate: form.elements.expiryDate.value
+                        };
+                        const validator = validateSupplyForm(formData);
+                        if (validator.errors.purchaseDate) {
+                          setFormErrors({...formErrors, purchaseDate: validator.errors.purchaseDate});
+                        }
+                      }}
                     />
+                    {formErrors.purchaseDate && touchedFields.purchaseDate && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.purchaseDate[0]}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1353,8 +1609,30 @@ const FarmerSuppliesManagement = () => {
                       name="expiryDate"
                       type="date"
                       defaultValue={editingSupply?.expiryDate || ''}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className={getFieldClasses('expiryDate', formErrors, touchedFields)}
+                      onChange={() => {
+                        if (formErrors.expiryDate) {
+                          const newErrors = {...formErrors};
+                          delete newErrors.expiryDate;
+                          setFormErrors(newErrors);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        setTouchedFields({...touchedFields, expiryDate: true});
+                        const form = e.target.form;
+                        const formData = {
+                          expiryDate: e.target.value,
+                          purchaseDate: form.elements.purchaseDate.value
+                        };
+                        const validator = validateSupplyForm(formData);
+                        if (validator.errors.expiryDate) {
+                          setFormErrors({...formErrors, expiryDate: validator.errors.expiryDate});
+                        }
+                      }}
                     />
+                    {formErrors.expiryDate && touchedFields.expiryDate && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.expiryDate[0]}</p>
+                    )}
                   </div>
                 </div>
 
@@ -1366,9 +1644,26 @@ const FarmerSuppliesManagement = () => {
                     name="notes"
                     defaultValue={editingSupply?.notes || ''}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className={getFieldClasses('notes', formErrors, touchedFields)}
                     placeholder="Additional notes about this supply..."
+                    onChange={() => {
+                      if (formErrors.notes) {
+                        const newErrors = {...formErrors};
+                        delete newErrors.notes;
+                        setFormErrors(newErrors);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      setTouchedFields({...touchedFields, notes: true});
+                      const validator = validateSupplyForm({notes: e.target.value});
+                      if (validator.errors.notes) {
+                        setFormErrors({...formErrors, notes: validator.errors.notes});
+                      }
+                    }}
                   />
+                  {formErrors.notes && touchedFields.notes && (
+                    <p className="mt-1 text-sm text-red-600">{formErrors.notes[0]}</p>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-4 pt-4 border-t">
@@ -1377,6 +1672,8 @@ const FarmerSuppliesManagement = () => {
                     onClick={() => {
                       setShowAddForm(false);
                       setEditingSupply(null);
+                      setFormErrors({});
+                      setTouchedFields({});
                     }}
                     className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
@@ -1384,52 +1681,74 @@ const FarmerSuppliesManagement = () => {
                   </button>
                   <button
                     type="submit"
-                    onClick={(e) => {
+                    disabled={formSubmitting}
+                    onClick={async (e) => {
                       e.preventDefault();
-                      const formData = new FormData(e.target.form);
-                      const supplierName = formData.get('supplier') || e.target.form.elements.supplier.value || '';
-                      const supplyData = {
-                        name: formData.get('name') || e.target.form.elements.name.value,
-                        description: formData.get('notes') || e.target.form.elements.notes.value || 'No description provided',
-                        category: formData.get('category') || e.target.form.elements.category.value,
-                        quantity: parseInt(formData.get('quantity') || e.target.form.elements.quantity.value) || 0,
-                        unit: formData.get('unit') || e.target.form.elements.unit.value,
-                        price: parseFloat(formData.get('price') || e.target.form.elements.price.value) || 0,
-                        minQuantity: parseInt(formData.get('minQuantity') || e.target.form.elements.minQuantity.value) || 5,
-                        maxQuantity: parseInt(formData.get('maxQuantity') || e.target.form.elements.maxQuantity.value) || 100,
-                        supplier: {
-                          name: supplierName,
-                          contact: '',
-                          email: ''
-                        },
-                        storage: {
-                          location: formData.get('location') || e.target.form.elements.location.value || '',
-                          temperature: 'room-temp',
-                          instructions: ''
-                        },
-                        expiryDate: formData.get('expiryDate') || e.target.form.elements.expiryDate.value || null,
-                        batchNumber: '',
-                        lastRestocked: new Date(formData.get('purchaseDate') || e.target.form.elements.purchaseDate.value || new Date())
+                      const form = e.target.form;
+                      
+                      // Mark all fields as touched for validation
+                      const allFields = {
+                        name: true, category: true, quantity: true, unit: true, price: true,
+                        minQuantity: true, maxQuantity: true, supplier: true, location: true,
+                        purchaseDate: true, expiryDate: true, notes: true
                       };
-
-                      // Validation
-                      if (!supplyData.name || !supplyData.category || !supplyData.unit) {
-                        toast.error('Please fill in all required fields (Name, Category, Unit)');
+                      setTouchedFields(allFields);
+                      
+                      // Collect form data
+                      const supplyData = {
+                        name: form.elements.name.value,
+                        notes: form.elements.notes.value || '',
+                        category: form.elements.category.value,
+                        quantity: form.elements.quantity.value,
+                        unit: form.elements.unit.value,
+                        price: form.elements.price.value,
+                        minQuantity: form.elements.minQuantity.value || '5',
+                        maxQuantity: form.elements.maxQuantity.value || '100',
+                        supplier: form.elements.supplier.value || '',
+                        location: form.elements.location.value || '',
+                        purchaseDate: form.elements.purchaseDate.value || new Date().toISOString().split('T')[0],
+                        expiryDate: form.elements.expiryDate.value || null
+                      };
+                      
+                      // Validate the entire form
+                      const validation = validateSupplyForm(supplyData);
+                      setFormErrors(validation.errors);
+                      
+                      if (!validation.isValid) {
+                        // Show validation errors with SweetAlert
+                        const errorList = validation.errorMessages.map(error => error.message).join('\n');
+                        await showError(
+                          errorList,
+                          'Please Fix These Errors'
+                        );
                         return;
                       }
 
+                      // Submit form if validation passes
+                      let success = false;
                       if (editingSupply) {
-                        updateSupply(editingSupply._id, supplyData);
+                        success = await updateSupply(editingSupply._id, supplyData);
                       } else {
-                        addSupply(supplyData);
+                        success = await addSupply(supplyData);
                       }
                       
-                      setShowAddForm(false);
-                      setEditingSupply(null);
+                      if (success) {
+                        setShowAddForm(false);
+                        setEditingSupply(null);
+                        setFormErrors({});
+                        setTouchedFields({});
+                      }
                     }}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {editingSupply ? 'Update Supply' : 'Add Supply'}
+                    {formSubmitting ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                        {editingSupply ? 'Updating...' : 'Adding...'}
+                      </>
+                    ) : (
+                      editingSupply ? 'Update Supply' : 'Add Supply'
+                    )}
                   </button>
                 </div>
               </form>

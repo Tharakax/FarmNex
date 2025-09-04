@@ -3,45 +3,36 @@ import {
   AlertCircle,
   CheckCircle,
   Plus,
+  ArrowLeft,
+  Download,
   FileSpreadsheet,
-  BookOpen,
-  TrendingUp,
-  Users,
-  Target
+  BookOpen
 } from 'lucide-react';
 
-// Import working API service - using dynamic import to avoid issues
-let trainingAPIReal;
-try {
-  trainingAPIReal = require('../../services/trainingAPIReal').trainingAPIReal;
-} catch (error) {
-  console.warn('TrainingAPIReal import error:', error);
-  // Fallback mock API
-  trainingAPIReal = {
-    exportToExcel: () => Promise.resolve({ filename: 'mock-export.xlsx', success: true })
-  };
-}
-
-// Toast functionality - using dynamic import to avoid issues
-let toast;
-try {
-  toast = require('react-hot-toast').default;
-} catch (error) {
-  console.warn('React-hot-toast import error:', error);
-  // Fallback toast functionality
-  toast = {
-    loading: (message) => console.log('Loading:', message),
-    success: (message) => console.log('Success:', message),
-    error: (message) => console.log('Error:', message)
-  };
-}
-
-const TrainingManagement = () => {
+const TrainingManagementSimple = () => {
+  const [isExporting, setIsExporting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [isExporting, setIsExporting] = useState(false);
 
-  // Success/Error message auto-hide
+  // Test function for Excel export
+  const handleTestExport = async () => {
+    setIsExporting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      // Simulate export process
+      setTimeout(() => {
+        setSuccessMessage('Excel export functionality is ready! (This is a demo)');
+        setIsExporting(false);
+      }, 2000);
+    } catch (error) {
+      setErrorMessage('Export failed: ' + error.message);
+      setIsExporting(false);
+    }
+  };
+
+  // Auto-hide messages
   useEffect(() => {
     if (successMessage || errorMessage) {
       const timer = setTimeout(() => {
@@ -51,40 +42,6 @@ const TrainingManagement = () => {
       return () => clearTimeout(timer);
     }
   }, [successMessage, errorMessage]);
-
-  // Excel Export Handler
-  const handleExportToExcel = async () => {
-    if (isExporting) return; // Prevent multiple clicks
-
-    setIsExporting(true);
-    toast.loading('Generating Excel report...', { id: 'excel-export' });
-
-    try {
-      const result = await trainingAPIReal.exportToExcel();
-      
-      toast.success(
-        `Excel report downloaded successfully! File: ${result.filename}`,
-        { 
-          id: 'excel-export',
-          duration: 5000
-        }
-      );
-      
-      setSuccessMessage(`Excel report exported successfully: ${result.filename}`);
-    } catch (error) {
-      console.error('Excel export failed:', error);
-      toast.error(
-        error.message || 'Failed to export Excel report. Please try again.',
-        { 
-          id: 'excel-export',
-          duration: 5000
-        }
-      );
-      setErrorMessage('Failed to export Excel report. Please try again.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -122,7 +79,7 @@ const TrainingManagement = () => {
           <div className="flex items-center space-x-3">
             {/* Excel Export Button */}
             <button
-              onClick={handleExportToExcel}
+              onClick={handleTestExport}
               disabled={isExporting}
               className={`
                 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 
@@ -158,39 +115,26 @@ const TrainingManagement = () => {
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-800 flex items-center">
-              <BookOpen className="h-4 w-4 mr-2" />
-              Total Materials
-            </h3>
+            <h3 className="text-sm font-medium text-blue-800">Total Materials</h3>
             <p className="text-2xl font-bold text-blue-600">24</p>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-green-800 flex items-center">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Active Materials
-            </h3>
+            <h3 className="text-sm font-medium text-green-800">Active Materials</h3>
             <p className="text-2xl font-bold text-green-600">21</p>
           </div>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-yellow-800 flex items-center">
-              <Target className="h-4 w-4 mr-2" />
-              Categories
-            </h3>
+            <h3 className="text-sm font-medium text-yellow-800">Categories</h3>
             <p className="text-2xl font-bold text-yellow-600">6</p>
           </div>
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-purple-800 flex items-center">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Total Views
-            </h3>
+            <h3 className="text-sm font-medium text-purple-800">Total Views</h3>
             <p className="text-2xl font-bold text-purple-600">1,247</p>
           </div>
         </div>
 
       </div>
-
     </div>
   );
 };
 
-export default TrainingManagement;
+export default TrainingManagementSimple;

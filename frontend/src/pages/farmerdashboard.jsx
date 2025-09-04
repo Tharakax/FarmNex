@@ -24,6 +24,7 @@ import {
   Camera,
   Upload
 } from 'lucide-react';
+import { showError, showWarning } from '../utils/sweetAlert';
 
 // Sample data
 const cropYieldData = [
@@ -60,7 +61,7 @@ const FarmerInventoryManagement = React.lazy(() => import('../components/invento
 const FarmerSuppliesManagement = React.lazy(() => import('../components/supplies/FarmerSuppliesManagement'));
 const TestSupplies = React.lazy(() => import('../components/supplies/TestSupplies'));
 const ReportsManagement = React.lazy(() => import('../components/reports/ReportsManagement'));
-const TrainingManagement = React.lazy(() => import('../components/training/TrainingManagement'));
+const TrainingManagement = React.lazy(() => import('../components/training/TrainingManagementFixed'));
 
 // Dashboard Stats Component
 const DashboardStats = () => {
@@ -212,11 +213,11 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
     { name: 'Settings', icon: Settings }
   ];
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('Please select an image smaller than 5MB');
+        await showWarning('Please select an image smaller than 5MB', 'File Too Large');
         return;
       }
       
@@ -228,7 +229,7 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
       };
       reader.readAsDataURL(file);
     } else {
-      alert('Please select a valid image file');
+      await showError('Please select a valid image file', 'Invalid File Type');
     }
   };
 

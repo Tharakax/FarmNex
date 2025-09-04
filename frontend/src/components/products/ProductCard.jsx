@@ -13,23 +13,26 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/productAPI';
+import { showDeleteConfirm } from '../../utils/sweetAlert';
 
 const ProductCard = ({ product, onEdit, onDelete, onView, isPublicView = false }) => {
   const [loading, setLoading] = useState(false);
   
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
+    const result = await showDeleteConfirm(product.name);
+    
+    if (!result.isConfirmed) {
       return;
     }
 
     setLoading(true);
     try {
-      const result = await productAPI.deleteProduct(product._id);
-      if (result.success) {
+      const deleteResult = await productAPI.deleteProduct(product._id);
+      if (deleteResult.success) {
         toast.success('Product deleted successfully!');
         onDelete?.(product._id);
       } else {
-        toast.error(result.error || 'Failed to delete product');
+        toast.error(deleteResult.error || 'Failed to delete product');
       }
     } catch (error) {
       console.error('Error deleting product:', error);

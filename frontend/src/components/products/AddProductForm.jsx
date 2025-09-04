@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Plus, Minus, AlertCircle, Save, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/productAPI';
+import { FormValidator } from '../../utils/validation';
+import { showError, showSuccess, showLoading } from '../../utils/sweetAlert';
 
 const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => {
   const [loading, setLoading] = useState(false);
@@ -127,9 +129,113 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
       }));
     }
 
-    // Clear specific field error
+    // Clear specific field error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      const newErrors = { ...errors };
+      delete newErrors[name];
+      setErrors(newErrors);
+    }
+
+    // Real-time validation for current field
+    validateField(name, type === 'checkbox' ? checked : value);
+  };
+
+  // Real-time field validation
+  const validateField = (fieldName, fieldValue) => {
+    const validator = new FormValidator();
+    
+    switch (fieldName) {
+      case 'name':
+        validator.required(fieldValue, 'Product Name')
+                 .minLength(fieldValue, 2, 'Product Name')
+                 .maxLength(fieldValue, 100, 'Product Name');
+        break;
+      
+      case 'description':
+        validator.required(fieldValue, 'Description')
+                 .minLength(fieldValue, 10, 'Description')
+                 .maxLength(fieldValue, 1000, 'Description');
+        break;
+      
+      case 'price':
+        validator.required(fieldValue, 'Price')
+                 .price(fieldValue, 'Price')
+                 .minValue(fieldValue, 0.01, 'Price')
+                 .maxValue(fieldValue, 999999, 'Price');
+        break;
+      
+      case 'displayprice':
+        if (fieldValue) {
+          validator.price(fieldValue, 'Display Price')
+                   .minValue(fieldValue, 0.01, 'Display Price');
+        }
+        break;
+      
+      case 'discount':
+        if (fieldValue) {
+          validator.numeric(fieldValue, 'Discount')
+                   .minValue(fieldValue, 0, 'Discount')
+                   .maxValue(fieldValue, 100, 'Discount');
+        }
+        break;
+      
+      case 'stock.current':
+        validator.required(fieldValue, 'Current Stock')
+                 .numeric(fieldValue, 'Current Stock')
+                 .minValue(fieldValue, 0, 'Current Stock');
+        break;
+      
+      case 'stock.maximum':
+        if (fieldValue) {
+          validator.numeric(fieldValue, 'Maximum Stock')
+                   .minValue(fieldValue, 1, 'Maximum Stock');
+          
+          // Ensure maximum is greater than current
+          if (formData.stock.current && Number(fieldValue) < Number(formData.stock.current)) {
+            validator.addError('Maximum Stock', 'Maximum stock must be greater than current stock');
+          }
+        }
+        break;
+      
+      case 'stock.minimum':
+        if (fieldValue) {
+          validator.numeric(fieldValue, 'Minimum Stock')
+                   .minValue(fieldValue, 0, 'Minimum Stock');
+          
+          // Ensure minimum is less than current
+          if (formData.stock.current && Number(fieldValue) > Number(formData.stock.current)) {
+            validator.addError('Minimum Stock', 'Minimum stock must be less than current stock');
+          }
+        }
+        break;
+      
+      case 'shelfLife':
+        if (fieldValue) {
+          validator.numeric(fieldValue, 'Shelf Life')
+                   .minValue(fieldValue, 1, 'Shelf Life')
+                   .maxValue(fieldValue, 365, 'Shelf Life');
+        }
+        break;
+        
+      case 'storageInstructions':
+        if (fieldValue) {
+          validator.maxLength(fieldValue, 500, 'Storage Instructions');
+        }
+        break;
+    }
+
+    const fieldErrors = validator.getFieldErrors(fieldName);
+    if (fieldErrors.length > 0) {
+      setErrors(prev => ({
+        ...prev,
+        [fieldName]: fieldErrors[0]
+      }));
+    } else {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
     }
   };
 
@@ -177,29 +283,111 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
     }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.name.trim()) newErrors.name = 'Product name is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (!formData.price || formData.price <= 0) newErrors.price = 'Valid price is required';
-    if (!formData.stock.current || formData.stock.current < 0) newErrors['stock.current'] = 'Current stock is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateForm = async () => {
+    const validator = new FormValidator();
+    
+    // Validate all required fields
+    validator.required(formData.name, 'Product Name')
+             .minLength(formData.name, 2, 'Product Name')
+             .maxLength(formData.name, 100, 'Product Name');
+    
+    validator.required(formData.description, 'Description')
+             .minLength(formData.description, 10, 'Description')
+             .maxLength(formData.description, 1000, 'Description');
+    
+    validator.required(formData.price, 'Price')
+             .price(formData.price, 'Price')
+             .minValue(formData.price, 0.01, 'Price')
+             .maxValue(formData.price, 999999, 'Price');
+    
+    validator.required(formData.stock.current, 'Current Stock')
+             .numeric(formData.stock.current, 'Current Stock')
+             .minValue(formData.stock.current, 0, 'Current Stock');
+    
+    // Validate optional fields if they have values
+    if (formData.displayprice) {
+      validator.price(formData.displayprice, 'Display Price')
+               .minValue(formData.displayprice, 0.01, 'Display Price');
+    }
+    
+    if (formData.discount) {
+      validator.numeric(formData.discount, 'Discount')
+               .minValue(formData.discount, 0, 'Discount')
+               .maxValue(formData.discount, 100, 'Discount');
+    }
+    
+    if (formData.stock.maximum) {
+      validator.numeric(formData.stock.maximum, 'Maximum Stock')
+               .minValue(formData.stock.maximum, 1, 'Maximum Stock');
+      
+      if (formData.stock.current && Number(formData.stock.maximum) < Number(formData.stock.current)) {
+        validator.addError('Maximum Stock', 'Maximum stock must be greater than current stock');
+      }
+    }
+    
+    if (formData.stock.minimum) {
+      validator.numeric(formData.stock.minimum, 'Minimum Stock')
+               .minValue(formData.stock.minimum, 0, 'Minimum Stock');
+      
+      if (formData.stock.current && Number(formData.stock.minimum) > Number(formData.stock.current)) {
+        validator.addError('Minimum Stock', 'Minimum stock must be less than current stock');
+      }
+    }
+    
+    if (formData.shelfLife) {
+      validator.numeric(formData.shelfLife, 'Shelf Life')
+               .minValue(formData.shelfLife, 1, 'Shelf Life')
+               .maxValue(formData.shelfLife, 365, 'Shelf Life');
+    }
+    
+    if (formData.storageInstructions) {
+      validator.maxLength(formData.storageInstructions, 500, 'Storage Instructions');
+    }
+    
+    // Custom business logic validations
+    if (formData.images.length === 0) {
+      validator.addError('Images', 'Please add at least one product image');
+    }
+    
+    if (formData.tags.length > 10) {
+      validator.addError('Tags', 'Maximum 10 tags allowed');
+    }
+    
+    const validationErrors = validator.getAllErrors();
+    setErrors(validationErrors);
+    
+    // Show SweetAlert with all validation errors if there are any
+    if (validator.hasErrors()) {
+      const errorList = Object.entries(validationErrors)
+        .map(([field, errors]) => `• ${errors[0]}`)
+        .join('\n');
+      
+      await showError(
+        errorList,
+        'Please Fix These Validation Errors'
+      );
+    }
+    
+    return !validator.hasErrors();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      toast.error('Please fix the form errors');
+    // Comprehensive validation
+    if (!(await validateForm())) {
       return;
     }
 
     setLoading(true);
-
+    
     try {
+      // Show loading dialog
+      const loadingAlert = showLoading(
+        product ? 'Updating Product' : 'Creating Product',
+        product ? 'Please wait while we update your product...' : 'Please wait while we create your product...'
+      );
+
       // Prepare data for submission
       const productData = {
         ...formData,
@@ -223,16 +411,32 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
         result = await productAPI.createProduct(productData);
       }
 
+      // Close loading dialog
+      if (loadingAlert && typeof loadingAlert.close === 'function') {
+        loadingAlert.close();
+      }
+
       if (result.success) {
-        toast.success(product ? 'Product updated successfully!' : 'Product created successfully!');
+        await showSuccess(
+          product ? 'Product Updated!' : 'Product Created!',
+          product ? 'Your product has been updated successfully.' : 'Your product has been created successfully.'
+        );
         onProductSaved?.(result.data);
         onClose();
       } else {
-        toast.error(result.error || 'Failed to save product');
+        await showError('Save Failed', result.error || 'Failed to save product. Please try again.');
       }
     } catch (error) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product');
+      
+      let errorMessage = 'Failed to save product. Please try again.';
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      await showError('Save Failed', errorMessage);
     } finally {
       setLoading(false);
     }

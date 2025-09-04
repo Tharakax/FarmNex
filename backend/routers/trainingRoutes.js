@@ -7,7 +7,9 @@ import {
   createMaterial,
   updateMaterial,
   deleteMaterial,
-  getStatistics
+  getStatistics,
+  exportToExcel,
+  getPublishedMaterials
 } from '../controllers/trainingController.js';
 
 const router = express.Router();
@@ -45,7 +47,9 @@ const upload = multer({
 });
 
 // Routes
+router.get('/export/excel', exportToExcel);
 router.get('/statistics', getStatistics);
+router.get('/published', getPublishedMaterials); // Public endpoint for published materials
 router.get('/', getAllMaterials);
 router.get('/:id', getMaterialById);
 router.post('/', upload.single('file'), createMaterial);

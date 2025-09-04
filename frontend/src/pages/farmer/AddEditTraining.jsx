@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Header from '../../components/Header.jsx';
 import { trainingAPI } from '../../services/api';
+import { showSuccess, showError } from '../../utils/sweetAlert';
 
 const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
   const { id } = useParams();
@@ -61,7 +62,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       });
     } catch (error) {
       console.error('Error fetching material:', error);
-      alert('Failed to load training material');
+      await showError('Failed to load training material');
     } finally {
       setLoading(false);
     }
@@ -136,14 +137,14 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
         if (onSaveSuccess) {
           onSaveSuccess('Training material updated successfully!');
         } else {
-          alert('Training material updated successfully!');
+          await showSuccess('Training material updated successfully!');
         }
       } else {
         await trainingAPI.createMaterial(submitData);
         if (onSaveSuccess) {
           onSaveSuccess('Training material created successfully!');
         } else {
-          alert('Training material created successfully!');
+          await showSuccess('Training material created successfully!');
         }
       }
       
@@ -152,7 +153,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       }
     } catch (error) {
       console.error('Error saving material:', error);
-      alert(isEditing ? 'Failed to update training material' : 'Failed to create training material');
+      await showError(isEditing ? 'Failed to update training material' : 'Failed to create training material');
     } finally {
       setLoading(false);
     }

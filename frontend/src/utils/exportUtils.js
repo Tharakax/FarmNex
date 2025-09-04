@@ -607,7 +607,17 @@ export const exportToExcel = (data, title, columns, filename = 'export') => {
     return true;
   } catch (error) {
     console.error('Error exporting to Excel:', error);
-    alert('Failed to export Excel file. Please try again.');
+    // Use the global Swal if available, otherwise fall back to alert
+    if (typeof window !== 'undefined' && window.Swal) {
+      window.Swal.fire({
+        title: 'Export Error',
+        text: 'Failed to export Excel file. Please try again.',
+        icon: 'error',
+        confirmButtonColor: '#dc3545'
+      });
+    } else {
+      alert('Failed to export Excel file. Please try again.');
+    }
     return false;
   }
 };

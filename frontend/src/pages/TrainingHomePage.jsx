@@ -4,6 +4,7 @@ import { FaSearch, FaFilter, FaPlus, FaChartBar } from 'react-icons/fa';
 import Header from '../components/Header.jsx';
 import TrainingCard from '../components/TrainingCard.jsx';
 import { trainingAPI } from '../services/api';
+import { showSuccess, showError, showConfirm } from '../utils/sweetAlert';
 
 const TrainingHomePage = () => {
   const [materials, setMaterials] = useState([]);
@@ -65,14 +66,25 @@ const TrainingHomePage = () => {
   };
 
   const handleDelete = async (id, title) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
+    const result = await showConfirm(
+      `Are you sure you want to delete "${title}"?`,
+      'Delete Training Material',
+      {
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#d33',
+        icon: 'warning'
+      }
+    );
+    
+    if (result.isConfirmed) {
       try {
         await trainingAPI.deleteMaterial(id);
         fetchMaterials();
         fetchStatistics();
-        alert('Training material deleted successfully!');
+        await showSuccess('Training material deleted successfully!');
       } catch (err) {
-        alert('Failed to delete training material');
+        await showError('Failed to delete training material');
         console.error('Error:', err);
       }
     }

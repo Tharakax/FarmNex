@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
 import Navigation from '../components/navigation';
 import SimpleChatbot from '../components/SimpleChatbot';
+import PublishedTrainingSection from '../components/PublishedTrainingSection';
 import { NavLink } from 'react-router-dom';
 
 
@@ -336,8 +337,12 @@ const HomePage = () => {
             </div>
           </div>
         </section>
+        
+        {/* Published Training Materials Section */}
+        <PublishedTrainingSection />
+        
         {/* Featured Products with 3D Background */}
-        <section 
+        <section
           id="products" 
           className="py-16 relative transform-gpu"
           style={{
