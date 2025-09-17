@@ -6,7 +6,7 @@ const stripe = new Stripe('sk_test_51Ql5QiIVYLEPquIEboxMYrKcuu8fFC18QIjgoz3C81ih
 // Create a payment intent
 export const createPaymentIntent = async (req, res) => {
   try {
-    const { amount, currency = 'lkr', orderId } = req.body;
+    const { amount, currency = 'lkr', orderId, contactEmail } = req.body;
 
     if (!amount || !orderId) {
       return res.status(400).json({
@@ -19,8 +19,10 @@ export const createPaymentIntent = async (req, res) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount), // Amount in cents
       currency: currency,
+      receipt_email: contactEmail, // This automatically sends receipt emails
       metadata: {
-        orderId: orderId.toString()
+        orderId: orderId.toString(),
+        customerEmail: contactEmail // Store email in metadata for reference
       },
       automatic_payment_methods: {
         enabled: true,
@@ -41,7 +43,6 @@ export const createPaymentIntent = async (req, res) => {
     });
   }
 };
-
 // Handle Stripe webhooks
 export const handleStripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];

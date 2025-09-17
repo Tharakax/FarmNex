@@ -116,7 +116,11 @@ const orderSchema = new mongoose.Schema({
   },
   emailSentAt: {
     type: Date,
-},
+  },
+  isHidden: {
+    type: Boolean,
+    default: false,
+  },
 }, {
   timestamps: true, // This automatically adds createdAt and updatedAt fields
 });

@@ -3,6 +3,8 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import './App.css'
 import PaymentCardsManager from './pages/client/PaymentCards.jsx'
+import MyOrders from './pages/client/MyOrders.jsx'
+import ViewOrder from './pages/client/ViewOrder.jsx'
 
 // Lazy load components to help with debugging
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
@@ -74,7 +76,7 @@ class ErrorBoundary extends React.Component {
 function App() {
   return (
     <div className="min-h-screen w-full">
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -96,6 +98,9 @@ function App() {
             <Route path="/training-showcase" element={<TrainingShowcase />} />
             <Route path="/training-home" element={<TrainingHomePage />} />
             <Route path="/add" element={<AddEditTraining />} />
+            <Route path="/myorders" element={<MyOrders   />} />
+            <Route path="/order-details/:orderid" element={<ViewOrder   />} />
+
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
             

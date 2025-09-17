@@ -199,13 +199,13 @@ export default function PaymentSuccess() {
           >
             View Order History
           </button>
-            <button
-            onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}/api/orders/receipt/${orderId}/pdf`, '_blank')}
+          <button
+            onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}/api/order/receipt/${orderId}/pdf`, '_blank')}
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
+          >
             <Download className="mr-2 h-4 w-4" />
             Download Receipt
-            </button>
+          </button>
         </div>
       </div>
     </div>
