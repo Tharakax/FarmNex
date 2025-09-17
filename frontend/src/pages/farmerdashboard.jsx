@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useRef } from 'react';
+﻿import React, { useState, Suspense, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import { 
@@ -509,7 +509,7 @@ const FarmerDashboard = () => {
                 <ChartSection />
               </div>
               <div className="flex justify-center md:justify-start">
-                <SoilMoistureWidget deviceId="ESP32-SOIL-001" title="Field Moisture Monitor" />
+                <SoilMoistureWidget deviceId="ARDUINO-UNO-001" title="Field Moisture Monitor" />
               </div>
             </div>
             <ActivityTable />

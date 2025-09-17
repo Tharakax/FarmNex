@@ -6,6 +6,8 @@
   "scripts": {
     "start": "nodemon index.js",
     "serial-bridge": "node serialBridge.js",
+    "arduino-bridge": "node serialBridge_Arduino.js",
+    "dev": "concurrently \"npm start\" \"npm run arduino-bridge\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -27,5 +29,8 @@
     "serialport": "^13.0.0",
     "validator": "^13.15.15",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

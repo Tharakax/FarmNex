@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import './SoilMoistureWidget.css';
 
 const SoilMoistureWidget = ({ 
-  deviceId = 'ESP32-SOIL-001', 
+  deviceId = 'ARDUINO-UNO-001', 
   title = 'Soil Moisture Monitor',
-  refreshInterval = 30000, // 30 seconds
+  refreshInterval = 5000, // 5 seconds for faster updates
   className = '' 
 }) => {
   const [data, setData] = useState({
@@ -17,12 +17,16 @@ const SoilMoistureWidget = ({
   });
 
   const [isConnected, setIsConnected] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [nextRefreshIn, setNextRefreshIn] = useState(0);
 
   // Get API base URL from environment or default
   const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
 
-  // Fetch latest reading
-  const fetchLatestReading = async () => {
+  // Fetch latest reading with refresh indicator
+  const fetchLatestReading = async (showRefreshing = true) => {
+    if (showRefreshing) setIsRefreshing(true);
+    
     try {
       const response = await fetch(`${API_BASE}/api/soil/latest?deviceId=${deviceId}`);
       const result = await response.json();
@@ -47,6 +51,10 @@ const SoilMoistureWidget = ({
         loading: false
       }));
       setIsConnected(false);
+    } finally {
+      if (showRefreshing) {
+        setTimeout(() => setIsRefreshing(false), 500); // Show refresh indicator for 500ms
+      }
     }
   };
 
@@ -231,8 +239,8 @@ const SoilMoistureWidget = ({
           <span className="device-id">{deviceId}</span>
         </div>
         <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-          <span className="status-dot"></span>
-          {isConnected ? 'Live' : 'Offline'}
+          <span className="status-dot" style={{ animation: isRefreshing ? 'pulse 1s infinite' : 'none' }}></span>
+          {isRefreshing ? 'Updating...' : (isConnected ? 'Live' : 'Offline')}
         </div>
       </div>
 
