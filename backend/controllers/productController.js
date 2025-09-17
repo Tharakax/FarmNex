@@ -1,7 +1,7 @@
 import express from 'express';
 import Product from '../models/product.js';
 import validator from 'validator';
-import User from '../models/user.js';
+import UserMe from '../models/usermodel.js';
 import JWTauth from '../middleware/auth.js';
 
 // Save a new product

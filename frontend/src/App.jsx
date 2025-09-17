@@ -6,7 +6,7 @@ import PaymentCardsManager from './pages/client/PaymentCards.jsx'
 
 // Lazy load components to help with debugging
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
-const LoginPage = React.lazy(() => import('./pages/loginpage'))
+//const LoginPage = React.lazy(() => import('./pages/loginpage'))
 const AdminDashboard = React.lazy(() => import('./pages/admindashboard'))
 const Testing = React.lazy(() => import('./pages/testing'))
 const ProductsPage = React.lazy(() => import('./pages/client/Products.jsx'))
@@ -20,6 +20,21 @@ const AddEditTraining = React.lazy(() => import('./pages/farmer/AddEditTraining.
 const ViewTraining = React.lazy(() => import('./pages/farmer/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
+
+
+// User Pages (Lazy Load)
+const AddUser = React.lazy(() => import('./pages/user/AddUser/AddUser.jsx'))
+const UpdateUser = React.lazy(() => import('./pages/user/UpdateUser/UpdateUser.jsx'))
+const DeleteUser = React.lazy(() => import('./pages/user/DeleteUser/DeleteUser.jsx'))
+const Register = React.lazy(() => import('./pages/user/Register/Register.jsx'))
+const Login = React.lazy(() => import('./pages/user/Login/Login.jsx'))
+const UserDetails = React.lazy(() => import('./pages/user/UserDetails/UserDetails.jsx'))
+const UserProfile = React.lazy(() => import('./pages/user/UserProfile/UserProfile.jsx'))
+const ChangePassword = React.lazy(() => import('./pages/user/UserProfile/ChangePassword.jsx'))
+const OTPVerifyPage = React.lazy(() => import('./pages/user/Login/OTPVerifyPage.jsx'))
+const AdminDash = React.lazy(() => import('./pages/user/Home/AdminDash.jsx'))
+const CustomerDashboard = React.lazy(() => import('./pages/user/Home/Home.jsx')) //customer dashbord
+
 
 // Loading component
 const Loading = () => (
@@ -75,7 +90,7 @@ function App() {
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
+            {/*<Route path="/loginn" element={<LoginPage />} />*/}
             <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/testing" element={<Testing />} />
             <Route path="/home" element={<HomePage />} />
@@ -92,6 +107,22 @@ function App() {
             <Route path="/add" element={<AddEditTraining />} />
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
+
+
+
+            {/* User Management Routes umar*/}
+           <Route path="/adduser" element={<AddUser />} />
+           <Route path="/userdetails" element={<UserDetails />} />
+           <Route path="/userdetails/:id" element={<UpdateUser />} />
+           <Route path="/deleteuser/:id" element={<DeleteUser />} />
+           <Route path="/register" element={<Register />} />
+           <Route path="/login" element={<Login />} />
+           <Route path="/userprofile" element={<UserProfile />} />
+           <Route path="/changepassword" element={<ChangePassword />} />
+           <Route path="/otp" element={<OTPVerifyPage />} />
+           <Route path="/admin" element={<AdminDash />} />
+          <Route path="/customerdash" element={<CustomerDashboard />} />
+
             
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />

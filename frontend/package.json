@@ -13,7 +13,7 @@
     "@stripe/react-stripe-js": "^3.9.2",
     "@supabase/supabase-js": "^2.50.3",
     "@tailwindcss/vite": "^4.1.11",
-    "axios": "^1.10.0",
+    "axios": "^1.12.2",
     "file-saver": "^2.0.5",
     "jspdf": "^3.0.2",
     "jspdf-autotable": "^5.0.2",
@@ -24,6 +24,7 @@
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.3",
+    "react-toastify": "^11.0.5",
     "recharts": "^3.1.2",
     "tailwindcss": "^4.1.11",
     "xlsx": "^0.18.5"
