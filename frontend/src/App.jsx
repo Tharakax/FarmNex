@@ -8,7 +8,6 @@ import PaymentCardsManager from './pages/client/PaymentCards.jsx'
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
 const LoginPage = React.lazy(() => import('./pages/loginpage'))
 const AdminDashboard = React.lazy(() => import('./pages/admindashboard'))
-const Testing = React.lazy(() => import('./pages/testing'))
 const ProductsPage = React.lazy(() => import('./pages/client/Products.jsx'))
 const OneProduct = React.lazy(() => import('./pages/client/OneProduct.jsx'))
 const Cart = React.lazy(() => import('./pages/client/cart.jsx'))
@@ -77,7 +76,6 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/admin/*" element={<AdminDashboard />} />
-            <Route path="/testing" element={<Testing />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/oneProduct/:id" element={<OneProduct />} />

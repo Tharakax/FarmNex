@@ -1,13 +1,8 @@
-// Weather API Service
-// Uses OpenWeatherMap API for weather data
-
 class WeatherAPI {
   constructor() {
-    // You can get a free API key from https://openweathermap.org/api
     this.apiKey = import.meta.env.VITE_WEATHER_API_KEY || 'demo_key';
     this.baseUrl = 'https://api.openweathermap.org/data/2.5';
     
-    // Default coordinates (Colombo, Sri Lanka)
     this.defaultCoords = {
       lat: 6.9271,
       lon: 79.8612,
@@ -15,10 +10,8 @@ class WeatherAPI {
     };
   }
 
-  // Get current weather
   async getCurrentWeather(lat = this.defaultCoords.lat, lon = this.defaultCoords.lon) {
     try {
-      // If using demo key, return mock data
       if (this.apiKey === 'demo_key') {
         return this.getMockCurrentWeather();
       }
@@ -39,7 +32,7 @@ class WeatherAPI {
     }
   }
 
-  // Get 5-day weather forecast
+ 
   async getForecast(lat = this.defaultCoords.lat, lon = this.defaultCoords.lon) {
     try {
       if (this.apiKey === 'demo_key') {
@@ -62,7 +55,6 @@ class WeatherAPI {
     }
   }
 
-  // Get weather alerts (mock implementation)
   async getWeatherAlerts(lat = this.defaultCoords.lat, lon = this.defaultCoords.lon) {
     // This would typically use a different API endpoint
     return this.getMockAlerts();

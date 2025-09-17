@@ -61,7 +61,6 @@ const Card = ({ children, className = "" }) => {
 const ProductManagement = React.lazy(() => import('../components/products/ProductManagement'));
 const FarmerInventoryManagement = React.lazy(() => import('../components/inventory/FarmerInventoryManagement'));
 const FarmerSuppliesManagement = React.lazy(() => import('../components/supplies/FarmerSuppliesManagement'));
-const TestSupplies = React.lazy(() => import('../components/supplies/TestSupplies'));
 const ReportsManagement = React.lazy(() => import('../components/reports/ReportsManagement'));
 const TrainingManagement = React.lazy(() => import('../components/training/TrainingManagementFixed'));
 

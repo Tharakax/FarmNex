@@ -1,9 +1,6 @@
 import React from 'react';
 import { Link, Routes, Route, Outlet } from 'react-router-dom';
-import ManageProducts from './admin/ManageProducts.jsx'; // Import your ManageProducts component
-import AddProducts from './admin/AddProducts.jsx';
-import ViewOneProduct from './admin/ViewOneProduct.jsx';
-import EditProduct from './admin/EditProduct.jsx';
+import ProductManagement from '../components/products/ProductManagement.jsx';
 
 const Dashboard = () => {
   return (
@@ -135,7 +132,7 @@ const Dashboard = () => {
                 </div>
               </div>
             } />
-            <Route path="/products" element={<ManageProducts />} />
+            <Route path="/products" element={<ProductManagement />} />
             <Route path="/users" element={
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 p-8">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Farmer Management</h2>
@@ -154,9 +151,6 @@ const Dashboard = () => {
                 <p className="text-gray-600">Configure your farm preferences and system settings.</p>
               </div>
             } />
-            <Route path="/products/addproducts" element={<AddProducts />} />
-            <Route path="/products/getone" element={<ViewOneProduct />} />
-            <Route path="/products/edit" element={<EditProduct />} />
 
 
       
