@@ -1,6 +1,8 @@
 ﻿import React, { useState, Suspense, useRef } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
+import WeatherWidget from '../components/WeatherWidget';
+import WeatherDashboard from '../components/WeatherDashboard';
 import { 
   Home, 
   Wheat, 
@@ -62,6 +64,9 @@ const FarmerSuppliesManagement = React.lazy(() => import('../components/supplies
 const TestSupplies = React.lazy(() => import('../components/supplies/TestSupplies'));
 const ReportsManagement = React.lazy(() => import('../components/reports/ReportsManagement'));
 const TrainingManagement = React.lazy(() => import('../components/training/TrainingManagementFixed'));
+
+// Weather Dashboard component
+const WeatherDashboardLazy = React.lazy(() => Promise.resolve({ default: WeatherDashboard }));
 
 // Dashboard Stats Component
 const DashboardStats = () => {
@@ -478,14 +483,8 @@ const FarmerDashboard = () => {
           );
         }
       case 'Weather':
-        return (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Weather Information</h2>
-              <p className="text-gray-600">Weather dashboard functionality coming soon.</p>
-            </div>
-          </div>
-        );
+        console.log('Rendering WeatherDashboard');
+        return <WeatherDashboardLazy />;
       case 'Training':
         return <TrainingManagement />;
       case 'Reports':
@@ -510,6 +509,50 @@ const FarmerDashboard = () => {
               </div>
               <div className="flex justify-center md:justify-start">
                 <SoilMoistureWidget deviceId="ARDUINO-UNO-001" title="Field Moisture Monitor" />
+              </div>
+            </div>
+            {/* Weather Overview Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div>
+                <WeatherWidget 
+                  title="Weather Overview" 
+                  compact={false} 
+                  showForecast={true}
+                  refreshInterval={300000}
+                />
+              </div>
+              <div className="bg-white rounded-lg p-6 shadow-md">
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">Today's Farm Conditions</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                      <span className="text-gray-700">Soil Moisture</span>
+                    </div>
+                    <span className="text-green-600 font-semibold">Optimal</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                      <span className="text-gray-700">Weather Conditions</span>
+                    </div>
+                    <span className="text-blue-600 font-semibold">Favorable</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                      <span className="text-gray-700">Irrigation Schedule</span>
+                    </div>
+                    <span className="text-yellow-600 font-semibold">Next: 6:00 AM</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                      <span className="text-gray-700">Crop Status</span>
+                    </div>
+                    <span className="text-purple-600 font-semibold">Healthy Growth</span>
+                  </div>
+                </div>
               </div>
             </div>
             <ActivityTable />

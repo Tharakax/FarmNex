@@ -1,10 +1,5 @@
-// Arduino Mock Header for IntelliSense Support
-// This file helps VS Code understand Arduino-specific functions and objects
-
 #ifndef ARDUINO_MOCK_H
 #define ARDUINO_MOCK_H
-
-// Basic Arduino types
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
@@ -13,14 +8,12 @@ typedef signed short int16_t;
 typedef signed int int32_t;
 typedef unsigned int size_t;
 
-// Arduino constants
 #define HIGH 0x1
 #define LOW  0x0
 #define INPUT 0x0
 #define OUTPUT 0x1
 #define INPUT_PULLUP 0x2
 
-// Serial object mock
 class HardwareSerial {
 public:
     void begin(unsigned long baud);
@@ -37,7 +30,6 @@ public:
 
 extern HardwareSerial Serial;
 
-// Arduino functions
 void pinMode(uint8_t pin, uint8_t mode);
 void digitalWrite(uint8_t pin, uint8_t val);
 int digitalRead(uint8_t pin);
@@ -52,7 +44,6 @@ float constrain(float x, float a, float b);
 long constrain(long x, long a, long b);
 int constrain(int x, int a, int b);
 
-// String class mock
 class String {
 public:
     String();
@@ -65,7 +56,6 @@ public:
     String operator+(float val) const;
 };
 
-// Setup and loop functions that user implements
 void setup();
 void loop();
 
