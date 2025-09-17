@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom'; // 
-import { 
+import {
   ShoppingCart, 
   Package, 
   Truck, 
@@ -28,6 +28,8 @@ import {
   Mail,
   Clock
 } from 'lucide-react';
+import DashboardFeedbackForm from '../../../components/dashboard/DashboardFeedbackForm';
+import DashboardFeedbackList from '../../../components/dashboard/DashboardFeedbackList';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate(); 
@@ -38,6 +40,7 @@ const CustomerDashboard = () => {
   const [cartItems, setCartItems] = useState(3);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
 
   const [user] = useState({
     name: 'Umar Ahmed',
@@ -69,6 +72,13 @@ const CustomerDashboard = () => {
   const addToCart = (productId) => {
     setCartItems(prev => prev + 1);
     alert('Product added to cart!');
+  };
+
+  // Handle feedback form submission success
+  const handleFeedbackSubmitSuccess = () => {
+    // Force refresh of feedback list by triggering a re-render
+    // In a real app, you might use a context or state management library
+    window.location.reload(); // Simple approach for demo
   };
 
   const navItems = [
@@ -320,11 +330,10 @@ const CustomerDashboard = () => {
         </div>
       );
       case 'feedback': return (
-        <div className="text-center py-12">
-          <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Feedback & Ratings</h3>
-          <p className="text-gray-600">Rate your purchases and share feedback</p>
-        </div>
+        <DashboardFeedbackList 
+          user={user} 
+          onNewFeedback={() => setShowFeedbackForm(true)}
+        />
       );
       case 'qna': return (
          <div className="text-center py-12">
@@ -537,6 +546,14 @@ const CustomerDashboard = () => {
           </div>
         </div>
       </div>
+      
+      {/* Feedback Form Modal */}
+      <DashboardFeedbackForm 
+        isOpen={showFeedbackForm}
+        onClose={() => setShowFeedbackForm(false)}
+        onSubmitSuccess={handleFeedbackSubmitSuccess}
+        user={user}
+      />
     </div>
   );
 };
