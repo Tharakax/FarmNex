@@ -236,16 +236,14 @@ const ProductManagement = () => {
         processedData = exportData;
       }
 
-      // Generate filename with current filters
       const categoryFilter = selectedCategory !== 'all' ? `_${selectedCategory}` : '';
       const stockFilterText = stockFilter !== 'all' ? `_${stockFilter}` : '';
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = `products_report${categoryFilter}${stockFilterText}_${timestamp}`;
 
-      // Add a small delay to ensure loading toast is visible
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Call the export function and handle both success and failure
+      
       const success = await exportToPDF(
         processedData,
         'Products Management Report',
@@ -266,7 +264,7 @@ const ProductManagement = () => {
       console.error('Error exporting products to PDF:', error);
       toast.dismiss(loadingToast);
       
-      // Provide more specific error messages
+
       let errorMessage = 'Export failed: ';
       if (error.message?.includes('autoTable')) {
         errorMessage += 'PDF library not loaded properly. Please refresh the page.';
@@ -284,7 +282,6 @@ const ProductManagement = () => {
 
   const handleExportToExcel = () => {
     try {
-      // Prepare data for export
       const exportData = filteredProducts.map(product => ({
         id: product._id || product.id,
         name: product.name,
@@ -303,7 +300,6 @@ const ProductManagement = () => {
         createdDate: product.createdAt || new Date().toISOString().split('T')[0]
       }));
 
-      // Generate filename with current filters
       const categoryFilter = selectedCategory !== 'all' ? `_${selectedCategory}` : '';
       const stockFilterText = stockFilter !== 'all' ? `_${stockFilter}` : '';
       const filename = `products_report${categoryFilter}${stockFilterText}_${new Date().toISOString().split('T')[0]}`;

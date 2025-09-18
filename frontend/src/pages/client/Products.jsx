@@ -48,7 +48,6 @@ export default function ProductsPage() {
         fetchProducts();
     }, []);
 
-    // Filter products based on selected filters
     useEffect(() => {
         let filtered = products;
 

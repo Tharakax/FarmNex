@@ -10,7 +10,6 @@ import {
 } from 'react-icons/fa';
 
 const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false, publicView = false }) => {
-  // Handle both old and new stock formats
   const getCurrentStock = () => {
     if (typeof stock === 'number') return stock;
     if (stock && typeof stock === 'object') return stock.current || 0;
@@ -46,10 +45,10 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false, publicVi
   const reservedStock = getReservedStock();
   const availableStock = currentStock - reservedStock;
 
-  // Calculate stock percentage
+  
   const stockPercentage = maxStock > 0 ? (currentStock / maxStock) * 100 : 0;
 
-  // Determine stock status
+
   const getStockStatus = () => {
     if (currentStock === 0) return { status: 'out', color: 'red', icon: FaWarning };
     if (currentStock <= minStock) return { status: 'low', color: 'orange', icon: FaExclamationTriangle };
@@ -59,7 +58,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false, publicVi
 
   const { status, color, icon: StatusIcon } = getStockStatus();
 
-  // Stock status messages
   const getStatusMessage = () => {
     switch (status) {
       case 'out': return 'Out of Stock';
@@ -70,7 +68,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false, publicVi
     }
   };
 
-  // Color classes for different states
   const colorClasses = {
     red: {
       bg: 'bg-red-100',

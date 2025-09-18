@@ -66,7 +66,6 @@ const trainingMaterialSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for search functionality
 trainingMaterialSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 export default mongoose.model('TrainingMaterial', trainingMaterialSchema);
