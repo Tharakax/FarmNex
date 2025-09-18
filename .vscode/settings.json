@@ -1,8 +1,0 @@
-{
-    "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
-    "C_Cpp.default.intelliSenseMode": "gcc-x64",
-    "files.associations": {
-        "*.ino": "cpp"
-    },
-    "C_Cpp.intelliSenseEngine": "default"
-}

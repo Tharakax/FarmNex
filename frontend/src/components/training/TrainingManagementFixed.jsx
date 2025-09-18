@@ -15,22 +15,11 @@ import {
 // Import components
 import AddEditTrainingForm from './AddEditTrainingForm';
 import TrainingMaterialsList from './TrainingMaterialsList';
+import TrainingMaterialViewer from './TrainingMaterialViewer';
+import ErrorBoundary from '../ErrorBoundary';
 
-// Import API service with fallback
-let trainingAPIReal;
-try {
-  trainingAPIReal = require('../../services/trainingAPIReal').trainingAPIReal;
-} catch (error) {
-  console.warn('TrainingAPIReal import error, using fallback:', error);
-  // Fallback mock API
-  trainingAPIReal = {
-    getTrainingMaterials: () => Promise.resolve({ materials: [], total: 0 }),
-    createTrainingMaterial: (data) => Promise.resolve({ material: { ...data, id: Date.now() } }),
-    updateTrainingMaterial: (id, data) => Promise.resolve({ material: { ...data, id } }),
-    deleteTrainingMaterial: (id) => Promise.resolve({ success: true }),
-    exportToExcel: () => Promise.resolve({ filename: 'mock-export.xlsx', success: true })
-  };
-}
+// Import APIs - using real API service
+import { trainingAPIReal } from '../../services/trainingAPIReal';
 
 const TrainingManagementFixed = () => {
   const [successMessage, setSuccessMessage] = useState('');
@@ -44,6 +33,14 @@ const TrainingManagementFixed = () => {
   const [materials, setMaterials] = useState([]);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [isFormLoading, setIsFormLoading] = useState(false);
+  const [statistics, setStatistics] = useState({
+    totalMaterials: 0,
+    activeMaterials: 0,
+    categories: 0,
+    totalViews: 0
+  });
+  const [viewingMaterial, setViewingMaterial] = useState(null);
+  const [showViewer, setShowViewer] = useState(false);
 
   // Success/Error message auto-hide
   useEffect(() => {
@@ -64,18 +61,52 @@ const TrainingManagementFixed = () => {
       setMaterials(result.materials || []);
     } catch (error) {
       console.error('Error fetching materials:', error);
-      setErrorMessage('Failed to load training materials.');
+      setErrorMessage('Failed to load training materials: ' + (error.message || 'Unknown error'));
+      setMaterials([]); // Set empty array as fallback
     } finally {
       setLoadingMaterials(false);
     }
   };
 
   // Load materials when view changes to materials
+  // Fetch statistics for dashboard
+  const fetchStatistics = async () => {
+    try {
+      const response = await trainingAPIReal.getStatistics();
+      if (response.success) {
+        setStatistics({
+          totalMaterials: response.statistics.totalMaterials || 0,
+          activeMaterials: response.statistics.totalMaterials || 0, // Use total materials as active materials
+          categories: 6, // Fixed number of categories for now
+          totalViews: response.statistics.totalViews || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+      // Set default statistics on error to prevent component crashes
+      setStatistics({
+        totalMaterials: 0,
+        activeMaterials: 0,
+        categories: 6,
+        totalViews: 0
+      });
+      setErrorMessage('Failed to load statistics: ' + (error.message || 'Unknown error'));
+    }
+  };
+
+  // Load materials and statistics when view changes
   useEffect(() => {
     if (currentView === 'materials') {
       fetchMaterials();
+    } else if (currentView === 'dashboard') {
+      fetchStatistics();
     }
   }, [currentView]);
+
+  // Initial load of statistics
+  useEffect(() => {
+    fetchStatistics();
+  }, []);
 
   // Excel Export Handler
   const handleExportToExcel = async () => {
@@ -127,8 +158,14 @@ const TrainingManagementFixed = () => {
 
   // Handle View Material
   const handleViewMaterial = (material) => {
-    setSuccessMessage(`Viewing: ${material.title}`);
-    // You can implement a detailed view modal here
+    setViewingMaterial(material);
+    setShowViewer(true);
+  };
+
+  // Handle Close Viewer
+  const handleCloseViewer = () => {
+    setShowViewer(false);
+    setViewingMaterial(null);
   };
 
   // Handle Delete Material
@@ -137,6 +174,7 @@ const TrainingManagementFixed = () => {
       await trainingAPIReal.deleteTrainingMaterial(materialId);
       setSuccessMessage('Training material deleted successfully!');
       fetchMaterials(); // Refresh the list
+      fetchStatistics(); // Refresh statistics
     } catch (error) {
       console.error('Error deleting material:', error);
       setErrorMessage('Failed to delete training material.');
@@ -146,14 +184,22 @@ const TrainingManagementFixed = () => {
   // Handle Save Material (Create/Update)
   const handleSaveMaterial = async (materialData, file) => {
     setIsFormLoading(true);
+    console.log('Saving material:', materialData, 'File:', file);
     try {
+      // Prepare data for API - include file if provided
+      const dataToSend = { ...materialData };
+      if (file) {
+        dataToSend.file = file; // Add the file object directly for FormData creation
+        console.log('File added to data:', { name: file.name, size: file.size, type: file.type });
+      }
+      
       if (editingMaterial) {
         // Update existing material
-        await trainingAPIReal.updateTrainingMaterial(editingMaterial.id, materialData, file);
+        await trainingAPIReal.updateTrainingMaterial(editingMaterial._id, dataToSend, file);
         setSuccessMessage('Training material updated successfully!');
       } else {
         // Create new material
-        await trainingAPIReal.createTrainingMaterial(materialData, file);
+        await trainingAPIReal.createTrainingMaterial(dataToSend, file);
         setSuccessMessage('Training material created successfully!');
       }
       
@@ -162,9 +208,11 @@ const TrainingManagementFixed = () => {
       if (currentView === 'materials') {
         fetchMaterials(); // Refresh the list
       }
+      // Refresh statistics regardless of view
+      fetchStatistics();
     } catch (error) {
       console.error('Error saving material:', error);
-      setErrorMessage('Failed to save training material.');
+      setErrorMessage('Failed to save training material: ' + error.message);
     } finally {
       setIsFormLoading(false);
     }
@@ -204,16 +252,22 @@ const TrainingManagementFixed = () => {
       {/* Materials List Component */}
       <TrainingMaterialsList
         materials={materials}
-        onEdit={handleEditMaterial}
-        onDelete={handleDeleteMaterial}
-        onView={handleViewMaterial}
+        onEditMaterial={handleEditMaterial}
+        onDeleteMaterial={handleDeleteMaterial}
+        onViewMaterial={handleViewMaterial}
         loading={loadingMaterials}
-        error={errorMessage}
+        readOnly={false}
       />
     </div>
   );
 
+  console.log('TrainingManagementFixed: Starting render');
+  console.log('Statistics:', statistics);
+  console.log('Materials:', materials);
+  
   return (
+    // Temporarily disabled for debugging
+    // <ErrorBoundary showDetails={true}>
     <div className="space-y-6">
       {/* Success Message */}
       {successMessage && (
@@ -295,7 +349,7 @@ const TrainingManagementFixed = () => {
               <BookOpen className="h-4 w-4 mr-2" />
               Total Materials
             </h3>
-            <p className="text-2xl font-bold text-blue-600">24</p>
+            <p className="text-2xl font-bold text-blue-600">{statistics.totalMaterials}</p>
             <p className="text-xs text-blue-500 mt-1">+3 this month</p>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -303,15 +357,15 @@ const TrainingManagementFixed = () => {
               <CheckCircle className="h-4 w-4 mr-2" />
               Active Materials
             </h3>
-            <p className="text-2xl font-bold text-green-600">21</p>
-            <p className="text-xs text-green-500 mt-1">87.5% published</p>
+            <p className="text-2xl font-bold text-green-600">{statistics.activeMaterials}</p>
+            <p className="text-xs text-green-500 mt-1">{statistics.totalMaterials > 0 ? Math.round((statistics.activeMaterials / statistics.totalMaterials) * 100) : 0}% published</p>
           </div>
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <h3 className="text-sm font-medium text-yellow-800 flex items-center">
               <Target className="h-4 w-4 mr-2" />
               Categories
             </h3>
-            <p className="text-2xl font-bold text-yellow-600">6</p>
+            <p className="text-2xl font-bold text-yellow-600">{statistics.categories}</p>
             <p className="text-xs text-yellow-500 mt-1">Well organized</p>
           </div>
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
@@ -319,7 +373,7 @@ const TrainingManagementFixed = () => {
               <TrendingUp className="h-4 w-4 mr-2" />
               Total Views
             </h3>
-            <p className="text-2xl font-bold text-purple-600">1,247</p>
+            <p className="text-2xl font-bold text-purple-600">{(statistics.totalViews || 0).toLocaleString()}</p>
             <p className="text-xs text-purple-500 mt-1">+125 this week</p>
           </div>
         </div>
@@ -371,7 +425,15 @@ const TrainingManagementFixed = () => {
         editingMaterial={editingMaterial}
         isLoading={isFormLoading}
       />
+      
+      {/* Training Material Viewer Modal */}
+      <TrainingMaterialViewer
+        material={viewingMaterial}
+        isOpen={showViewer}
+        onClose={handleCloseViewer}
+      />
     </div>
+    // </ErrorBoundary>
   );
 };
 

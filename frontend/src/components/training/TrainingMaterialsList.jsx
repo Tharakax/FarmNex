@@ -22,7 +22,7 @@ import {
   AlertCircle,
   Plus
 } from 'lucide-react';
-import { trainingAPI } from '../../services/api';
+import { trainingAPIReal } from '../../services/trainingAPIReal';
 
 // Card component
 const Card = ({ children, className = "" }) => {
@@ -139,7 +139,7 @@ const MaterialCard = ({ material, onViewMaterial, onEditMaterial, onDeleteMateri
               </span>
               <span className="flex items-center">
                 <User className="h-4 w-4 mr-1" />
-                {material.createdBy}
+                {material.createdBy === 'Admin' ? 'Administrator' : material.createdBy}
               </span>
             </div>
           </div>
@@ -256,71 +256,8 @@ const MaterialCard = ({ material, onViewMaterial, onEditMaterial, onDeleteMateri
   );
 };
 
-const TrainingMaterialsList = ({ onViewMaterial, onEditMaterial, onDeleteMaterial, readOnly = false }) => {
-  const [materials, setMaterials] = useState([]);
-  const [loading, setLoading] = useState(false);
+const TrainingMaterialsList = ({ materials = [], onViewMaterial, onEditMaterial, onDeleteMaterial, loading = false, readOnly = false }) => {
   const [viewType, setViewType] = useState('grid');
-  const [filters, setFilters] = useState({
-    search: '',
-    type: 'all',
-    category: 'all',
-    difficulty: 'all'
-  });
-  const [pagination, setPagination] = useState({
-    page: 1,
-    totalPages: 1,
-    total: 0
-  });
-
-  // Fetch materials
-  useEffect(() => {
-    fetchMaterials();
-  }, [filters, pagination.page]);
-
-  const fetchMaterials = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: pagination.page,
-        limit: 12,
-        ...(filters.search && { search: filters.search }),
-        ...(filters.type !== 'all' && { type: filters.type }),
-        ...(filters.category !== 'all' && { category: filters.category }),
-        ...(filters.difficulty !== 'all' && { difficulty: filters.difficulty })
-      };
-
-      const data = await trainingAPI.getAllMaterials(params);
-      
-      // Backend returns materials directly, not wrapped in success
-      setMaterials(data.materials || []);
-      setPagination(prev => ({
-        ...prev,
-        totalPages: data.totalPages || 1,
-        total: data.total || 0
-      }));
-    } catch (error) {
-      console.error('Error fetching materials:', error);
-      // Fallback to empty state on error
-      setMaterials([]);
-      setPagination(prev => ({
-        ...prev,
-        totalPages: 1,
-        total: 0
-      }));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
-  const handlePageChange = (newPage) => {
-    setPagination(prev => ({ ...prev, page: newPage }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   return (
     <div className="space-y-6">
@@ -329,7 +266,7 @@ const TrainingMaterialsList = ({ onViewMaterial, onEditMaterial, onDeleteMateria
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Training Materials</h2>
           <p className="text-gray-600 mt-1">
-            {pagination.total} materials available
+            {materials.length} materials available
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -348,65 +285,7 @@ const TrainingMaterialsList = ({ onViewMaterial, onEditMaterial, onDeleteMateria
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Search */}
-          <div className="lg:col-span-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search materials..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
-          {/* Type Filter */}
-          <select
-            value={filters.type}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Types</option>
-            <option value="Video">Video</option>
-            <option value="PDF">PDF</option>
-            <option value="Article">Article</option>
-            <option value="Guide">Guide</option>
-            <option value="FAQ">FAQ</option>
-          </select>
-
-          {/* Category Filter */}
-          <select
-            value={filters.category}
-            onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Categories</option>
-            <option value="Crop Management">Crop Management</option>
-            <option value="Livestock">Livestock</option>
-            <option value="Equipment">Equipment</option>
-            <option value="Finance">Finance</option>
-            <option value="Marketing">Marketing</option>
-            <option value="General">General</option>
-          </select>
-
-          {/* Difficulty Filter */}
-          <select
-            value={filters.difficulty}
-            onChange={(e) => handleFilterChange('difficulty', e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Levels</option>
-            <option value="Beginner">Beginner</option>
-            <option value="Intermediate">Intermediate</option>
-            <option value="Advanced">Advanced</option>
-          </select>
-        </div>
-      </Card>
+      {/* Note: Search and filters could be added here in the future */}
 
       {/* Materials Grid/List */}
       {loading ? (
@@ -455,53 +334,7 @@ const TrainingMaterialsList = ({ onViewMaterial, onEditMaterial, onDeleteMateria
         </>
       )}
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Showing page {pagination.page} of {pagination.totalPages}
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
-            </button>
-            
-            {/* Page numbers */}
-            <div className="flex space-x-1">
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                const pageNum = i + 1;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`px-3 py-2 text-sm font-medium rounded-lg ${
-                      pageNum === pagination.page
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
-            
-            <button
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={pagination.page >= pagination.totalPages}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Note: Pagination could be added here in the future */}
     </div>
   );
 };

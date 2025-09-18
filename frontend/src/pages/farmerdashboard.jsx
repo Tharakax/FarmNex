@@ -1,4 +1,5 @@
-﻿import React, { useState, Suspense, useRef } from 'react';
+import React, { useState, Suspense } from 'react';
+import { getLoggedInUser, getRoleDisplayName } from '../utils/userUtils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import WeatherWidget from '../components/WeatherWidget';
@@ -23,10 +24,9 @@ import {
   AlertTriangle,
   Calendar,
   Activity,
-  Camera,
-  Upload
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { showError, showWarning } from '../utils/sweetAlert';
 
 // Sample data
 const cropYieldData = [
@@ -62,7 +62,7 @@ const ProductManagement = React.lazy(() => import('../components/products/Produc
 const FarmerInventoryManagement = React.lazy(() => import('../components/inventory/FarmerInventoryManagement'));
 const FarmerSuppliesManagement = React.lazy(() => import('../components/supplies/FarmerSuppliesManagement'));
 const ReportsManagement = React.lazy(() => import('../components/reports/ReportsManagement'));
-const TrainingManagement = React.lazy(() => import('../components/training/TrainingManagementFixed'));
+const TrainingManagementFull = React.lazy(() => import('../components/training/TrainingManagementFull'));
 
 // Weather Dashboard component
 const WeatherDashboardLazy = React.lazy(() => Promise.resolve({ default: WeatherDashboard }));
@@ -200,11 +200,8 @@ const ActivityTable = () => {
 };
 
 // Sidebar Component
-const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
-  const [profileImage, setProfileImage] = useState(() => {
-    return localStorage.getItem('farmerProfileImage') || null;
-  });
-  const fileInputRef = useRef(null);
+const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed, toggleCollapse }) => {
+  const currentUser = getLoggedInUser();
   
   const menuItems = [
     { name: 'Home', icon: Home },
@@ -217,35 +214,6 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
     { name: 'Settings', icon: Settings }
   ];
 
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        await showWarning('Please select an image smaller than 5MB', 'File Too Large');
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageDataUrl = e.target.result;
-        setProfileImage(imageDataUrl);
-        localStorage.setItem('farmerProfileImage', imageDataUrl);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      await showError('Please select a valid image file', 'Invalid File Type');
-    }
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const removeProfileImage = () => {
-    setProfileImage(null);
-    localStorage.removeItem('farmerProfileImage');
-  };
-
   return (
     <>
       {/* Mobile overlay */}
@@ -257,88 +225,49 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
       )}
       
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full bg-green-800 text-white w-72 sm:w-80 transform transition-transform duration-300 ease-in-out z-30 lg:translate-x-0 lg:static lg:z-0 overflow-y-auto ${
+      <div className={`fixed left-0 top-0 h-full bg-green-800 text-white transform transition-all duration-300 ease-in-out z-30 lg:translate-x-0 lg:static lg:z-0 overflow-y-auto ${
         isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
+      } ${isCollapsed ? 'lg:w-20' : 'w-72 sm:w-80'}`}>
         {/* Header */}
-        <div className="p-4 sm:p-6 border-b border-green-700">
+        <div className={`p-4 sm:p-6 border-b border-green-700 ${isCollapsed ? 'text-center' : ''}`}>
           <div className="flex items-center justify-between lg:justify-center">
-            <h2 className="text-lg sm:text-xl font-bold">Farm Manager</h2>
-            <button
-              onClick={toggleSidebar}
-              className="lg:hidden p-1 rounded-md hover:bg-green-700 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            {!isCollapsed && (
+              <h2 className="text-lg sm:text-xl font-bold">Farm Manager</h2>
+            )}
+            <div className="flex items-center space-x-2">
+              {/* Desktop Toggle Button */}
+              <button
+                onClick={toggleCollapse}
+                className="hidden lg:flex p-1 rounded-md hover:bg-green-700 transition-colors"
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+              </button>
+              {/* Mobile Close Button */}
+              <button
+                onClick={toggleSidebar}
+                className="lg:hidden p-1 rounded-md hover:bg-green-700 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Profile Section */}
-        <div className="p-4 sm:p-6 border-b border-green-700">
-          <div className="text-center">
-            {/* Profile Image */}
-            <div className="relative mx-auto mb-4">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full mx-auto overflow-hidden bg-green-100 border-4 border-green-600 shadow-lg">
-                {profileImage ? (
-                  <img
-                    src={profileImage}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <User className="h-10 w-10 sm:h-12 sm:w-12 text-green-600" />
-                  </div>
-                )}
+        {/* User Info Section */}
+        {!isCollapsed && (
+          <div className="p-4 sm:p-6 border-b border-green-700">
+            <div className="text-center">
+              {/* User Info */}
+              <div>
+                <h3 className="font-semibold text-base sm:text-lg text-white">{currentUser.name}</h3>
+                <p className="text-sm text-green-200">{getRoleDisplayName(currentUser.role)}</p>
+                <p className="text-xs text-green-300 mt-1">{currentUser.email}</p>
               </div>
-              
-              {/* Upload/Camera Button */}
-              <button
-                onClick={handleUploadClick}
-                className="absolute -bottom-1 -right-1 bg-green-600 hover:bg-green-700 text-white p-2 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
-                title="Upload Profile Photo"
-              >
-                <Camera className="h-4 w-4" />
-              </button>
             </div>
-
-            {/* Profile Info */}
-            <div className="mb-4">
-              <h3 className="font-semibold text-base sm:text-lg text-white">John Smith</h3>
-              <p className="text-sm text-green-200">Farm Owner</p>
-              <p className="text-xs text-green-300 mt-1">Since 2018</p>
-            </div>
-
-            {/* Upload Controls */}
-            <div className="space-y-2">
-              <button
-                onClick={handleUploadClick}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center space-x-2"
-              >
-                <Upload className="h-4 w-4" />
-                <span>{profileImage ? 'Change Photo' : 'Upload Photo'}</span>
-              </button>
-              
-              {profileImage && (
-                <button
-                  onClick={removeProfileImage}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white py-1 px-4 rounded-lg text-xs font-medium transition-colors duration-200"
-                >
-                  Remove Photo
-                </button>
-              )}
-            </div>
-
-            {/* Hidden File Input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
           </div>
-        </div>
+        )}
+
         
         {/* Navigation Menu */}
         <nav className="flex-1 py-4">
@@ -354,14 +283,19 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
                     toggleSidebar();
                   }
                 }}
-                className={`w-full flex items-center px-4 sm:px-6 py-3 text-left hover:bg-green-700 transition-colors duration-200 group ${
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center px-4' : 'px-4 sm:px-6'} py-3 text-left hover:bg-green-700 transition-colors duration-200 group ${
                   activeItem === item.name ? 'bg-green-700 border-r-4 border-green-300' : ''
                 }`}
+                title={isCollapsed ? item.name : ''}
               >
-                <Icon className="mr-3 h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-                <span className="text-sm sm:text-base font-medium">{item.name}</span>
-                {activeItem === item.name && (
-                  <div className="ml-auto w-2 h-2 bg-green-300 rounded-full"></div>
+                <Icon className={`h-5 w-5 group-hover:scale-110 transition-transform duration-200 ${isCollapsed ? '' : 'mr-3'}`} />
+                {!isCollapsed && (
+                  <>
+                    <span className="text-sm sm:text-base font-medium">{item.name}</span>
+                    {activeItem === item.name && (
+                      <div className="ml-auto w-2 h-2 bg-green-300 rounded-full"></div>
+                    )}
+                  </>
                 )}
               </button>
             );
@@ -369,16 +303,18 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 sm:p-6 border-t border-green-700">
-          <div className="text-center">
-            <p className="text-xs text-green-300">
-              FarmNex Dashboard v2.0
-            </p>
-            <p className="text-xs text-green-400 mt-1">
-              © {new Date().getFullYear()}
-            </p>
+        {!isCollapsed && (
+          <div className="p-4 sm:p-6 border-t border-green-700">
+            <div className="text-center">
+              <p className="text-xs text-green-300">
+                FarmNex Dashboard v2.0
+              </p>
+              <p className="text-xs text-green-400 mt-1">
+                © {new Date().getFullYear()}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
@@ -386,9 +322,7 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem }) => {
 
 // Header Component
 const Header = ({ toggleSidebar }) => {
-  const [profileImage, setProfileImage] = useState(() => {
-    return localStorage.getItem('farmerProfileImage') || null;
-  });
+  const currentUser = getLoggedInUser();
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-4">
@@ -413,20 +347,9 @@ const Header = ({ toggleSidebar }) => {
           
           {/* Profile Section */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium text-gray-700">John Smith</p>
-              <p className="text-xs text-gray-500">Farm Owner</p>
-            </div>
-            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-green-100 flex items-center justify-center overflow-hidden border-2 border-green-200">
-              {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
-              )}
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-700">{currentUser.name}</p>
+              <p className="text-xs text-gray-500">{getRoleDisplayName(currentUser.role)}</p>
             </div>
           </div>
           
@@ -444,9 +367,14 @@ const Header = ({ toggleSidebar }) => {
 const FarmerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeItem, setActiveItem] = useState('Home');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
   };
 
   // Render the appropriate content based on active sidebar item
@@ -485,18 +413,13 @@ const FarmerDashboard = () => {
         console.log('Rendering WeatherDashboard');
         return <WeatherDashboardLazy />;
       case 'Training':
-        return <TrainingManagement />;
+        console.log('Rendering TrainingManagementFull with all features');
+        return <TrainingManagementFull />;
       case 'Reports':
         return <ReportsManagement />;
       case 'Settings':
-        return (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Settings</h2>
-              <p className="text-gray-600">Settings panel coming soon.</p>
-            </div>
-          </div>
-        );
+        console.log('Rendering Settings');
+        return <div className="p-6 bg-white rounded-lg shadow"><h2 className="text-xl font-semibold mb-4">Settings</h2><p>Settings panel is under development.</p></div>;
       case 'Home':
       default:
         return (
@@ -567,9 +490,11 @@ const FarmerDashboard = () => {
         toggleSidebar={toggleSidebar} 
         activeItem={activeItem}
         setActiveItem={setActiveItem}
+        isCollapsed={sidebarCollapsed}
+        toggleCollapse={toggleSidebarCollapse}
       />
       
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-0'}`}>
         <Header toggleSidebar={toggleSidebar} />
         
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">

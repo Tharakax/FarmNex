@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Tag
 } from 'lucide-react';
+import { formatAuthorName } from '../../utils/userUtils';
 
 // Card component
 const Card = ({ children, className = "" }) => {
@@ -88,8 +89,33 @@ const ViewTrainingMaterial = ({ material, onBack }) => {
   };
 
   const handleDownload = () => {
-    if (material.uploadLink) {
-      window.open(material.uploadLink, '_blank');
+    try {
+      if (material.fileName) {
+        // Download the actual file from the server
+        const fileUrl = `http://localhost:3000/uploads/${material.fileName}`;
+        const fileName = material.fileName;
+        
+        // Create a temporary link element to trigger download
+        const link = document.createElement('a');
+        link.href = fileUrl;
+        link.download = fileName;
+        link.target = '_blank'; // Open in new tab as fallback
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log(`Downloading file: ${fileName} from ${fileUrl}`);
+      } else if (material.uploadLink) {
+        // Fallback to external link if no uploaded file
+        window.open(material.uploadLink, '_blank');
+      } else {
+        alert('No file available for download.');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file. Please try again.');
     }
   };
 
@@ -176,7 +202,7 @@ const ViewTrainingMaterial = ({ material, onBack }) => {
               </span>
               <span className="flex items-center">
                 <User className="h-4 w-4 mr-2" />
-                {material.createdBy}
+                {formatAuthorName(material.createdBy)}
               </span>
               <span className="flex items-center">
                 <Eye className="h-4 w-4 mr-2" />
@@ -211,7 +237,7 @@ const ViewTrainingMaterial = ({ material, onBack }) => {
               {bookmarked ? 'Bookmarked' : 'Bookmark'}
             </button>
 
-            {material.uploadLink && (
+            {(material.fileName || material.uploadLink) && (
               <button
                 onClick={handleDownload}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center"
@@ -248,20 +274,47 @@ const ViewTrainingMaterial = ({ material, onBack }) => {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Content</h2>
         
         {material.type === 'Video' && (
-          <div className="bg-gray-100 rounded-lg p-8 text-center mb-6">
-            <PlayCircle className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Video Content</h3>
-            <p className="text-gray-600 mb-4">Click to watch the training video</p>
-            {material.uploadLink ? (
-              <button
-                onClick={() => window.open(material.uploadLink, '_blank')}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center mx-auto"
-              >
-                <PlayCircle className="h-5 w-5 mr-2" />
-                Watch Video
-              </button>
+          <div className="bg-gray-100 rounded-lg p-6 mb-6">
+            {material.fileName ? (
+              <div className="bg-black rounded-lg overflow-hidden">
+                <video
+                  className="w-full h-auto max-h-96"
+                  controls
+                  poster="/api/placeholder/800/400"
+                  onError={(e) => {
+                    console.error('Video error:', e.target.error);
+                    console.log('Video URL that failed:', `http://localhost:3000/uploads/${material.fileName}`);
+                  }}
+                  onLoadStart={() => console.log('Video load started')}
+                  onCanPlay={() => console.log('Video can play')}
+                  onLoadedData={() => console.log('Video data loaded')}
+                >
+                  <source src={`http://localhost:3000/uploads/${material.fileName}`} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+                <div className="text-center p-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{material.title}</h3>
+                  <p className="text-gray-600">Training Video</p>
+                </div>
+              </div>
+            ) : material.uploadLink ? (
+              <div className="text-center">
+                <PlayCircle className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Video Content</h3>
+                <p className="text-gray-600 mb-4">Click to watch the training video</p>
+                <button
+                  onClick={() => window.open(material.uploadLink, '_blank')}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center mx-auto"
+                >
+                  <PlayCircle className="h-5 w-5 mr-2" />
+                  Watch Video
+                </button>
+              </div>
             ) : (
-              <p className="text-gray-500">Video content will be available soon</p>
+              <div className="text-center py-8">
+                <PlayCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">Video content will be available soon</p>
+              </div>
             )}
           </div>
         )}
@@ -298,16 +351,15 @@ const ViewTrainingMaterial = ({ material, onBack }) => {
           <div className="prose prose-lg max-w-none">
             <div className="bg-gray-50 rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-3">Article Content</h3>
-              <p className="text-gray-600 leading-relaxed">
-                This is where the full article content would be displayed. The content would be 
-                formatted with proper headings, paragraphs, lists, and other formatting elements 
-                to make it easy to read and follow.
-              </p>
-              <p className="text-gray-600 leading-relaxed mt-4">
-                In a real implementation, this would contain the actual training material content, 
-                possibly stored as HTML or Markdown in the database and rendered here with proper 
-                styling and formatting.
-              </p>
+              {material.content ? (
+                <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {material.content}
+                </div>
+              ) : (
+                <p className="text-gray-500 italic">
+                  No content available for this article.
+                </p>
+              )}
               {material.uploadLink && (
                 <div className="mt-6">
                   <button

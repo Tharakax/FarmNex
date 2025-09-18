@@ -116,7 +116,7 @@ export const trainingAPI = {
     }
     
     const data = await response.json();
-    return { data };
+    return { success: true, statistics: data };
   },
 };
 

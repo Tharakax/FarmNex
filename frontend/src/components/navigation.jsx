@@ -3,6 +3,7 @@ import { Link, Navigate, NavLink, Route, Routes, useNavigate } from 'react-route
 import { FiShoppingCart, FiUser, FiSearch, FiHeart, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
 import { FaLeaf, FaGraduationCap, FaBook, FaPlus, FaEye } from 'react-icons/fa';
 import HomePage from '../pages/homePage.jsx';
+import FarmNexLogo from './FarmNexLogo.jsx';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -36,8 +37,12 @@ const Navigation = () => {
             {/* Logo with Enhanced Animation */}
             <div className="flex items-center">
               <Link to="/" className="flex-shrink-0 flex items-center group">
-                <div className="relative">
-                  <FaLeaf className="h-8 w-8 text-green-600 transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 group-hover:text-green-500" />
+                <div className="relative transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-12">
+                  <FarmNexLogo 
+                    size={32} 
+                    className="transition-all duration-300 group-hover:drop-shadow-lg" 
+                    showBackground={isScrolled}
+                  />
                   <div className="absolute inset-0 bg-green-400 rounded-full opacity-0 group-hover:opacity-20 transform scale-0 group-hover:scale-150 transition-all duration-300"></div>
                 </div>
                 <span className="ml-3 text-2xl font-bold bg-gradient-to-r from-green-700 to-green-500 bg-clip-text text-transparent group-hover:from-green-600 group-hover:to-green-400 transition-all duration-300">

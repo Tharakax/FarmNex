@@ -13,12 +13,13 @@ const OneProduct = React.lazy(() => import('./pages/client/OneProduct.jsx'))
 const Cart = React.lazy(() => import('./pages/client/cart.jsx'))
 const EnterShipping = React.lazy(() => import('./pages/client/EnterShipping.jsx'))
 const EnterPayment = React.lazy(() => import('./pages/client/EnterPayment.jsx'))
-const TrainingShowcase = React.lazy(() => import('./pages/TrainingShowcase.jsx'))
-const TrainingHomePage = React.lazy(() => import('./pages/TrainingHomePage.jsx'))
-const AddEditTraining = React.lazy(() => import('./pages/farmer/AddEditTraining.jsx'))
-const ViewTraining = React.lazy(() => import('./pages/farmer/ViewTraining.jsx'))
+const TrainingShowcase = React.lazy(() => import('./components/training/TrainingShowcase.jsx'))
+const TrainingHomePage = React.lazy(() => import('./components/training/TrainingHomePage.jsx'))
+const AddEditTraining = React.lazy(() => import('./components/training/AddEditTraining.jsx'))
+const ViewTraining = React.lazy(() => import('./components/training/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
+const PublicTrainingViewer = React.lazy(() => import('./components/training/PublicTrainingViewer.jsx'))
 
 // Loading component
 const Loading = () => (
@@ -85,6 +86,7 @@ function App() {
             <Route path="payment-methods" element={<PaymentCardsManager />} />
             {/* Training Management Routes */}
             <Route path="/training" element={<TrainingShowcase />} />
+            <Route path="/training/:id" element={<PublicTrainingViewer />} />
             <Route path="/training-showcase" element={<TrainingShowcase />} />
             <Route path="/training-home" element={<TrainingHomePage />} />
             <Route path="/add" element={<AddEditTraining />} />

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   Upload, 
@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Loader
 } from 'lucide-react';
+import { showSuccess, showError, showWarning, showConfirm, showToast } from '../../utils/sweetAlert';
 
 const AddEditTrainingForm = ({ 
   isOpen, 
@@ -25,8 +26,8 @@ const AddEditTrainingForm = ({
     title: editingMaterial?.title || '',
     description: editingMaterial?.description || '',
     category: editingMaterial?.category || '',
-    type: editingMaterial?.type || 'article',
-    difficulty: editingMaterial?.difficulty || 'beginner',
+    type: editingMaterial?.type || 'Article',
+    difficulty: editingMaterial?.difficulty || 'Beginner',
     tags: editingMaterial?.tags?.join(', ') || '',
     content: editingMaterial?.content || '',
     status: editingMaterial?.status || 'draft'
@@ -36,30 +37,57 @@ const AddEditTrainingForm = ({
   const [errors, setErrors] = useState({});
   const [dragOver, setDragOver] = useState(false);
 
+  // Update form data when editingMaterial changes
+  useEffect(() => {
+    if (editingMaterial) {
+      setFormData({
+        title: editingMaterial.title || '',
+        description: editingMaterial.description || '',
+        category: editingMaterial.category || '',
+        type: editingMaterial.type || 'Article',
+        difficulty: editingMaterial.difficulty || 'Beginner',
+        tags: editingMaterial.tags?.join(', ') || '',
+        content: editingMaterial.content || '',
+        status: editingMaterial.status || 'draft'
+      });
+    } else {
+      // Reset form for new material
+      setFormData({
+        title: '',
+        description: '',
+        category: '',
+        type: 'Article',
+        difficulty: 'Beginner',
+        tags: '',
+        content: '',
+        status: 'draft'
+      });
+    }
+    setSelectedFile(null);
+    setErrors({});
+  }, [editingMaterial]);
+
   const categories = [
-    'Farming Techniques',
-    'Soil Health', 
-    'Plant Protection',
-    'Water Management',
-    'Nutrition',
-    'Livestock Management',
-    'Equipment & Tools',
-    'Market & Business',
-    'Sustainable Practices',
-    'Other'
+    'Crop Management',
+    'Livestock',
+    'Equipment',
+    'Finance',
+    'Marketing',
+    'General'
   ];
 
   const types = [
-    { value: 'article', label: 'Article', icon: FileText },
-    { value: 'video', label: 'Video', icon: Video },
-    { value: 'pdf', label: 'PDF Document', icon: File },
-    { value: 'image', label: 'Image/Infographic', icon: Image }
+    { value: 'Article', label: 'Article', icon: FileText },
+    { value: 'Video', label: 'Video', icon: Video },
+    { value: 'PDF', label: 'PDF Document', icon: File },
+    { value: 'Guide', label: 'Guide', icon: Image },
+    { value: 'FAQ', label: 'FAQ', icon: FileText }
   ];
 
   const difficulties = [
-    { value: 'beginner', label: 'Beginner', color: 'bg-green-100 text-green-800' },
-    { value: 'intermediate', label: 'Intermediate', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'advanced', label: 'Advanced', color: 'bg-red-100 text-red-800' }
+    { value: 'Beginner', label: 'Beginner', color: 'bg-green-100 text-green-800' },
+    { value: 'Intermediate', label: 'Intermediate', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'Advanced', label: 'Advanced', color: 'bg-red-100 text-red-800' }
   ];
 
   const handleInputChange = (e) => {
@@ -79,11 +107,30 @@ const AddEditTrainingForm = ({
 
   const handleFileSelect = (file) => {
     if (file) {
-      // Validate file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
+      // Validate file size (50MB limit)
+      if (file.size > 50 * 1024 * 1024) {
+        showError('File size exceeds the 50MB limit. Please choose a smaller file.');
         setErrors(prev => ({
           ...prev,
-          file: 'File size must be less than 10MB'
+          file: 'File size must be less than 50MB'
+        }));
+        return;
+      }
+      
+      // Validate file type based on content type
+      const allowedTypes = {
+        'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
+        'PDF': ['application/pdf'],
+        'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      };
+      
+      const typeAllowed = allowedTypes[formData.type] || [];
+      if (typeAllowed.length > 0 && !typeAllowed.includes(file.type)) {
+        showWarning(`Invalid file type for ${formData.type}. Please upload a supported format.`);
+        setErrors(prev => ({
+          ...prev,
+          file: `Invalid file type for ${formData.type}. Please upload a supported format.`
         }));
         return;
       }
@@ -93,6 +140,7 @@ const AddEditTrainingForm = ({
         ...prev,
         file: ''
       }));
+      showToast(`File "${file.name}" selected successfully!`, 'success');
     }
   };
 
@@ -121,24 +169,75 @@ const AddEditTrainingForm = ({
   const validateForm = () => {
     const newErrors = {};
     
+    // Title validation
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
+    } else if (formData.title.length < 5) {
+      newErrors.title = 'Title must be at least 5 characters long';
+    } else if (formData.title.length > 100) {
+      newErrors.title = 'Title must not exceed 100 characters';
     }
     
+    // Description validation
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
+    } else if (formData.description.length < 20) {
+      newErrors.description = 'Description must be at least 20 characters long';
+    } else if (formData.description.length > 1000) {
+      newErrors.description = 'Description must not exceed 1000 characters';
     }
     
+    // Category validation
     if (!formData.category) {
       newErrors.category = 'Category is required';
     }
     
-    if (formData.type === 'article' && !formData.content.trim()) {
-      newErrors.content = 'Content is required for articles';
+    // Content validation for articles
+    if (formData.type === 'Article') {
+      if (!formData.content.trim()) {
+        newErrors.content = 'Content is required for articles';
+      } else if (formData.content.length < 50) {
+        newErrors.content = 'Article content must be at least 50 characters long';
+      } else if (formData.content.length > 50000) {
+        newErrors.content = 'Article content must not exceed 50,000 characters';
+      }
     }
     
-    if ((formData.type === 'video' || formData.type === 'pdf' || formData.type === 'image') && !selectedFile && !editingMaterial) {
+    // File validation for non-article types
+    if ((formData.type === 'Video' || formData.type === 'PDF' || formData.type === 'Guide') && !selectedFile && !editingMaterial) {
       newErrors.file = 'File is required for this content type';
+    }
+    
+    // File type validation
+    if (selectedFile) {
+      const allowedTypes = {
+        'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
+        'PDF': ['application/pdf'],
+        'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'] // For thumbnails
+      };
+      
+      const typeAllowed = allowedTypes[formData.type] || [];
+      if (typeAllowed.length > 0 && !typeAllowed.includes(selectedFile.type)) {
+        newErrors.file = `Invalid file type for ${formData.type}. Please upload a supported format.`;
+      }
+      
+      // File size validation (50MB limit)
+      if (selectedFile.size > 50 * 1024 * 1024) {
+        newErrors.file = 'File size must be less than 50MB';
+      }
+    }
+    
+    // Tags validation
+    if (formData.tags.trim()) {
+      const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      if (tags.length > 10) {
+        newErrors.tags = 'Maximum of 10 tags allowed';
+      }
+      const invalidTags = tags.filter(tag => tag.length > 50);
+      if (invalidTags.length > 0) {
+        newErrors.tags = 'Each tag must be less than 50 characters';
+      }
     }
     
     setErrors(newErrors);
@@ -149,15 +248,28 @@ const AddEditTrainingForm = ({
     e.preventDefault();
     
     if (!validateForm()) {
+      showWarning('Please correct the validation errors before submitting.');
       return;
     }
     
-    const submitData = {
-      ...formData,
-      tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-    };
-    
-    await onSave(submitData, selectedFile);
+    try {
+      const submitData = {
+        ...formData,
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+      };
+      
+      await onSave(submitData, selectedFile);
+      showSuccess(
+        `Training material ${editingMaterial ? 'updated' : 'created'} successfully!`,
+        'Success!'
+      );
+    } catch (error) {
+      console.error('Error saving material:', error);
+      showError(
+        `Failed to ${editingMaterial ? 'update' : 'create'} training material. Please try again.`,
+        'Error!'
+      );
+    }
   };
 
   const resetForm = () => {
@@ -165,8 +277,8 @@ const AddEditTrainingForm = ({
       title: '',
       description: '',
       category: '',
-      type: 'article',
-      difficulty: 'beginner',
+      type: 'Article',
+      difficulty: 'Beginner',
       tags: '',
       content: '',
       status: 'draft'
@@ -175,8 +287,22 @@ const AddEditTrainingForm = ({
     setErrors({});
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (!isLoading) {
+      // Check if form has unsaved changes
+      const hasUnsavedChanges = formData.title || formData.description || formData.content || selectedFile;
+      
+      if (hasUnsavedChanges) {
+        const result = await showConfirm(
+          'You have unsaved changes. Are you sure you want to close without saving?',
+          'Unsaved Changes'
+        );
+        
+        if (!result.isConfirmed) {
+          return;
+        }
+      }
+      
       resetForm();
       onClose();
     }
@@ -218,13 +344,21 @@ const AddEditTrainingForm = ({
                   errors.title ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter material title"
+                maxLength={100}
               />
-              {errors.title && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.title}
+              <div className="flex justify-between items-center mt-1">
+                <div>
+                  {errors.title && (
+                    <p className="text-red-500 text-sm flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {errors.title}
+                    </p>
+                  )}
+                </div>
+                <p className="text-gray-400 text-xs">
+                  {formData.title.length}/100
                 </p>
-              )}
+              </div>
             </div>
 
             {/* Category */}
@@ -315,7 +449,7 @@ const AddEditTrainingForm = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 <option value="draft">Draft</option>
-                <option value="active">Published</option>
+                <option value="published">Published</option>
                 <option value="archived">Archived</option>
               </select>
             </div>
@@ -334,13 +468,23 @@ const AddEditTrainingForm = ({
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Describe what this training material covers"
+                maxLength={1000}
               />
-              {errors.description && (
-                <p className="text-red-500 text-sm mt-1 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.description}
+              <div className="flex justify-between items-center mt-1">
+                <div>
+                  {errors.description && (
+                    <p className="text-red-500 text-sm flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {errors.description}
+                    </p>
+                  )}
+                </div>
+                <p className={`text-xs ${
+                  formData.description.length > 800 ? 'text-orange-500' : 'text-gray-400'
+                }`}>
+                  {formData.description.length}/1000
                 </p>
-              )}
+              </div>
             </div>
 
             {/* Tags */}
@@ -353,14 +497,30 @@ const AddEditTrainingForm = ({
                 name="tags"
                 value={formData.tags}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  errors.tags ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Enter tags separated by commas (e.g., farming, crops, irrigation)"
               />
-              <p className="text-gray-500 text-sm mt-1">Separate multiple tags with commas</p>
+              <div className="flex justify-between items-center mt-1">
+                <div>
+                  {errors.tags ? (
+                    <p className="text-red-500 text-sm flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {errors.tags}
+                    </p>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Separate multiple tags with commas (max 10 tags)</p>
+                  )}
+                </div>
+                <p className="text-gray-400 text-xs">
+                  {formData.tags.split(',').filter(tag => tag.trim()).length}/10 tags
+                </p>
+              </div>
             </div>
 
             {/* Content (for articles) */}
-            {formData.type === 'article' && (
+            {formData.type === 'Article' && (
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Content <span className="text-red-500">*</span>
@@ -374,18 +534,28 @@ const AddEditTrainingForm = ({
                     errors.content ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Write your article content here..."
+                  maxLength={50000}
                 />
-                {errors.content && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.content}
+                <div className="flex justify-between items-center mt-1">
+                  <div>
+                    {errors.content && (
+                      <p className="text-red-500 text-sm flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-1" />
+                        {errors.content}
+                      </p>
+                    )}
+                  </div>
+                  <p className={`text-xs ${
+                    formData.content.length > 40000 ? 'text-orange-500' : 'text-gray-400'
+                  }`}>
+                    {formData.content.length}/50,000
                   </p>
-                )}
+                </div>
               </div>
             )}
 
             {/* File Upload (for non-article types) */}
-            {formData.type !== 'article' && (
+            {formData.type !== 'Article' && (
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Upload File {!editingMaterial && <span className="text-red-500">*</span>}
@@ -421,7 +591,7 @@ const AddEditTrainingForm = ({
                       browse files
                     </button>
                     <p className="text-gray-400 text-sm">
-                      Maximum file size: 10MB
+                      Maximum file size: 50MB
                     </p>
                   </div>
                   <input
@@ -429,7 +599,7 @@ const AddEditTrainingForm = ({
                     type="file"
                     onChange={handleFileChange}
                     className="hidden"
-                    accept={formData.type === 'video' ? 'video/*' : formData.type === 'pdf' ? '.pdf' : 'image/*'}
+                    accept={formData.type === 'Video' ? 'video/*' : formData.type === 'PDF' ? '.pdf' : 'image/*'}
                   />
                 </div>
                 {errors.file && (

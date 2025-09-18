@@ -29,9 +29,81 @@ mongoose.connect(process.env.MONGO_URL).then(
     }
 )
 app.use(cors());
-app.use(bodyParser.json());
-app.use('/uploads', express.static('uploads'));
+// Increased limits for large file uploads (videos, etc.)
+app.use(bodyParser.json({ limit: '500mb' }));
+app.use(bodyParser.urlencoded({ limit: '500mb', extended: true }));
+// Serve static files before JWT auth to allow public access to uploads
+app.use('/uploads', express.static('uploads', {
+  setHeaders: (res, path, stat) => {
+    // Set proper headers for video files
+    if (path.endsWith('.mp4') || path.endsWith('.avi') || path.endsWith('.mov')) {
+      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Cache-Control', 'public, max-age=0');
+    }
+  }
+}));
+
+// Public training routes (no authentication required)
+import { getPublishedMaterials, getMaterialById } from './controllers/trainingController.js';
+app.get('/api/training/published', getPublishedMaterials);
+app.get('/api/training/published/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const material = await (await import('./models/TrainingMaterial.js')).default
+      .findOne({ _id: id, status: 'published', isActive: true })
+      .exec();
+    
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        message: 'Training material not found or not published'
+      });
+    }
+    
+    // Increment view count
+    await (await import('./models/TrainingMaterial.js')).default
+      .findByIdAndUpdate(id, { $inc: { views: 1 } });
+    
+    res.json({
+      success: true,
+      material
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+// Apply JWT auth for all other routes
 app.use(JWTauth)
+
+// Test route for video files
+app.get('/test-video/:filename', (req, res) => {
+  const { filename } = req.params;
+  const filePath = `uploads/${filename}`;
+  console.log('Testing video access:', filePath);
+  
+  // Check if file exists
+  import('fs').then(fs => {
+    if (fs.existsSync(filePath)) {
+      res.json({ 
+        success: true, 
+        message: 'Video file exists',
+        filename,
+        url: `http://localhost:3000/uploads/${filename}`
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        message: 'Video file not found',
+        filename 
+      });
+    }
+  });
+});
 
 app.use("/api/user", userRouter);
 app.use("/api/product", productRouter)

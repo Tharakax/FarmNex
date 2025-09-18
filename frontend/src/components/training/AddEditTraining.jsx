@@ -1,98 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Save,
-  X,
-  Upload,
-  FileText,
-  Video,
-  BookOpen,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Plus,
-  Trash2,
-  Paperclip
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { 
+  Save, ArrowLeft, Upload, Trash2, FileText, Video, BookOpen, 
+  AlertCircle, CheckCircle, Info, Tag, User, Calendar,
+  Eye, Clock, Target, Lightbulb, Award
 } from 'lucide-react';
-import FileUpload from '../common/FileUpload';
+import Header from '../../components/Header.jsx';
+import { trainingAPIReal } from '../../services/trainingAPIReal';
+import { showSuccess, showError } from '../../utils/sweetAlert';
+import { getAuthorName } from '../../utils/userUtils';
 
-const Card = ({ children, className = "" }) => {
-  return (
-    <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
-      {children}
-    </div>
-  );
-};
+const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const isEditing = Boolean(id || materialToEdit);
+  const [dragActive, setDragActive] = useState(false);
 
-const AddEditTraining = ({ material, onSave, onCancel, isEditing = false }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: 'General',
     type: 'Article',
+    uploadLink: '',
+    tags: '',
     difficulty: 'Beginner',
-    content: '',
-    tags: [],
-    estimatedDuration: '',
-    prerequisites: '',
-    learningObjectives: [],
-    files: []
+    category: 'General',
+    createdBy: getAuthorName()
   });
-
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newTag, setNewTag] = useState('');
-  const [newObjective, setNewObjective] = useState('');
-  const [previewMode, setPreviewMode] = useState(false);
-
-  const categories = [
-    'Crop Management',
-    'Livestock',
-    'Equipment',
-    'Finance',
-    'Marketing',
-    'General'
-  ];
-
-  const materialTypes = [
-    'Article',
-    'Video',
-    'PDF',
-    'Guide',
-    'Tutorial',
-    'Checklist',
-    'FAQ'
-  ];
-
-  const difficultyLevels = [
-    'Beginner',
-    'Intermediate',
-    'Advanced'
-  ];
 
   useEffect(() => {
-    if (material && isEditing) {
+    if (materialToEdit) {
+      setFormData({
+        title: materialToEdit.title || '',
+        description: materialToEdit.description || '',
+        type: materialToEdit.type || 'Article',
+        uploadLink: materialToEdit.uploadLink || '',
+        tags: materialToEdit.tags ? materialToEdit.tags.join(', ') : '',
+        difficulty: materialToEdit.difficulty || 'Beginner',
+        category: materialToEdit.category || 'General',
+        createdBy: materialToEdit.createdBy || getAuthorName()
+      });
+    } else if (isEditing && id) {
+      fetchMaterial();
+    }
+  }, [id, isEditing, materialToEdit]);
+
+  const fetchMaterial = async () => {
+    try {
+      setLoading(true);
+      const response = await trainingAPIReal.getTrainingMaterial(id);
+      const material = response.material; // Extract material from response
       setFormData({
         title: material.title || '',
         description: material.description || '',
-        category: material.category || 'General',
         type: material.type || 'Article',
+        uploadLink: material.uploadLink || '',
+        tags: material.tags ? material.tags.join(', ') : '',
         difficulty: material.difficulty || 'Beginner',
-        content: material.content || '',
-        tags: material.tags || [],
-        estimatedDuration: material.estimatedDuration || '',
-        prerequisites: material.prerequisites || '',
-        learningObjectives: material.learningObjectives || [],
-        files: material.files || []
+        category: material.category || 'General',
+        createdBy: material.createdBy || getAuthorName()
       });
+    } catch (error) {
+      console.error('Error fetching material:', error);
+      await showError('Failed to load training material');
+    } finally {
+      setLoading(false);
     }
-  }, [material, isEditing]);
-
-  // Handle file upload changes
-  const handleFilesChange = (newFiles) => {
-    setFormData(prev => ({
-      ...prev,
-      files: newFiles
-    }));
   };
 
   const handleInputChange = (e) => {
@@ -101,71 +76,145 @@ const AddEditTraining = ({ material, onSave, onCancel, isEditing = false }) => {
       ...prev,
       [name]: value
     }));
-
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
-        [name]: null
+        [name]: ''
       }));
     }
   };
 
-  const handleAddTag = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData(prev => ({
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (file) {
+      // File size validation (100MB limit)
+      if (file.size > 100 * 1024 * 1024) {
+        showError(
+          'File size exceeds the 100MB limit. Please choose a smaller file.',
+          'File Too Large'
+        );
+        setErrors(prev => ({
+          ...prev,
+          file: 'File size must be less than 100MB'
+        }));
+        return;
+      }
+      
+      // File type validation
+      const allowedTypes = {
+        'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
+        'PDF': ['application/pdf'],
+        'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      };
+      
+      const typeAllowed = allowedTypes[formData.type] || [];
+      if (typeAllowed.length > 0 && !typeAllowed.includes(file.type)) {
+        showWarning(
+          `Invalid file type for ${formData.type}. Please upload a supported format.`,
+          'Invalid File Type'
+        );
+        setErrors(prev => ({
+          ...prev,
+          file: `Invalid file type for ${formData.type}. Please upload a supported format.`
+        }));
+        return;
+      }
+      
+      setSelectedFile(file);
+      setErrors(prev => ({
         ...prev,
-        tags: [...prev.tags, newTag.trim()]
+        file: ''
       }));
-      setNewTag('');
+      showToast(`File "${file.name}" selected successfully!`, 'success');
     }
-  };
-
-  const handleRemoveTag = (tagToRemove) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
-  };
-
-  const handleAddObjective = () => {
-    if (newObjective.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        learningObjectives: [...prev.learningObjectives, newObjective.trim()]
-      }));
-      setNewObjective('');
-    }
-  };
-
-  const handleRemoveObjective = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      learningObjectives: prev.learningObjectives.filter((_, i) => i !== index)
-    }));
   };
 
   const validateForm = () => {
     const newErrors = {};
 
+    // Title validation
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
+    } else if (formData.title.length < 5) {
+      newErrors.title = 'Title must be at least 5 characters long';
+    } else if (formData.title.length > 100) {
+      newErrors.title = 'Title must not exceed 100 characters';
     }
 
+    // Description validation
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
+    } else if (formData.description.length < 20) {
+      newErrors.description = 'Description must be at least 20 characters long';
+    } else if (formData.description.length > 1000) {
+      newErrors.description = 'Description must not exceed 1000 characters';
     }
 
-    if (!formData.content.trim()) {
-      newErrors.content = 'Content is required';
+    // Type validation
+    if (!formData.type) {
+      newErrors.type = 'Content type is required';
     }
 
-    if (formData.title.length > 100) {
-      newErrors.title = 'Title must be less than 100 characters';
+    // Category validation
+    if (!formData.category) {
+      newErrors.category = 'Category is required';
     }
 
-    if (formData.description.length > 500) {
-      newErrors.description = 'Description must be less than 500 characters';
+    // Author name validation
+    if (!formData.createdBy.trim()) {
+      newErrors.createdBy = 'Author name is required';
+    } else if (formData.createdBy.length < 2) {
+      newErrors.createdBy = 'Author name must be at least 2 characters long';
+    } else if (formData.createdBy.length > 50) {
+      newErrors.createdBy = 'Author name must not exceed 50 characters';
+    }
+
+    // URL validation
+    if (formData.uploadLink.trim()) {
+      const urlPattern = /^(https?:\/\/)([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+      if (!urlPattern.test(formData.uploadLink)) {
+        newErrors.uploadLink = 'Please enter a valid URL (must start with http:// or https://)';
+      }
+    }
+
+    // Video type validation
+    if (formData.type === 'Video' && !formData.uploadLink.trim() && !selectedFile) {
+      newErrors.uploadLink = 'For video content, either upload a video file or provide a video link';
+    }
+
+    // File validation
+    if (selectedFile) {
+      const allowedTypes = {
+        'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
+        'PDF': ['application/pdf'],
+        'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      };
+      
+      const typeAllowed = allowedTypes[formData.type] || [];
+      if (typeAllowed.length > 0 && !typeAllowed.includes(selectedFile.type)) {
+        newErrors.file = `Invalid file type for ${formData.type}. Please upload a supported format.`;
+      }
+      
+      // File size validation (100MB limit)
+      if (selectedFile.size > 100 * 1024 * 1024) {
+        newErrors.file = 'File size must be less than 100MB';
+      }
+    }
+
+    // Tags validation
+    if (formData.tags.trim()) {
+      const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      if (tags.length > 10) {
+        newErrors.tags = 'Maximum of 10 tags allowed';
+      }
+      const invalidTags = tags.filter(tag => tag.length > 50);
+      if (invalidTags.length > 0) {
+        newErrors.tags = 'Each tag must be less than 50 characters';
+      }
     }
 
     setErrors(newErrors);
@@ -174,493 +223,619 @@ const AddEditTraining = ({ material, onSave, onCancel, isEditing = false }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     if (!validateForm()) {
+      await showWarning('Please correct all validation errors before submitting.');
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      const materialData = {
+      setLoading(true);
+      
+      const submitData = {
         ...formData,
-        _id: material?._id || `material-${Date.now()}`,
-        createdAt: material?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: 'Current User', // Replace with actual user data
-        views: material?.views || 0
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        file: selectedFile
       };
 
-      await onSave(materialData);
+      if (isEditing) {
+        await trainingAPIReal.updateTrainingMaterial(materialToEdit?._id || id, submitData, selectedFile);
+        if (onSaveSuccess) {
+          onSaveSuccess('Training material updated successfully!');
+        } else {
+          await showSuccess(
+            'Your training material has been updated successfully and is now available to farmers!',
+            'Material Updated!'
+          );
+        }
+      } else {
+        await trainingAPIReal.createTrainingMaterial(submitData, selectedFile);
+        if (onSaveSuccess) {
+          onSaveSuccess('Training material created successfully!');
+        } else {
+          await showSuccess(
+            'Your training material has been created successfully and is now available to farmers!',
+            'Material Created!'
+          );
+        }
+      }
+      
+      if (!onSaveSuccess) {
+        navigate('/');
+      }
     } catch (error) {
       console.error('Error saving material:', error);
-      setErrors({ submit: 'Failed to save training material. Please try again.' });
+      await showError(
+        `Failed to ${isEditing ? 'update' : 'create'} training material. Please check your connection and try again.`,
+        'Error!'
+      );
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  const getTypeIcon = (type) => {
+  const handleCancel = async () => {
+    // Check if form has unsaved changes
+    const hasUnsavedChanges = formData.title || formData.description || formData.uploadLink || selectedFile;
+    
+    if (hasUnsavedChanges && !loading) {
+      const result = await showConfirm(
+        'You have unsaved changes. Are you sure you want to leave without saving?',
+        'Unsaved Changes'
+      );
+      
+      if (!result.isConfirmed) {
+        return;
+      }
+    }
+    
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate('/');
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      const file = files[0];
+      
+      // File size validation (100MB limit)
+      if (file.size > 100 * 1024 * 1024) {
+        showError(
+          'File size exceeds the 100MB limit. Please choose a smaller file.',
+          'File Too Large'
+        );
+        return;
+      }
+      
+      // File type validation
+      const allowedTypes = {
+        'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
+        'PDF': ['application/pdf'],
+        'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+      };
+      
+      const typeAllowed = allowedTypes[formData.type] || [];
+      if (typeAllowed.length > 0 && !typeAllowed.includes(file.type)) {
+        showWarning(
+          `Invalid file type for ${formData.type}. Please upload a supported format.`,
+          'Invalid File Type'
+        );
+        return;
+      }
+      
+      setSelectedFile(file);
+      showToast(`File "${file.name}" uploaded successfully!`, 'success');
+    }
+  };
+
+  // Get content type icon
+  const getContentTypeIcon = (type) => {
     switch (type) {
-      case 'Video':
-        return <Video className="h-5 w-5 text-red-600" />;
-      case 'PDF':
-        return <FileText className="h-5 w-5 text-red-600" />;
-      case 'Article':
-      case 'Guide':
-      case 'Tutorial':
-        return <BookOpen className="h-5 w-5 text-blue-600" />;
-      default:
-        return <FileText className="h-5 w-5 text-gray-600" />;
+      case 'Video': return Video;
+      case 'PDF': return FileText;
+      case 'Guide': 
+      case 'Article': 
+      case 'FAQ': return BookOpen;
+      default: return FileText;
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            {isEditing ? 'Edit Training Material' : 'Add New Training Material'}
-          </h2>
-          <p className="text-gray-600 mt-1">
-            {isEditing ? 'Update the training material information' : 'Create a new training resource for farmers'}
-          </p>
-        </div>
-        <div className="flex items-center space-x-3">
-          <button
-            type="button"
-            onClick={() => setPreviewMode(!previewMode)}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
-          >
-            {previewMode ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-            {previewMode ? 'Edit Mode' : 'Preview'}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center"
-          >
-            <X className="h-4 w-4 mr-2" />
-            Cancel
-          </button>
+  // Get difficulty color
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case 'Beginner': return 'bg-green-100 text-green-800 border-green-200';
+      case 'Intermediate': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Advanced': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    document.getElementById('file-input').value = '';
+  };
+
+  if (loading && (isEditing || materialToEdit)) {
+    return (
+      <div className="flex justify-center items-center h-64 bg-gray-50 rounded-lg">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading training material...</p>
         </div>
       </div>
+    );
+  }
 
-      {previewMode ? (
-        /* Preview Mode */
-        <Card>
-          <div className="prose max-w-none">
-            <div className="flex items-center space-x-3 mb-4">
-              {getTypeIcon(formData.type)}
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 m-0">{formData.title || 'Untitled'}</h1>
-                <div className="flex items-center space-x-4 mt-2">
-                  <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
-                    {formData.category}
-                  </span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                    {formData.difficulty}
-                  </span>
-                  <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                    {formData.type}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <p className="text-gray-600 mb-4">{formData.description}</p>
-            
-            {formData.estimatedDuration && (
-              <p className="text-sm text-gray-500 mb-4">
-                <strong>Duration:</strong> {formData.estimatedDuration}
-              </p>
-            )}
-            
-            {formData.prerequisites && (
-              <div className="mb-4">
-                <strong>Prerequisites:</strong>
-                <p className="text-gray-600">{formData.prerequisites}</p>
-              </div>
-            )}
-            
-            {formData.learningObjectives.length > 0 && (
-              <div className="mb-4">
-                <strong>Learning Objectives:</strong>
-                <ul className="list-disc list-inside text-gray-600 mt-2">
-                  {formData.learningObjectives.map((objective, index) => (
-                    <li key={index}>{objective}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            <div className="prose max-w-none">
-              {formData.content ? (
-                <div className="whitespace-pre-wrap">{formData.content}</div>
-              ) : (
-                <p className="text-gray-400 italic">No content added yet...</p>
-              )}
-            </div>
-            
-            {formData.files.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Paperclip className="h-4 w-4 text-gray-600" />
-                  <strong className="text-sm text-gray-600">Attachments ({formData.files.length}):</strong>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {formData.files.map((file) => {
-                    const IconComponent = (() => {
-                      switch (file.category) {
-                        case 'document': return FileText;
-                        case 'image': return 'Image';
-                        case 'video': return Video;
-                        case 'audio': return 'Mic';
-                        default: return FileText;
-                      }
-                    })();
-                    
-                    return (
-                      <div key={file.id || file.tempId} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                        <div className={`w-10 h-10 rounded-md flex items-center justify-center ${
-                          file.category === 'image' ? 'bg-green-100' :
-                          file.category === 'video' ? 'bg-red-100' :
-                          file.category === 'document' ? 'bg-blue-100' :
-                          'bg-gray-100'
-                        }`}>
-                          {typeof IconComponent === 'string' ? (
-                            <span className={`text-lg ${
-                              file.category === 'image' ? 'text-green-600' :
-                              file.category === 'video' ? 'text-red-600' :
-                              file.category === 'document' ? 'text-blue-600' :
-                              'text-gray-600'
-                            }`}>📄</span>
-                          ) : (
-                            <IconComponent className={`h-5 w-5 ${
-                              file.category === 'image' ? 'text-green-600' :
-                              file.category === 'video' ? 'text-red-600' :
-                              file.category === 'document' ? 'text-blue-600' :
-                              'text-gray-600'
-                            }`} />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {file.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {file.size && `${(file.size / 1024 / 1024).toFixed(1)} MB`} • {file.extension?.toUpperCase()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            
-            {formData.tags.length > 0 && (
-              <div className={`mt-6 pt-4 border-t border-gray-200 ${formData.files.length > 0 ? 'mt-4 pt-4' : ''}`}>
-                <strong className="text-sm text-gray-600">Tags:</strong>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.tags.map((tag, index) => (
-                    <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
-      ) : (
-        /* Edit Mode */
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <Card>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                  Title *
-                </label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.title ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter material title"
-                />
-                {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
-              </div>
+  const ContentTypeIcon = getContentTypeIcon(formData.type);
 
-              <div>
-                <label htmlFor="estimatedDuration" className="block text-sm font-medium text-gray-700 mb-1">
-                  Estimated Duration
-                </label>
-                <input
-                  type="text"
-                  id="estimatedDuration"
-                  name="estimatedDuration"
-                  value={formData.estimatedDuration}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., 15 minutes, 1 hour"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  Category *
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                  Material Type *
-                </label>
-                <select
-                  id="type"
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {materialTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 mb-1">
-                  Difficulty Level *
-                </label>
-                <select
-                  id="difficulty"
-                  name="difficulty"
-                  value={formData.difficulty}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {difficultyLevels.map(level => (
-                    <option key={level} value={level}>{level}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description *
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Brief description of the training material"
-              />
-              {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
-            </div>
-          </Card>
-
-          {/* Content */}
-          <Card>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Content</h3>
-            <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-                Material Content *
-              </label>
-              <textarea
-                id="content"
-                name="content"
-                value={formData.content}
-                onChange={handleInputChange}
-                rows={12}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.content ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter the main content of your training material. You can include step-by-step instructions, tips, and detailed explanations."
-              />
-              {errors.content && <p className="text-red-500 text-sm mt-1">{errors.content}</p>}
-            </div>
-
-            <div className="mt-4">
-              <label htmlFor="prerequisites" className="block text-sm font-medium text-gray-700 mb-1">
-                Prerequisites
-              </label>
-              <textarea
-                id="prerequisites"
-                name="prerequisites"
-                value={formData.prerequisites}
-                onChange={handleInputChange}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="What should learners know before starting this material?"
-              />
-            </div>
-          </Card>
-
-          {/* Learning Objectives */}
-          <Card>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Learning Objectives</h3>
-            <div className="space-y-3">
-              {formData.learningObjectives.map((objective, index) => (
-                <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
-                  <span className="flex-1 text-sm text-gray-700">{objective}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveObjective(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={newObjective}
-                  onChange={(e) => setNewObjective(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Add a learning objective"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddObjective())}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddObjective}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </Card>
-
-          {/* File Attachments */}
-          <Card>
-            <div className="flex items-center space-x-2 mb-4">
-              <Paperclip className="h-5 w-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">File Attachments</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Upload supporting files such as PDFs, images, videos, or other documents that complement your training material.
-            </p>
-            <FileUpload
-              files={formData.files}
-              onFilesChange={handleFilesChange}
-              multiple={true}
-              maxFiles={10}
-              disabled={isSubmitting}
-            />
-          </Card>
-
-          {/* Tags */}
-          <Card>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
-            <div className="space-y-3">
-              {formData.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formData.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="ml-2 text-blue-600 hover:text-blue-800"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="text"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Add a tag (e.g., organic, irrigation, equipment)"
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                />
-                <button
-                  type="button"
-                  onClick={handleAddTag}
-                  className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </Card>
-
-          {/* Submit Error */}
-          {errors.submit && (
-            <Card className="border-red-200 bg-red-50">
-              <div className="flex items-center space-x-2 text-red-700">
-                <AlertCircle className="h-5 w-5" />
-                <p>{errors.submit}</p>
-              </div>
-            </Card>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Only show Header if not being used within dashboard */}
+      {!onCancel && <Header />}
+      
+      <div className={`max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 ${!onCancel ? 'pt-24 pb-12' : 'py-8'}`}>
+        {/* Professional Header */}
+        <div className="mb-8">
+          {onCancel && (
+            <button
+              onClick={handleCancel}
+              className="flex items-center text-gray-600 hover:text-gray-800 mb-4 transition-colors group"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform" />
+              Back to Materials
+            </button>
           )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {isEditing ? 'Updating...' : 'Creating...'}
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isEditing ? 'Update Material' : 'Create Material'}
-                </>
-              )}
-            </button>
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <ContentTypeIcon className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {isEditing ? 'Edit Training Material' : 'Create Training Material'}
+              </h1>
+              <p className="text-gray-600 mt-1">
+                {isEditing ? 'Update the training content details' : 'Share your knowledge with the farming community'}
+              </p>
+            </div>
           </div>
-        </form>
-      )}
+        </div>
+
+        {/* Professional Form Container */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          {/* Form Header */}
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 px-8 py-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                  <BookOpen className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Training Details</h2>
+                  <p className="text-sm text-gray-600">Fill in the information below</p>
+                </div>
+              </div>
+              <div className={`px-3 py-1 rounded-full text-sm font-medium border ${getDifficultyColor(formData.difficulty)}`}>
+                {formData.difficulty} Level
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-8">
+            {/* Basic Information Section */}
+            <div className="mb-8">
+              <div className="flex items-center space-x-2 mb-6">
+                <Target className="h-5 w-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Title */}
+                <div className="lg:col-span-2">
+                  <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Lightbulb className="h-4 w-4 text-green-600" />
+                      <span>Training Title *</span>
+                    </div>
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    placeholder="e.g., 'Modern Irrigation Techniques for Small Farms'"
+                    maxLength={100}
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    <div>
+                      {errors.title && (
+                        <div className="flex items-center space-x-2 text-red-600">
+                          <AlertCircle className="h-4 w-4" />
+                          <p className="text-sm font-medium">{errors.title}</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className={`text-xs ${
+                      formData.title.length > 80 ? 'text-orange-500' : 'text-gray-400'
+                    }`}>
+                      {formData.title.length}/100
+                    </p>
+                  </div>
+                </div>
+
+                {/* Content Type & Category */}
+                <div>
+                  <label htmlFor="type" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <ContentTypeIcon className="h-4 w-4 text-green-600" />
+                      <span>Content Type *</span>
+                    </div>
+                  </label>
+                  <select
+                    id="type"
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.type ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <option value="Article">📄 Article</option>
+                    <option value="Video">🎥 Video Tutorial</option>
+                    <option value="Guide">📋 Step-by-Step Guide</option>
+                    <option value="PDF">📁 PDF Document</option>
+                    <option value="FAQ">❓ FAQ</option>
+                  </select>
+                  {errors.type && (
+                    <div className="mt-2 flex items-center space-x-2 text-red-600">
+                      <AlertCircle className="h-4 w-4" />
+                      <p className="text-sm font-medium">{errors.type}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="category" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Tag className="h-4 w-4 text-green-600" />
+                      <span>Category *</span>
+                    </div>
+                  </label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.category ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  >
+                    <option value="General">🌱 General Farming</option>
+                    <option value="Crop Management">🌾 Crop Management</option>
+                    <option value="Livestock">🐄 Livestock</option>
+                    <option value="Equipment">🚜 Equipment & Tools</option>
+                    <option value="Finance">💰 Farm Finance</option>
+                    <option value="Marketing">📈 Marketing & Sales</option>
+                  </select>
+                  {errors.category && (
+                    <div className="mt-2 flex items-center space-x-2 text-red-600">
+                      <AlertCircle className="h-4 w-4" />
+                      <p className="text-sm font-medium">{errors.category}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Difficulty & Author */}
+                <div>
+                  <label htmlFor="difficulty" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Award className="h-4 w-4 text-green-600" />
+                      <span>Difficulty Level</span>
+                    </div>
+                  </label>
+                  <select
+                    id="difficulty"
+                    name="difficulty"
+                    value={formData.difficulty}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white border-gray-200 hover:border-gray-300"
+                  >
+                    <option value="Beginner">🟢 Beginner</option>
+                    <option value="Intermediate">🟡 Intermediate</option>
+                    <option value="Advanced">🔴 Advanced</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="createdBy" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <User className="h-4 w-4 text-green-600" />
+                      <span>Author Name</span>
+                    </div>
+                  </label>
+                  <input
+                    type="text"
+                    id="createdBy"
+                    name="createdBy"
+                    value={formData.createdBy}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.createdBy ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    placeholder="e.g., Dr. Sarah Johnson"
+                    maxLength={50}
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    <div>
+                      {errors.createdBy && (
+                        <div className="flex items-center space-x-2 text-red-600">
+                          <AlertCircle className="h-4 w-4" />
+                          <p className="text-sm font-medium">{errors.createdBy}</p>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {formData.createdBy.length}/50
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Section */}
+            <div className="mb-8">
+              <div className="flex items-center space-x-2 mb-6">
+                <FileText className="h-5 w-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Content Details</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-6">
+                {/* Description */}
+                <div>
+                  <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Info className="h-4 w-4 text-green-600" />
+                      <span>Detailed Description *</span>
+                    </div>
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={6}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white resize-none ${errors.description ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    placeholder="Provide a comprehensive description of what farmers will learn from this material. Include key benefits, techniques covered, and expected outcomes..."
+                    maxLength={1000}
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    <div>
+                      {errors.description && (
+                        <div className="flex items-center space-x-2 text-red-600">
+                          <AlertCircle className="h-4 w-4" />
+                          <p className="text-sm font-medium">{errors.description}</p>
+                        </div>
+                      )}
+                      {!errors.description && (
+                        <span className="text-xs text-gray-500">Write a detailed description to help farmers understand the value</span>
+                      )}
+                    </div>
+                    <p className={`text-xs ${
+                      formData.description.length > 800 ? 'text-orange-500' : 'text-gray-400'
+                    }`}>
+                      {formData.description.length}/1000
+                    </p>
+                  </div>
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label htmlFor="tags" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Tag className="h-4 w-4 text-green-600" />
+                      <span>Tags</span>
+                    </div>
+                  </label>
+                  <input
+                    type="text"
+                    id="tags"
+                    name="tags"
+                    value={formData.tags}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.tags ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    placeholder="irrigation, water management, sustainability, efficiency"
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    <div>
+                      {errors.tags ? (
+                        <div className="flex items-center space-x-2 text-red-600">
+                          <AlertCircle className="h-4 w-4" />
+                          <p className="text-sm font-medium">{errors.tags}</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 flex items-center space-x-1">
+                          <Info className="h-3 w-3" />
+                          <span>Add relevant keywords separated by commas to help farmers find this content</span>
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {formData.tags.split(',').filter(tag => tag.trim()).length}/10 tags
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Upload Section */}
+            <div className="mb-8">
+              <div className="flex items-center space-x-2 mb-6">
+                <Upload className="h-5 w-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Content Upload</h3>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* External Link */}
+                <div>
+                  <label htmlFor="uploadLink" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Eye className="h-4 w-4 text-green-600" />
+                      <span>External Link</span>
+                    </div>
+                  </label>
+                  <input
+                    type="url"
+                    id="uploadLink"
+                    name="uploadLink"
+                    value={formData.uploadLink}
+                    onChange={handleInputChange}
+                    className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.uploadLink ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
+                    placeholder="https://youtube.com/watch?v=example or https://example.com"
+                  />
+                  <p className="mt-2 text-sm text-gray-500">Link to YouTube video, website, or online resource</p>
+                  {errors.uploadLink && (
+                    <div className="mt-2 flex items-center space-x-2 text-red-600">
+                      <AlertCircle className="h-4 w-4" />
+                      <p className="text-sm font-medium">{errors.uploadLink}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* File Upload */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Upload className="h-4 w-4 text-green-600" />
+                      <span>Upload File</span>
+                    </div>
+                  </label>
+                  <div 
+                    className={`relative border-2 border-dashed rounded-xl p-6 transition-all duration-300 ${dragActive ? 'border-green-400 bg-green-50' : selectedFile ? 'border-green-300 bg-green-50' : 'border-gray-300 hover:border-green-300 hover:bg-gray-50'}`}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                  >
+                    {selectedFile ? (
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 mb-1">{selectedFile.name}</p>
+                        <p className="text-xs text-gray-500 mb-3">
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                        <button
+                          type="button"
+                          onClick={removeFile}
+                          className="text-red-500 hover:text-red-700 text-sm font-medium flex items-center space-x-1 mx-auto transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Remove File</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                          <Upload className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="file-input"
+                            className="cursor-pointer text-green-600 hover:text-green-700 font-semibold"
+                          >
+                            Choose file
+                            <input
+                              id="file-input"
+                              type="file"
+                              className="sr-only"
+                              onChange={handleFileChange}
+                              accept=".pdf,.doc,.docx,.mp4,.avi,.mov,.wmv,.jpg,.jpeg,.png,.gif"
+                            />
+                          </label>
+                          <span className="text-gray-600"> or drag and drop</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          PDF, DOC, MP4, Images up to 100MB
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="bg-gray-50 -m-8 mt-0 p-8 flex flex-col sm:flex-row gap-4 justify-between items-center">
+              <div className="text-sm text-gray-600 flex items-center space-x-2">
+                <Calendar className="h-4 w-4" />
+                <span>Draft will be saved automatically</span>
+              </div>
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-semibold flex items-center space-x-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Cancel</span>
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 focus:ring-4 focus:ring-green-200 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      <span>{isEditing ? 'Updating...' : 'Creating...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span>{isEditing ? 'Update Material' : 'Create Material'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Help Text */}
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-start space-x-3">
+            <Lightbulb className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="text-sm font-semibold text-blue-900 mb-1">Tips for Creating Great Training Content</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Use clear, descriptive titles that explain what farmers will learn</li>
+                <li>• Include practical examples and real-world applications</li>
+                <li>• Add relevant tags to make content easily discoverable</li>
+                <li>• For videos, ensure good audio quality and clear visual demonstrations</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -194,6 +194,36 @@ export const trainingAPIReal = {
     }
   },
 
+  // Export training materials to PDF
+  async exportToPDF() {
+    try {
+      const response = await api.get('/export/pdf', {
+        responseType: 'blob', // Important for file downloads
+        timeout: 60000 // 60 seconds timeout for large exports
+      });
+
+      // Create a blob from the response
+      const blob = new Blob([response.data], {
+        type: 'application/pdf'
+      });
+
+      // Generate filename with current date
+      const filename = `Training_Materials_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      // Use file-saver to download the file
+      saveAs(blob, filename);
+
+      return {
+        success: true,
+        message: 'PDF file downloaded successfully',
+        filename: filename
+      };
+    } catch (error) {
+      console.error('PDF export error:', error);
+      throw new Error(error.response?.data?.message || 'Failed to export to PDF');
+    }
+  },
+
   // Download training material file
   async downloadFile(materialId, fileName) {
     try {
@@ -210,6 +240,20 @@ export const trainingAPIReal = {
       };
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to download file');
+    }
+  },
+
+  // Get published training materials for public view (home page)
+  async getPublishedMaterials(params = {}) {
+    try {
+      const response = await api.get('/published', { params });
+      return {
+        success: true,
+        materials: response.data.materials,
+        total: response.data.total
+      };
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch published materials');
     }
   }
 };

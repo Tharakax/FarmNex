@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
 import Navigation from '../components/navigation';
-import SimpleChatbot from '../components/SimpleChatbot';
-import PublishedTrainingSection from '../components/PublishedTrainingSection';
+import SimpleChatbot from '../components/chatbot/SimpleChatbot';
+import PublishedTrainingSection from '../components/training/PublishedTrainingSection';
+import FarmNexLogo from '../components/FarmNexLogo';
 import { NavLink } from 'react-router-dom';
 
 
@@ -193,6 +194,58 @@ const HomePage = () => {
             <div className="w-4 h-4 bg-gradient-to-bl from-orange-400 to-red-500 rounded-full opacity-50 shadow-lg" style={{
               boxShadow: '0 4px 15px rgba(249, 115, 22, 0.4), inset 0 1px 2px rgba(255,255,255,0.3)'
             }}></div>
+          </div>
+        </section>
+
+        {/* Brand Showcase Section with FarmNex Logo */}
+        <section className="py-12 bg-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-emerald-50/30"></div>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center">
+              {/* Large FarmNex Logo with Name */}
+              <div className="flex items-center justify-center mb-6">
+                <div className="transform hover:scale-110 transition-all duration-300">
+                  <FarmNexLogo 
+                    size={64} 
+                    className="drop-shadow-lg" 
+                    showBackground={true}
+                  />
+                </div>
+                <h2 className="ml-6 text-5xl font-bold bg-gradient-to-r from-green-700 via-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  FarmNex
+                </h2>
+              </div>
+              
+              {/* Tagline */}
+              <p className="text-xl text-gray-600 mb-8 font-medium">
+                Agricultural Excellence Through Innovation
+              </p>
+              
+              {/* Brand Values */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
+                  <div className="flex justify-center mb-4">
+                    <FarmNexLogo size={32} className="opacity-80" />
+                  </div>
+                  <h3 className="font-semibold text-green-700 mb-2">Fresh & Natural</h3>
+                  <p className="text-sm text-gray-600">Direct from farm to your table</p>
+                </div>
+                <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
+                  <div className="flex justify-center mb-4">
+                    <FarmNexLogo size={32} className="opacity-80" />
+                  </div>
+                  <h3 className="font-semibold text-green-700 mb-2">Sustainable Farming</h3>
+                  <p className="text-sm text-gray-600">Environmentally conscious practices</p>
+                </div>
+                <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
+                  <div className="flex justify-center mb-4">
+                    <FarmNexLogo size={32} className="opacity-80" />
+                  </div>
+                  <h3 className="font-semibold text-green-700 mb-2">Expert Training</h3>
+                  <p className="text-sm text-gray-600">Professional agricultural education</p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

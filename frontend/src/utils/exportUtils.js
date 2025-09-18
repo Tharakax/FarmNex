@@ -4,8 +4,68 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
 /**
- * Export utilities for PDF and Excel functionality
+ * Export utilities for PDF and Excel functionality with FarmNex branding
  */
+
+/**
+ * Draw FarmNex logo with leaf icon
+ * @param {Object} pdf - jsPDF instance
+ * @param {number} x - X coordinate
+ * @param {number} y - Y coordinate
+ * @param {number} size - Logo size
+ * @param {boolean} onWhiteBackground - Whether logo is on white background
+ */
+const drawFarmNexLogo = (pdf, x, y, size = 30, onWhiteBackground = false) => {
+  // Save current state
+  pdf.saveGraphicsState();
+  
+  // Logo dimensions
+  const leafWidth = size;
+  const leafHeight = size * 1.2;
+  
+  // Choose colors based on background
+  const leafColor = onWhiteBackground ? [34, 197, 94] : [34, 197, 94]; // Green
+  const stemColor = onWhiteBackground ? [22, 163, 74] : [22, 163, 74]; // Darker green
+  const veinColor = onWhiteBackground ? [255, 255, 255] : [255, 255, 255]; // White
+  
+  // Draw leaf shape
+  pdf.setFillColor(...leafColor);
+  
+  // Create leaf path
+  const leafPoints = [
+    [x, y + leafHeight * 0.8],
+    [x + leafWidth * 0.2, y + leafHeight * 0.2],
+    [x + leafWidth * 0.8, y],
+    [x + leafWidth, y + leafHeight * 0.4],
+    [x + leafWidth * 0.8, y + leafHeight * 0.8],
+    [x + leafWidth * 0.2, y + leafHeight]
+  ];
+  
+  // Draw leaf using lines (jsPDF doesn't support complex curves easily)
+  pdf.lines([
+    [leafWidth * 0.2, -leafHeight * 0.6],
+    [leafWidth * 0.6, -leafHeight * 0.8],
+    [leafWidth, -leafHeight * 0.4],
+    [leafWidth * 0.6, leafHeight * 0.2],
+    [leafWidth * 0.2, leafHeight * 0.2],
+    [-leafWidth * 0.2, -leafHeight * 0.6]
+  ], x, y + leafHeight * 0.8, [1, 1], 'F');
+  
+  // Draw stem
+  pdf.setFillColor(...stemColor);
+  pdf.rect(x + leafWidth * 0.45, y + leafHeight * 0.8, 2, leafHeight * 0.15, 'F');
+  
+  // Draw vein line
+  pdf.setDrawColor(...veinColor);
+  pdf.setLineWidth(0.8);
+  pdf.line(
+    x + leafWidth * 0.2, y + leafHeight * 0.6,
+    x + leafWidth * 0.7, y + leafHeight * 0.3
+  );
+  
+  // Restore state
+  pdf.restoreGraphicsState();
+};
 
 // Enhanced styling for colorful PDF exports
 const PDF_STYLES = {
@@ -139,10 +199,14 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
     pdf.setFillColor(...BRAND_COLORS.border);
     pdf.rect(0, 60, pageWidth, 1, 'F');
     
-    // Professional company logo area with better positioning
+    // Professional company logo area with FarmNex leaf logo
     pdf.setFillColor(...BRAND_COLORS.white);
-    pdf.roundedRect(15, 8, 60, 18, 4, 4, 'F');
+    pdf.roundedRect(15, 8, 80, 22, 4, 4, 'F');
     
+    // Draw FarmNex logo on white background
+    drawFarmNexLogo(pdf, 20, 9, 16, true);
+    
+    // Company name
     pdf.setFontSize(14);
     pdf.setTextColor(...sectionPrimary);
     pdf.setFont('helvetica', 'bold');
@@ -509,9 +573,10 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
       pdf.setFont('helvetica', 'normal');
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
       
-      // Company info
+      // Company info with logo
+      drawFarmNexLogo(pdf, 15, pageHeight - 18, 8, false);
       pdf.setFontSize(8);
-      pdf.text('FarmNex Farm Management System', 15, pageHeight - 8);
+      pdf.text('FarmNex Farm Management System', 30, pageHeight - 8);
       const timestamp = new Date().toLocaleString();
       pdf.text(`Generated: ${timestamp}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
     }
@@ -556,19 +621,50 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
  * @param {Array} columns - Array of column definitions {header: string, key: string}
  * @param {string} filename - Filename without extension
  */
-export const exportToExcel = (data, title, columns, filename = 'export') => {
+/**
+ * Safely truncate text for Excel cell limits
+ * @param {any} value - Value to truncate
+ * @param {number} maxLength - Maximum length (default: 32000 for safety)
+ * @returns {string} - Truncated string
+ */
+const safeExcelText = (value, maxLength = 32000) => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  
+  const stringValue = String(value);
+  
+  if (stringValue.length <= maxLength) {
+    return stringValue;
+  }
+  
+  console.warn(`⚠️ Truncating text from ${stringValue.length} to ${maxLength} characters`);
+  return stringValue.substring(0, maxLength - 3) + '...';
+};
+
+export const exportToExcel = async (data, title, columns, filename = 'export') => {
   try {
+    console.log('📊 Starting Excel export with:', { dataLength: data.length, title, columnsCount: columns.length, filename });
+    
+    // Validate input data
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('No data available to export');
+    }
+    
+    if (!columns || !Array.isArray(columns) || columns.length === 0) {
+      throw new Error('No columns defined for export');
+    }
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
     
-    // Prepare headers
-    const headers = columns.map(col => col.header);
+    // Prepare headers with safe text truncation
+    const headers = columns.map(col => safeExcelText(col.header, 255));
     
-    // Prepare data rows
+    // Prepare data rows with safe text truncation
     const rows = data.map(item => 
       columns.map(col => {
         const value = item[col.key];
-        return value !== null && value !== undefined ? value : '';
+        return safeExcelText(value);
       })
     );
     
@@ -602,23 +698,24 @@ export const exportToExcel = (data, title, columns, filename = 'export') => {
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     
+    console.log('📁 Saving Excel file as:', `${filename}.xlsx`);
+    
     // Save the file
     saveAs(blob, `${filename}.xlsx`);
+    
+    console.log('✅ Excel export completed successfully');
     return true;
   } catch (error) {
-    console.error('Error exporting to Excel:', error);
-    // Use the global Swal if available, otherwise fall back to alert
-    if (typeof window !== 'undefined' && window.Swal) {
-      window.Swal.fire({
-        title: 'Export Error',
-        text: 'Failed to export Excel file. Please try again.',
-        icon: 'error',
-        confirmButtonColor: '#dc3545'
-      });
-    } else {
-      alert('Failed to export Excel file. Please try again.');
-    }
-    return false;
+    console.error('❌ Error exporting to Excel:', error);
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      data: data ? data.length : 'null',
+      columns: columns ? columns.length : 'null'
+    });
+    
+    // Throw the error to be handled by the calling function
+    throw new Error(`Excel Export Failed: ${error.message || 'Unknown error occurred'}`);
   }
 };
 
@@ -731,9 +828,283 @@ export const processDataForExport = (data, currencyFields = [], dateFields = [])
   });
 };
 
+/**
+ * Load image from URL and convert to base64 for PDF embedding
+ * @param {string} imageUrl - URL of the image to load
+ * @returns {Promise<string>} - Base64 encoded image data
+ */
+const loadImageAsBase64 = (imageUrl) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        // Draw image to canvas
+        ctx.drawImage(img, 0, 0);
+        
+        // Convert to base64
+        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(base64);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    img.onerror = () => {
+      reject(new Error(`Failed to load image: ${imageUrl}`));
+    };
+    
+    img.src = imageUrl;
+  });
+};
+
+/**
+ * Export products data to PDF with embedded images
+ * @param {Array} data - Array of product objects with image URLs
+ * @param {string} title - Title for the PDF document
+ * @param {Array} columns - Array of column definitions
+ * @param {string} filename - Filename without extension
+ * @param {string} section - Section type for color theming
+ */
+export const exportProductsToPDFWithImages = async (data, title, columns, filename = 'products_export', section = 'products') => {
+  try {
+    console.log('Starting PDF export with embedded images...');
+    
+    // Validate input data
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('No data available to export');
+    }
+    
+    // Create PDF instance
+    const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape for better image display
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    console.log('PDF instance created (landscape), dimensions:', pageWidth, 'x', pageHeight);
+    
+    // Get section colors
+    const sectionColors = SECTION_COLORS[section] || SECTION_COLORS.default;
+    const sectionPrimary = sectionColors.primary;
+    
+    // Create header
+    pdf.setFillColor(...sectionPrimary);
+    pdf.rect(0, 0, pageWidth, 60, 'F');
+    
+    // Company logo area with FarmNex leaf logo
+    pdf.setFillColor(...BRAND_COLORS.white);
+    pdf.roundedRect(15, 8, 80, 22, 4, 4, 'F');
+    
+    // Draw FarmNex logo on white background
+    drawFarmNexLogo(pdf, 20, 9, 16, true);
+    
+    // Company name
+    pdf.setFontSize(14);
+    pdf.setTextColor(...sectionPrimary);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('FarmNex', 50, 20, { align: 'center' });
+    
+    // Title
+    pdf.setFontSize(22);
+    pdf.setTextColor(...BRAND_COLORS.white);
+    pdf.text('FARM MANAGEMENT SYSTEM', pageWidth / 2, 35, { align: 'center' });
+    
+    pdf.setFontSize(16);
+    pdf.text(title || 'Products Report with Images', pageWidth / 2, 50, { align: 'center' });
+    
+    // Metadata
+    pdf.setFontSize(9);
+    pdf.setTextColor(...BRAND_COLORS.dark);
+    const currentDate = new Date();
+    pdf.text(`Generated: ${currentDate.toLocaleDateString()} at ${currentDate.toLocaleTimeString()}`, 15, 75);
+    pdf.text(`Total Records: ${data.length}`, pageWidth - 15, 75, { align: 'right' });
+    
+    let yPosition = 90;
+    const itemHeight = 65; // Height for each product item with image
+    const imageSize = 50; // Size of product images
+    const leftMargin = 15;
+    const rightMargin = 15;
+    const contentWidth = pageWidth - leftMargin - rightMargin;
+    
+    // Process each product with image
+    for (let i = 0; i < data.length; i++) {
+      const product = data[i];
+      
+      // Check if we need a new page
+      if (yPosition + itemHeight > pageHeight - 30) {
+        pdf.addPage();
+        yPosition = 30;
+      }
+      
+      // Product container background
+      pdf.setFillColor(248, 249, 250);
+      pdf.roundedRect(leftMargin, yPosition, contentWidth, itemHeight, 3, 3, 'F');
+      
+      // Product container border
+      pdf.setDrawColor(...BRAND_COLORS.border);
+      pdf.setLineWidth(0.5);
+      pdf.roundedRect(leftMargin, yPosition, contentWidth, itemHeight, 3, 3, 'S');
+      
+      try {
+        // Load and embed product image
+        if (product.image) {
+          console.log(`Loading image for ${product.name}:`, product.image);
+          
+          try {
+            const base64Image = await loadImageAsBase64(product.image);
+            pdf.addImage(base64Image, 'JPEG', leftMargin + 5, yPosition + 5, imageSize, imageSize * 0.75);
+          } catch (imageError) {
+            console.warn(`Failed to load image for ${product.name}:`, imageError);
+            // Draw placeholder rectangle for missing image
+            pdf.setFillColor(200, 200, 200);
+            pdf.rect(leftMargin + 5, yPosition + 5, imageSize, imageSize * 0.75, 'F');
+            pdf.setFontSize(8);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('No Image', leftMargin + 5 + imageSize/2, yPosition + 25, { align: 'center' });
+          }
+        } else {
+          // Draw placeholder for no image
+          pdf.setFillColor(220, 220, 220);
+          pdf.rect(leftMargin + 5, yPosition + 5, imageSize, imageSize * 0.75, 'F');
+          pdf.setFontSize(8);
+          pdf.setTextColor(150, 150, 150);
+          pdf.text('No Image', leftMargin + 5 + imageSize/2, yPosition + 25, { align: 'center' });
+        }
+      } catch (error) {
+        console.warn('Image processing error:', error);
+      }
+      
+      // Product information starting after image
+      const infoStartX = leftMargin + imageSize + 15;
+      const infoWidth = contentWidth - imageSize - 20;
+      
+      // Product name
+      pdf.setFontSize(14);
+      pdf.setTextColor(...BRAND_COLORS.dark);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(product.name || 'Unknown Product', infoStartX, yPosition + 15);
+      
+      // Category
+      pdf.setFontSize(10);
+      pdf.setTextColor(...BRAND_COLORS.gray);
+      pdf.setFont('helvetica', 'normal');
+      const category = (product.category || 'uncategorized').replace('-', ' ');
+      pdf.text(`Category: ${category.charAt(0).toUpperCase() + category.slice(1)}`, infoStartX, yPosition + 25);
+      
+      // Price with styling
+      if (product.price) {
+        pdf.setFontSize(12);
+        pdf.setTextColor(...BRAND_COLORS.success);
+        pdf.setFont('helvetica', 'bold');
+        const priceText = typeof product.price === 'string' ? product.price : `LKR ${product.price}`;
+        pdf.text(`Price: ${priceText}`, infoStartX, yPosition + 35);
+      }
+      
+      // Revenue (if available)
+      if (product.revenue) {
+        pdf.setFontSize(10);
+        pdf.setTextColor(...BRAND_COLORS.info);
+        pdf.text(`Revenue: $${product.revenue.toLocaleString()}`, infoStartX + 80, yPosition + 35);
+      }
+      
+      // Stock quantity
+      if (product.stockQuantity !== undefined) {
+        pdf.setFontSize(10);
+        pdf.setTextColor(...BRAND_COLORS.dark);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Stock: ${product.stockQuantity} ${product.unit || 'units'}`, infoStartX, yPosition + 45);
+      }
+      
+      // Rating (if available)
+      if (product.rating) {
+        pdf.setFontSize(10);
+        pdf.setTextColor(...BRAND_COLORS.warning);
+        const ratingText = typeof product.rating === 'string' ? product.rating : `${product.rating}/5.0`;
+        pdf.text(`Rating: ${ratingText}`, infoStartX + 80, yPosition + 45);
+      }
+      
+      // Status with color coding
+      if (product.status) {
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        
+        const status = product.status.toLowerCase();
+        if (status.includes('stock') && !status.includes('out')) {
+          pdf.setTextColor(...BRAND_COLORS.success);
+        } else if (status.includes('low')) {
+          pdf.setTextColor(...BRAND_COLORS.warning);
+        } else if (status.includes('out')) {
+          pdf.setTextColor(...BRAND_COLORS.error);
+        } else {
+          pdf.setTextColor(...BRAND_COLORS.info);
+        }
+        
+        pdf.text(`Status: ${product.status}`, infoStartX, yPosition + 55);
+      }
+      
+      // Description (if available and fits)
+      if (product.description && infoWidth > 200) {
+        pdf.setFontSize(8);
+        pdf.setTextColor(...BRAND_COLORS.gray);
+        pdf.setFont('helvetica', 'normal');
+        const lines = pdf.splitTextToSize(product.description, infoWidth - 100);
+        pdf.text(lines[0] || product.description, infoStartX + 160, yPosition + 25);
+        if (lines[1]) {
+          pdf.text(lines[1], infoStartX + 160, yPosition + 33);
+        }
+      }
+      
+      yPosition += itemHeight + 10;
+    }
+    
+    // Add footer to all pages
+    const pageCount = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      
+      // Footer line
+      pdf.setDrawColor(...BRAND_COLORS.border);
+      pdf.setLineWidth(0.5);
+      pdf.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20);
+      
+      // Page number
+      pdf.setFontSize(9);
+      pdf.setTextColor(...BRAND_COLORS.gray);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+      
+      // Footer info with logo
+      drawFarmNexLogo(pdf, 15, pageHeight - 18, 8, false);
+      pdf.setFontSize(8);
+      pdf.text('FarmNex Farm Management System', 30, pageHeight - 8);
+      const timestamp = new Date().toLocaleString();
+      pdf.text(`Generated: ${timestamp}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
+    }
+    
+    console.log('PDF with images generated successfully');
+    
+    // Save the PDF
+    pdf.save(`${filename}.pdf`);
+    return true;
+    
+  } catch (error) {
+    console.error('Error exporting PDF with images:', error);
+    throw new Error(`Image PDF Export Failed: ${error.message || 'Unknown error occurred'}`);
+  }
+};
+
 export default {
   exportToPDF,
   exportToExcel,
+  exportProductsToPDFWithImages,
+  loadImageAsBase64,
   formatCurrency,
   formatDate,
   getInventoryColumns,

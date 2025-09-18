@@ -30,6 +30,11 @@ const trainingMaterialSchema = new mongoose.Schema({
     type: Number,
     required: false
   },
+  content: {
+    type: String,
+    required: false,
+    maxlength: 10000
+  },
   tags: [{
     type: String,
     trim: true
@@ -60,7 +65,13 @@ const trainingMaterialSchema = new mongoose.Schema({
   },
   createdBy: {
     type: String,
+    required: true,
     default: 'Admin'
+  },
+  createdByRole: {
+    type: String,
+    enum: ['admin', 'farmer', 'user'],
+    default: 'admin'
   }
 }, {
   timestamps: true

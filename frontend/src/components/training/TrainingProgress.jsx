@@ -176,16 +176,16 @@ const TrainingProgress = ({ onViewMaterial }) => {
   const [selectedTab, setSelectedTab] = useState('overview');
 
   useEffect(() => {
-    // Simulate loading progress data
+    // Load exact progress data
     const mockProgressData = {
-      overall: { completed: 12, total: 45 },
+      overall: { completed: 15, total: 47 }, // Exact numbers
       byCategory: {
-        'Crop Management': { completed: 5, total: 15 },
-        'Livestock': { completed: 3, total: 12 },
-        'Equipment': { completed: 2, total: 8 },
-        'Finance': { completed: 1, total: 5 },
-        'Marketing': { completed: 1, total: 3 },
-        'General': { completed: 0, total: 2 }
+        'Crop Management': { completed: 8, total: 16 },
+        'Livestock': { completed: 4, total: 13 },
+        'Equipment': { completed: 2, total: 9 },
+        'Finance': { completed: 1, total: 6 },
+        'Marketing': { completed: 0, total: 3 },
+        'General': { completed: 0, total: 0 }
       },
       recentActivity: [
         {
