@@ -3,8 +3,9 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import './App.css'
 import PaymentCardsManager from './pages/client/PaymentCards.jsx'
+import { ToastProvider } from "./pages/croplive/ToastProvider.jsx"; // ✅ import ToastProvider
 
-// Lazy load components to help with debugging
+// Lazy loaded components ...
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
 const LoginPage = React.lazy(() => import('./pages/loginpage'))
 const AdminDashboard = React.lazy(() => import('./pages/admindashboard'))
@@ -20,6 +21,18 @@ const AddEditTraining = React.lazy(() => import('./pages/farmer/AddEditTraining.
 const ViewTraining = React.lazy(() => import('./pages/farmer/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
+
+// Lazy load crop components
+const AddCropPlan = React.lazy(() => import('./pages/croplive/AddCropPlan.jsx'))
+const AllCropPlans = React.lazy(() => import('./pages/croplive/AllCropPlans.jsx'))
+const UpdateCropPlan = React.lazy(() => import('./pages/croplive/UpdateCropPlan.jsx'))
+const DeleteCropPlan = React.lazy(() => import('./pages/croplive/DeleteCropPlan.jsx'))
+
+// Lazy load livestock components
+const AddLiveStockPlan = React.lazy(() => import('./pages/croplive/AddLiveStockPlan.jsx'))
+const AllLiveStockPlan = React.lazy(() => import('./pages/croplive/AllLiveStockPlan.jsx'))
+const UpdateLiveStockPlan = React.lazy(() => import('./pages/croplive/UpdateLiveStockPlan.jsx'))
+const DeleteLiveStockPlan = React.lazy(() => import('./pages/croplive/DeleteLiveStockPlan.jsx'))
 
 // Loading component
 const Loading = () => (
@@ -69,7 +82,7 @@ class ErrorBoundary extends React.Component {
 
 function App() {
   return (
-    <div className="min-h-screen w-full">
+    <ToastProvider> {/* ✅ Wrap everything with ToastProvider */}
       <Toaster position="top-right" />
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
@@ -85,36 +98,41 @@ function App() {
             <Route path="/shipping/:orderId" element={<EnterShipping />} />
             <Route path="/payment/:orderId" element={<EnterPayment />} />
             <Route path="payment-methods" element={<PaymentCardsManager />} />
-            {/* Training Management Routes */}
             <Route path="/training" element={<TrainingShowcase />} />
             <Route path="/training-showcase" element={<TrainingShowcase />} />
             <Route path="/training-home" element={<TrainingHomePage />} />
             <Route path="/add" element={<AddEditTraining />} />
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
-            
-            {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />
-            
-            {/* Farmer Dashboard Route */}
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
-            
-            {/* Fallback route */}
+
+            {/* Crop Routes */}
+            <Route path="/crops" element={<AllCropPlans />} />
+            <Route path="/crops/add" element={<AddCropPlan />} />
+            <Route path="/crops/update/:id" element={<UpdateCropPlan />} />
+            <Route path="/crops/delete/:id" element={<DeleteCropPlan />} />
+
+            {/* Livestock Routes */}
+            <Route path="/livestock" element={<AllLiveStockPlan />} />
+            <Route path="/livestock/add" element={<AddLiveStockPlan />} />
+            <Route path="/livestock/update/:id" element={<UpdateLiveStockPlan />} />
+            <Route path="/livestock/delete/:id" element={<DeleteLiveStockPlan />} />
+
+            {/* Fallback */}
             <Route path="*" element={
               <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">Page Not Found</h2>
                   <p className="text-gray-600 mb-4">The page you're looking for doesn't exist.</p>
-                  <a href="/" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    Go Home
-                  </a>
+                  <a href="/" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Go Home</a>
                 </div>
               </div>
             } />
           </Routes>
         </Suspense>
       </ErrorBoundary>
-    </div>
+    </ToastProvider>
   )
 }
 
