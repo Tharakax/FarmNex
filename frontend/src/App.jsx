@@ -34,6 +34,8 @@ const ChangePassword = React.lazy(() => import('./pages/user/UserProfile/ChangeP
 const OTPVerifyPage = React.lazy(() => import('./pages/user/Login/OTPVerifyPage.jsx'))
 const AdminDash = React.lazy(() => import('./pages/user/Home/AdminDash.jsx'))
 const CustomerDashboard = React.lazy(() => import('./pages/user/Home/Home.jsx')) //customer dashbord
+const UserQA = React.lazy(() => import('./pages/user/QAManagement/UserQA.jsx')) //QA
+const AdminQA = React.lazy(() => import('./pages/user/QAManagement/AdminQA.jsx'))//QA
 
 
 // Loading component
@@ -122,6 +124,9 @@ function App() {
            <Route path="/otp" element={<OTPVerifyPage />} />
            <Route path="/admin" element={<AdminDash />} />
           <Route path="/customerdash" element={<CustomerDashboard />} />
+             {/*Q&A Management Routes umar*/}
+          <Route path="/userqa" element={<UserQA />} />
+          <Route path="/adminqa" element={<AdminQA />} />
 
             
             {/* About Page Route */}

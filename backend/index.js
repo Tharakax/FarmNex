@@ -6,9 +6,12 @@ import JWTauth from './middleware/auth.js';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
+import path from "path";
+import { fileURLToPath } from "url";
 dotenv.config();
 
-import userroute from "./routers/userroute.js";//umar
+
+
 //import userRouter from './routers/userRouter.js';
 import productRouter from './routers/productRouter.js';
 import orderRouter from './routers/orderRouter.js';
@@ -16,6 +19,11 @@ import trainingRouter from './routers/trainingRoutes.js';
 import farmSupplyRouter from './routers/farmSupplyRouter.js';
 import reportRouter from './routers/reportRoutes.js';
 import paymentRouter from './routers/paymentRouter.js';
+import questionRoute from "./routers/questionRoute.js"; //umar
+import userroute from "./routers/userroute.js";//umar
+//umar
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -25,6 +33,10 @@ app.use(express.json());
 app.use(cors());
 // Routes
 app.use("/users", userroute);
+app.use("/api/questions", questionRoute);
+// Static folder for image uploads
+app.use("/imageupload", express.static(path.join(__dirname, "imageupload")));
+
 
 
 mongoose.connect(process.env.MONGO_URL).then(

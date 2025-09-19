@@ -112,7 +112,7 @@ function AdminDashboard() {
   const renderDashboard = () => (
    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+        <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
         <div className="flex items-center space-x-3">
           <Bell className="h-6 w-6 text-gray-500 cursor-pointer hover:text-green-600" />
           <div className="h-8 w-px bg-gray-300"></div>
@@ -313,7 +313,7 @@ function AdminDashboard() {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-center h-16 px-4 bg-green-600">
             <Sprout className="h-8 w-8 text-white mr-2" />
-            <h1 className="text-xl font-bold text-white">Farm Nex Admin</h1>
+            <h2 className="text-xl font-bold text-white">Farm Nex Admin</h2>
           </div>
 
           <div className="p-4 border-b border-gray-200">
@@ -352,7 +352,7 @@ function AdminDashboard() {
             </button>
             
             <button
-             onClick={() => navigate('/inbox')}
+             onClick={() => navigate('/adminqa')}
             className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 transition-colors">
             <MessageSquare  className="mr-3 h-5 w-5" />
                  Q&A Inbox
