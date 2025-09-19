@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
+import { FaLeaf } from 'react-icons/fa';
 import Navigation from '../components/navigation';
 import SimpleChatbot from '../components/chatbot/SimpleChatbot';
 import PublishedTrainingSection from '../components/training/PublishedTrainingSection';
-import FarmNexLogo from '../components/FarmNexLogo';
 import { NavLink } from 'react-router-dom';
 
 
@@ -205,11 +205,10 @@ const HomePage = () => {
               {/* Large FarmNex Logo with Name */}
               <div className="flex items-center justify-center mb-6">
                 <div className="transform hover:scale-110 transition-all duration-300">
-                  <FarmNexLogo 
-                    size={64} 
-                    className="drop-shadow-lg" 
-                    showBackground={true}
-                  />
+                  <div className="relative">
+                    <FaLeaf className="h-16 w-16 text-green-600 drop-shadow-lg" />
+                    <div className="absolute inset-0 bg-white rounded-full border-2 border-green-200 -z-10"></div>
+                  </div>
                 </div>
                 <h2 className="ml-6 text-5xl font-bold bg-gradient-to-r from-green-700 via-green-600 to-emerald-600 bg-clip-text text-transparent">
                   FarmNex
@@ -225,21 +224,21 @@ const HomePage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
                 <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
                   <div className="flex justify-center mb-4">
-                    <FarmNexLogo size={32} className="opacity-80" />
+                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
                   </div>
                   <h3 className="font-semibold text-green-700 mb-2">Fresh & Natural</h3>
                   <p className="text-sm text-gray-600">Direct from farm to your table</p>
                 </div>
                 <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
                   <div className="flex justify-center mb-4">
-                    <FarmNexLogo size={32} className="opacity-80" />
+                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
                   </div>
                   <h3 className="font-semibold text-green-700 mb-2">Sustainable Farming</h3>
                   <p className="text-sm text-gray-600">Environmentally conscious practices</p>
                 </div>
                 <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
                   <div className="flex justify-center mb-4">
-                    <FarmNexLogo size={32} className="opacity-80" />
+                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
                   </div>
                   <h3 className="font-semibold text-green-700 mb-2">Expert Training</h3>
                   <p className="text-sm text-gray-600">Professional agricultural education</p>
@@ -567,7 +566,7 @@ const HomePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <Leaf className="h-8 w-8 text-green-400" />
+                  <FaLeaf className="h-8 w-8 text-green-400" />
                   <span className="text-2xl font-bold">FarmNex</span>
                 </div>
                 <p className="text-gray-300">

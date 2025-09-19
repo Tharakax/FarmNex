@@ -7,65 +7,6 @@ import { saveAs } from 'file-saver';
  * Export utilities for PDF and Excel functionality with FarmNex branding
  */
 
-/**
- * Draw FarmNex logo with leaf icon
- * @param {Object} pdf - jsPDF instance
- * @param {number} x - X coordinate
- * @param {number} y - Y coordinate
- * @param {number} size - Logo size
- * @param {boolean} onWhiteBackground - Whether logo is on white background
- */
-const drawFarmNexLogo = (pdf, x, y, size = 30, onWhiteBackground = false) => {
-  // Save current state
-  pdf.saveGraphicsState();
-  
-  // Logo dimensions
-  const leafWidth = size;
-  const leafHeight = size * 1.2;
-  
-  // Choose colors based on background
-  const leafColor = onWhiteBackground ? [34, 197, 94] : [34, 197, 94]; // Green
-  const stemColor = onWhiteBackground ? [22, 163, 74] : [22, 163, 74]; // Darker green
-  const veinColor = onWhiteBackground ? [255, 255, 255] : [255, 255, 255]; // White
-  
-  // Draw leaf shape
-  pdf.setFillColor(...leafColor);
-  
-  // Create leaf path
-  const leafPoints = [
-    [x, y + leafHeight * 0.8],
-    [x + leafWidth * 0.2, y + leafHeight * 0.2],
-    [x + leafWidth * 0.8, y],
-    [x + leafWidth, y + leafHeight * 0.4],
-    [x + leafWidth * 0.8, y + leafHeight * 0.8],
-    [x + leafWidth * 0.2, y + leafHeight]
-  ];
-  
-  // Draw leaf using lines (jsPDF doesn't support complex curves easily)
-  pdf.lines([
-    [leafWidth * 0.2, -leafHeight * 0.6],
-    [leafWidth * 0.6, -leafHeight * 0.8],
-    [leafWidth, -leafHeight * 0.4],
-    [leafWidth * 0.6, leafHeight * 0.2],
-    [leafWidth * 0.2, leafHeight * 0.2],
-    [-leafWidth * 0.2, -leafHeight * 0.6]
-  ], x, y + leafHeight * 0.8, [1, 1], 'F');
-  
-  // Draw stem
-  pdf.setFillColor(...stemColor);
-  pdf.rect(x + leafWidth * 0.45, y + leafHeight * 0.8, 2, leafHeight * 0.15, 'F');
-  
-  // Draw vein line
-  pdf.setDrawColor(...veinColor);
-  pdf.setLineWidth(0.8);
-  pdf.line(
-    x + leafWidth * 0.2, y + leafHeight * 0.6,
-    x + leafWidth * 0.7, y + leafHeight * 0.3
-  );
-  
-  // Restore state
-  pdf.restoreGraphicsState();
-};
 
 // Enhanced styling for colorful PDF exports
 const PDF_STYLES = {
@@ -199,12 +140,9 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
     pdf.setFillColor(...BRAND_COLORS.border);
     pdf.rect(0, 60, pageWidth, 1, 'F');
     
-    // Professional company logo area with FarmNex leaf logo
+    // Company branding area (no logo)
     pdf.setFillColor(...BRAND_COLORS.white);
     pdf.roundedRect(15, 8, 80, 22, 4, 4, 'F');
-    
-    // Draw FarmNex logo on white background
-    drawFarmNexLogo(pdf, 20, 9, 16, true);
     
     // Company name
     pdf.setFontSize(14);
@@ -573,10 +511,9 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
       pdf.setFont('helvetica', 'normal');
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
       
-      // Company info with logo
-      drawFarmNexLogo(pdf, 15, pageHeight - 18, 8, false);
+      // Company info
       pdf.setFontSize(8);
-      pdf.text('FarmNex Farm Management System', 30, pageHeight - 8);
+      pdf.text('FarmNex Farm Management System', 15, pageHeight - 8);
       const timestamp = new Date().toLocaleString();
       pdf.text(`Generated: ${timestamp}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
     }
@@ -898,12 +835,9 @@ export const exportProductsToPDFWithImages = async (data, title, columns, filena
     pdf.setFillColor(...sectionPrimary);
     pdf.rect(0, 0, pageWidth, 60, 'F');
     
-    // Company logo area with FarmNex leaf logo
+    // Company branding area (no logo)
     pdf.setFillColor(...BRAND_COLORS.white);
     pdf.roundedRect(15, 8, 80, 22, 4, 4, 'F');
-    
-    // Draw FarmNex logo on white background
-    drawFarmNexLogo(pdf, 20, 9, 16, true);
     
     // Company name
     pdf.setFontSize(14);
@@ -1080,10 +1014,9 @@ export const exportProductsToPDFWithImages = async (data, title, columns, filena
       pdf.setFont('helvetica', 'normal');
       pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
       
-      // Footer info with logo
-      drawFarmNexLogo(pdf, 15, pageHeight - 18, 8, false);
+      // Footer info
       pdf.setFontSize(8);
-      pdf.text('FarmNex Farm Management System', 30, pageHeight - 8);
+      pdf.text('FarmNex Farm Management System', 15, pageHeight - 8);
       const timestamp = new Date().toLocaleString();
       pdf.text(`Generated: ${timestamp}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
     }
