@@ -101,6 +101,17 @@ parser.on('data', async (line) => {
       }
     }
     
+    // Parse Arduino debug format: "Raw Sensor: 1022 | Constrained: 800 | Moisture: 0%"
+    else if (data.includes('Raw Sensor:') && data.includes('Moisture:')) {
+      const rawMatch = data.match(/Raw Sensor:\s*(\d+)/);
+      const moistureMatch = data.match(/Moisture:\s*(\d+(?:\.\d+)?)%/);
+      
+      if (rawMatch && moistureMatch) {
+        rawValue = parseInt(rawMatch[1]);
+        moistureValue = parseFloat(moistureMatch[1]);
+      }
+    }
+    
     // Parse status messages
     else if (data.includes('Status:')) {
       if (data.includes('wet enough')) {

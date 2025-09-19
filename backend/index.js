@@ -18,16 +18,37 @@ import soilRouter from './routers/soilRouter.js';
 
 const app = express();
 
-mongoose.connect(process.env.MONGO_URL).then(
-    ()=>{
-        console.log("Database connected")
+// Try connecting to MongoDB with fallback
+const connectDB = async () => {
+  const mongoUrls = [
+    process.env.MONGO_URL,
+    process.env.MONGODB_URI,
+    'mongodb://localhost:27017/farmnex',
+    'mongodb://127.0.0.1:27017/farmnex'
+  ].filter(Boolean);
+
+  for (const url of mongoUrls) {
+    try {
+      console.log(`Attempting to connect to: ${url.replace(/\/\/.*@/, '//**:**@')}`);
+      await mongoose.connect(url, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000 // 5 second timeout
+      });
+      console.log(`✅ Database connected successfully to: ${url.split('@')[1] || url}`);
+      return;
+    } catch (error) {
+      console.log(`❌ Failed to connect to: ${url.split('@')[1] || url}`);
+      console.log(`   Error: ${error.message}`);
     }
-).catch(
-    ()=>{
-        console.log("connection failed")
-      
-    }
-)
+  }
+  
+  console.error('❌ Could not connect to any MongoDB instance');
+  console.log('💡 Tip: Install MongoDB locally or use MongoDB Atlas (cloud)');
+  process.exit(1);
+};
+
+connectDB();
 app.use(cors());
 // Increased limits for large file uploads (videos, etc.)
 app.use(bodyParser.json({ limit: '500mb' }));
