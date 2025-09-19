@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, Routes, Route, Outlet } from 'react-router-dom';
 import ProductManagement from '../components/products/ProductManagement.jsx';
+import ReportsManagement from '../components/reports/ReportsManagement.jsx';
 
 const Dashboard = () => {
   return (
@@ -54,6 +55,16 @@ const Dashboard = () => {
                   </svg>
                 </div>
                 <span className="font-medium">Analytics</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/admin/reports" className="flex items-center p-3 rounded-lg hover:bg-green-700/50 transition-all duration-200 group">
+                <div className="bg-green-600/30 p-2 rounded-lg mr-3 group-hover:bg-green-600/50 transition-all duration-200">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <span className="font-medium">Reports</span>
               </Link>
             </li>
             <li>
@@ -133,6 +144,7 @@ const Dashboard = () => {
               </div>
             } />
             <Route path="/products" element={<ProductManagement />} />
+            <Route path="/reports" element={<ReportsManagement />} />
             <Route path="/users" element={
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 p-8">
                 <h2 className="text-xl font-bold text-gray-800 mb-4">Farmer Management</h2>

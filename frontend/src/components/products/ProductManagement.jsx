@@ -6,7 +6,9 @@ import {
   RefreshCw, 
   BarChart3,
   FileText,
-  FileSpreadsheet 
+  FileSpreadsheet,
+  TrendingUp,
+  Eye 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,6 +16,7 @@ import { productAPI } from '../../services/productAPI';
 import AddProductForm from './AddProductForm';
 import ProductList from './ProductList';
 import ProductStats from './ProductStats';
+import ProductManagementReport from '../reports/ProductManagementReport';
 import { 
   exportToPDF, 
   exportToExcel, 
@@ -32,6 +35,7 @@ const ProductManagement = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [showStats, setShowStats] = useState(true);
+  const [showReports, setShowReports] = useState(false);
   
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -343,6 +347,14 @@ const ProductManagement = () => {
           </button>
           
           <button
+            onClick={() => setShowReports(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <TrendingUp className="h-4 w-4 mr-2 inline" />
+            View Reports
+          </button>
+          
+          <button
             onClick={loadProducts}
             disabled={loading}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
@@ -489,6 +501,34 @@ const ProductManagement = () => {
         product={editingProduct}
         onProductSaved={handleProductSaved}
       />
+      
+      {/* Product Reports Modal */}
+      {showReports && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Product Management Reports</h2>
+                <p className="text-sm text-gray-600 mt-1">Comprehensive analytics and insights for your products</p>
+              </div>
+              <button
+                onClick={() => setShowReports(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+              <ProductManagementReport />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

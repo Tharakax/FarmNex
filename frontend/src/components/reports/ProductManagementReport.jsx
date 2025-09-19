@@ -31,7 +31,7 @@ import {
   SortAsc,
   SortDesc
 } from 'lucide-react';
-import { exportToPDF, exportToExcel, exportProductsToPDFWithImages } from '../../utils/exportUtils';
+import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
 import { reportAPI } from '../../services/reportAPI';
 import { productAPI } from '../../services/productAPI';
 import toast from 'react-hot-toast';
@@ -112,11 +112,12 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       const basePrice = parseFloat(product.price) || 0;
       const revenue = unitsSold * basePrice;
       
-      // Determine stock level
+      // Determine stock level - transfer overstock to in-stock
       let stockLevel = 'good';
       if (currentStock === 0) stockLevel = 'out';
       else if (currentStock <= minimumStock) stockLevel = 'low';
-      else if (currentStock > minimumStock * 3) stockLevel = 'overstock';
+      // Remove overstock category - all high stock items are now 'good' (in-stock)
+      // else if (currentStock > minimumStock * 3) stockLevel = 'overstock';
       
       // Generate realistic ratings
       const rating = 3.5 + (Math.random() * 1.5);
@@ -155,11 +156,11 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     const averageRating = transformedProducts.reduce((sum, product) => sum + product.rating, 0) / transformedProducts.length;
     const totalReviews = transformedProducts.reduce((sum, product) => sum + product.reviews, 0);
     
-    // Calculate inventory status
-    const inStock = transformedProducts.filter(p => p.stockLevel === 'good').length;
+    // Calculate inventory status - overstock items are now counted as in-stock
+    const inStock = transformedProducts.filter(p => p.stockLevel === 'good' || p.stockLevel === 'overstock').length;
     const lowStock = transformedProducts.filter(p => p.stockLevel === 'low').length;
     const outOfStock = transformedProducts.filter(p => p.stockLevel === 'out').length;
-    const overStock = transformedProducts.filter(p => p.stockLevel === 'overstock').length;
+    const overStock = 0; // Remove overstock category completely
     const totalValue = transformedProducts.reduce((sum, product) => sum + (product.currentStock * product.price), 0);
     
     console.log('✅ Generated report data:', {
@@ -273,13 +274,14 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           priority: 'medium',
           action: 'schedule_restock'
         }] : []),
-        ...(overStock > 0 ? [{
-          type: 'info',
-          message: `${overStock} products are overstocked`,
-          count: overStock,
-          priority: 'low',
-          action: 'promotion_needed'
-        }] : [])
+        // Remove overstock alerts - these items are now counted as in-stock
+        // ...(overStock > 0 ? [{
+        //   type: 'info',
+        //   message: `${overStock} products are overstocked`,
+        //   count: overStock,
+        //   priority: 'low',
+        //   action: 'promotion_needed'
+        // }] : [])
       ],
       
       recommendations: [
@@ -359,10 +361,10 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     ],
     
     inventoryStatus: {
-      inStock: 89,
+      inStock: 107, // 89 + 18 (transferred from overstock)
       lowStock: 23,
       outOfStock: 12,
-      overStock: 18,
+      overStock: 0, // Removed overstock category
       totalValue: 67850
     },
     
@@ -406,7 +408,8 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     alerts: [
       { type: 'critical', message: '12 products are out of stock', count: 12, priority: 'high', action: 'immediate_restock' },
       { type: 'warning', message: '23 products have low stock levels', count: 23, priority: 'medium', action: 'schedule_restock' },
-      { type: 'info', message: '18 products are overstocked', count: 18, priority: 'low', action: 'promotion_needed' },
+      // Removed overstock alert - these items are now counted as in-stock
+      // { type: 'info', message: '18 products are overstocked', count: 18, priority: 'low', action: 'promotion_needed' },
       { type: 'success', message: '5 products exceeded sales targets', count: 5, priority: 'info', action: 'celebrate' }
     ],
     
@@ -470,12 +473,37 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       const fileName = `product_management_report_${dateRange}days_${new Date().toISOString().split('T')[0]}`;
       
       if (format === 'pdf') {
-        // Use the new image-enabled PDF export
-        await exportProductsToPDFWithImages(
-          exportData, 
-          'Products Management Report with Images', 
-          [], // columns not needed for image export
-          fileName, 
+        // Use simple PDF export with optimized columns for Status visibility
+        const columns = [
+          { header: 'ID', key: 'id' },
+          { header: 'Product Name', key: 'name' },
+          { header: 'Category', key: 'category' },
+          { header: 'Price', key: 'price' },
+          { header: 'Stock Qty', key: 'stockQuantity' },
+          { header: 'Unit', key: 'unit' },
+          { header: 'Stock Status', key: 'status' }, // Changed header to be more descriptive
+          { header: 'Revenue', key: 'revenue' },
+          { header: 'Rating', key: 'rating' }
+        ];
+        
+        // Format data for simple PDF export
+        const pdfData = exportData.map(product => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          price: product.price,
+          stockQuantity: product.stockQuantity,
+          unit: product.unit,
+          status: product.status,
+          revenue: `LKR ${(product.revenue || 0).toLocaleString()}`,
+          rating: `${(product.rating || 0).toFixed(1)}/5.0 (${product.reviews || 0} reviews)`
+        }));
+        
+        exportToPDF(
+          pdfData,
+          'Product Management Report',
+          columns,
+          fileName,
           'products'
         );
       } else {
@@ -502,7 +530,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           try {
             return {
               ...item,
-              revenue: `$${(item.revenue || 0).toLocaleString()}`,
+              revenue: `LKR ${(item.revenue || 0).toLocaleString()}`,
               rating: `${(item.rating || 0)}/5.0 (${item.reviews || 0} reviews)`
             };
           } catch (err) {
@@ -541,10 +569,11 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
 
   const getStatusText = (stockLevel) => {
     const statusMap = {
-      'good': 'In Stock',
-      'low': 'Low Stock',
+      'good': 'Available',
+      'low': 'Low Stock', 
       'critical': 'Critical',
-      'overstock': 'Overstock'
+      'overstock': 'Available', // Map overstock to available
+      'out': 'Out of Stock'
     };
     return statusMap[stockLevel] || 'Unknown';
   };
@@ -589,7 +618,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
         />
         <MetricCard
           title="Total Revenue"
-          value={`$${reportData.performanceMetrics.totalRevenue.toLocaleString()}`}
+          value={`LKR ${reportData.performanceMetrics.totalRevenue.toLocaleString()}`}
           icon={DollarSign}
           change="+12.5%"
         />
@@ -610,11 +639,12 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       {/* Inventory Status Overview */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Inventory Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
             <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-green-700">{reportData.inventoryStatus.inStock}</p>
             <p className="text-sm text-green-600">In Stock</p>
+            <p className="text-xs text-green-500 mt-1">Including high-stock items</p>
           </div>
           <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
             <AlertTriangle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
@@ -625,11 +655,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
             <XCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
             <p className="text-2xl font-bold text-red-700">{reportData.inventoryStatus.outOfStock}</p>
             <p className="text-sm text-red-600">Out of Stock</p>
-          </div>
-          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <Package className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-blue-700">{reportData.inventoryStatus.overStock}</p>
-            <p className="text-sm text-blue-600">Over Stock</p>
           </div>
         </div>
       </div>
@@ -697,121 +722,190 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     <div className="space-y-6">
       {/* Comprehensive Product Table */}
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Complete Product Inventory</h3>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handleExport('pdf')}
-              className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors flex items-center"
-            >
-              <FileText className="h-3 w-3 mr-1" />
-              PDF with Images
-            </button>
-            <button
-              onClick={() => handleExport('excel')}
-              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors flex items-center"
-            >
-              <FileSpreadsheet className="h-3 w-3 mr-1" />
-              Excel
-            </button>
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-t-xl border-b-2 border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">📊 Complete Product Inventory Report</h3>
+              <p className="text-gray-600">Comprehensive overview of all products with detailed information and status</p>
+              <div className="flex items-center mt-3 space-x-4">
+                <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold">
+                  Total Records: {reportData.bestSellers.length + reportData.worstPerformers.length}
+                </span>
+                <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
+                  Generated: {new Date().toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col space-y-2">
+              <button
+                onClick={() => handleExport('pdf')}
+                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg text-sm hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                📄 Export Compact PDF Table
+              </button>
+              <button
+                onClick={() => handleExport('excel')}
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg text-sm hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                📈 Export Excel Spreadsheet
+              </button>
+            </div>
           </div>
         </div>
         
-        {/* Responsive Table Container */}
-        <div className="overflow-x-auto border border-gray-200 rounded-lg">
-          <div className="min-w-full inline-block align-middle">
-            <table className="min-w-full divide-y divide-gray-200" style={{minWidth: '1600px'}}>
-              <thead className="bg-gray-50">
+        {/* Enhanced Responsive Table Container */}
+        <div className="overflow-hidden shadow-lg border-2 border-green-200 rounded-xl bg-white">
+          {/* Mobile Card View - Hidden on larger screens */}
+          <div className="block lg:hidden">
+            <div className="p-4 space-y-4">
+              {reportData.bestSellers.concat(reportData.worstPerformers).map((product, index) => {
+                const stockStatus = product.stockLevel || 'unknown';
+                const statusColor = 
+                  (stockStatus === 'good' || stockStatus === 'overstock') ? 'bg-green-100 text-green-800 border-green-300' :
+                  stockStatus === 'low' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                  stockStatus === 'critical' ? 'bg-red-100 text-red-800 border-red-300' :
+                  'bg-gray-100 text-gray-800 border-gray-300';
+                
+                const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop';
+                
+                return (
+                  <div key={`mobile-${product.name}-${index}`} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-start space-x-4">
+                      <div className="h-16 w-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-300 shadow-sm flex-shrink-0">
+                        <img 
+                          src={product.image || defaultImage}
+                          alt={product.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => { e.target.src = defaultImage; }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-gray-900 truncate">{product.name}</h3>
+                        <p className="text-xs text-gray-600 mt-1">ID: ...{(product.name || 'Unknown').replace(/\s/g, '').slice(-6)}</p>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 border border-green-300 rounded-md capitalize">
+                            {(product.category?.replace('-', ' ') || 'N/A').substring(0, 12)}
+                          </span>
+                          <span className={`inline-flex px-2 py-1 text-xs font-bold rounded-lg border ${statusColor}`}>
+                            {(stockStatus === 'good' || stockStatus === 'overstock') && '✅'}
+                            {stockStatus === 'low' && '⚠️'}
+                            {stockStatus === 'critical' && '🚨'}
+                            {stockStatus === 'unknown' && '❓'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mt-3 text-xs">
+                          <div>
+                            <span className="text-gray-500">Price:</span>
+                            <p className="font-bold text-green-700">LKR {product.revenue ? (product.revenue / product.unitsSold).toFixed(0) : '100'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Stock:</span>
+                            <p className="font-bold text-gray-900">{product.unitsSold || Math.floor(Math.random() * 100) + 20} {product.category === 'dairy-products' || product.category === 'animal-products' ? 'packs' : 'kg'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Desktop Table View - Hidden on smaller screens */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full divide-y-2 divide-gray-200" style={{fontSize: '12px'}}>
+              <thead className="bg-gradient-to-r from-green-600 to-green-700">
                 <tr>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '80px'}}>
-                    Image
+                  <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-white uppercase tracking-wider border-r border-green-500 w-16">
+                    <div className="flex items-center">
+                      📷
+                    </div>
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '200px'}}>
-                    Product Name
+                  <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-white uppercase tracking-wider border-r border-green-500">
+                    <div className="flex items-center">
+                      📦 Product Name
+                    </div>
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '120px'}}>
-                    Category
+                  <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-white uppercase tracking-wider border-r border-green-500">
+                    <div className="flex items-center">
+                      🏷️ Category
+                    </div>
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '250px'}}>
-                    Description
+                  <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-white uppercase tracking-wider border-r border-green-500">
+                    <div className="flex items-center">
+                      💰 Price
+                    </div>
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '100px'}}>
-                    Price
+                  <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-white uppercase tracking-wider border-r border-green-500">
+                    <div className="flex items-center">
+                      📊 Stock Qty
+                    </div>
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '120px'}}>
-                    Stock Quantity
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '80px'}}>
-                    Unit
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{width: '130px'}}>
-                    Status
+                  <th scope="col" className="px-3 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                    <div className="flex items-center">
+                      🔍 Status
+                    </div>
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y-2 divide-gray-100">
                 {reportData.bestSellers.concat(reportData.worstPerformers).map((product, index) => {
                   const stockStatus = product.stockLevel || 'unknown';
                   const statusColor = 
-                    stockStatus === 'good' ? 'bg-green-100 text-green-800' :
-                    stockStatus === 'low' ? 'bg-yellow-100 text-yellow-800' :
-                    stockStatus === 'critical' ? 'bg-red-100 text-red-800' :
-                    stockStatus === 'overstock' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800';
+                    (stockStatus === 'good' || stockStatus === 'overstock') ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-900 font-bold border border-green-300' :
+                    stockStatus === 'low' ? 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-900 font-bold border border-yellow-300' :
+                    stockStatus === 'critical' ? 'bg-gradient-to-r from-red-100 to-red-200 text-red-900 font-bold border border-red-300' :
+                    'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-900 font-bold border border-gray-300';
                   
                   const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop';
+                  const rowBgColor = index % 2 === 0 ? 'bg-gray-50' : 'bg-white';
                   
                   return (
-                    <tr key={`${product.name}-${index}`} className="hover:bg-gray-50">
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <div className="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                    <tr key={`${product.name}-${index}`} className={`${rowBgColor} hover:bg-green-50 transition-colors duration-200 border-b border-gray-200`}>
+                      <td className="px-3 py-4 whitespace-nowrap border-r border-gray-200">
+                        <div className="h-12 w-12 rounded-lg overflow-hidden bg-gray-100 border border-gray-300 shadow-sm hover:shadow-md transition-shadow">
                           <img 
                             src={product.image || defaultImage}
                             alt={product.name}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover hover:scale-105 transition-transform duration-200"
                             onError={(e) => {
                               e.target.src = defaultImage;
                             }}
                           />
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <div className="max-w-[180px] truncate" title={product.name}>
-                          {product.name}
+                      <td className="px-3 py-4 border-r border-gray-200">
+                        <div className="max-w-[200px]" title={product.name}>
+                          <div className="text-sm font-bold text-gray-900 truncate">{product.name}</div>
+                          <div className="text-xs text-gray-600 mt-1">ID: ...{(product.name || 'Unknown').replace(/\s/g, '').slice(-6)}</div>
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                        {product.category?.replace('-', ' ')}
+                      <td className="px-3 py-4 border-r border-gray-200">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 border border-green-300 rounded-md capitalize">
+                          {(product.category?.replace('-', ' ') || 'N/A').substring(0, 15)}
+                        </span>
                       </td>
-                      <td className="px-3 py-4 text-sm text-gray-900">
-                        <div className="max-w-[200px] truncate" title={product.description || `High-quality ${product.category?.replace('-', ' ')} product`}>
-                          {product.description || (
-                            product.category === 'vegetables' ? 'Fresh, ripe vegetables - perfect for salads, cooking, and daily nutrition' :
-                            product.category === 'fruits' ? 'Premium quality fruits - sweet, nutritious, and perfectly ripened' :
-                            product.category === 'leafy-greens' ? 'Fresh leafy greens - rich in vitamins and perfect for healthy meals' :
-                            product.category === 'root-vegetables' ? 'Farm-fresh root vegetables - essential for cooking and nutrition' :
-                            product.category === 'dairy-products' ? 'Pure, fresh dairy products - rich in calcium and essential nutrients' :
-                            product.category === 'animal-products' ? 'Fresh farm products - rich in protein and essential nutrients' :
-                            'High-quality farm product'
-                          )}
+                      <td className="px-3 py-4 border-r border-gray-200">
+                        <div className="text-lg font-bold text-green-700">
+                          LKR {product.revenue ? (product.revenue / product.unitsSold).toFixed(0) : '100'}
                         </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                        LKR {product.revenue ? (product.revenue / product.unitsSold).toFixed(2) : '0.00'}
+                      <td className="px-3 py-4 border-r border-gray-200">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-gray-900">
+                            {product.unitsSold || Math.floor(Math.random() * 100) + 20}
+                          </div>
+                          <div className="text-xs text-gray-500">{product.category === 'dairy-products' || product.category === 'animal-products' ? 'packs' : 'kg'}</div>
+                        </div>
                       </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {product.unitsSold || Math.floor(Math.random() * 100) + 20}
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {product.category === 'dairy-products' || product.category === 'animal-products' ? 'pack' : 'kg'}
-                      </td>
-                      <td className="px-3 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor}`}>
-                          {stockStatus === 'good' && 'In Stock'}
-                          {stockStatus === 'low' && 'Low Stock'}
-                          {stockStatus === 'critical' && 'Critical'}
-                          {stockStatus === 'overstock' && 'Overstock'}
-                          {stockStatus === 'unknown' && 'Unknown'}
+                      <td className="px-3 py-4">
+                        <span className={`inline-flex px-3 py-2 text-sm font-bold rounded-lg shadow-sm ${statusColor}`}>
+                          {(stockStatus === 'good' || stockStatus === 'overstock') && '✅ In Stock'}
+                          {stockStatus === 'low' && '⚠️ Low Stock'}
+                          {stockStatus === 'critical' && '🚨 Critical'}
+                          {stockStatus === 'unknown' && '❓ Unknown'}
                         </span>
                       </td>
                     </tr>
@@ -822,109 +916,30 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           </div>
         </div>
         
-        {/* Table Info */}
-        <div className="mt-4 text-sm text-gray-600 flex justify-between items-center">
-          <span>Showing {reportData.bestSellers.length + reportData.worstPerformers.length} products</span>
-          <span>Generated: {new Date().toLocaleString()}</span>
-        </div>
-      </div>
-
-      {/* Best and Worst Performers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <Award className="h-5 w-5 text-green-600 mr-2" />
-            Top Performers
-          </h3>
-          <div className="space-y-4">
-            {reportData.bestSellers.slice(0, 5).map((product, index) => {
-              const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop';
-              
-              return (
-                <div key={product.name} className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 border-2 border-green-300">
-                      <img 
-                        src={product.image || defaultImage}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.src = defaultImage;
-                        }}
-                      />
-                    </div>
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">#{index + 1}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">{product.name}</h4>
-                      <p className="text-sm text-gray-600 capitalize">{product.category.replace('-', ' ')}</p>
-                      <div className="flex items-center mt-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`h-3 w-3 ${i < Math.floor(product.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} />
-                        ))}
-                        <span className="text-xs text-gray-600 ml-1">({product.reviews})</span>
-                      </div>
-                    </div>
-                  </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-700">${product.revenue.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">{product.unitsSold} units</p>
-                  <div className="flex items-center text-green-600 text-sm mt-1">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    <span>+{product.growth}%</span>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
+        {/* Enhanced Table Footer */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 rounded-b-xl border-t-2 border-gray-200">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-semibold text-gray-800">
+                📊 Showing {reportData.bestSellers.length + reportData.worstPerformers.length} products
+              </span>
+              <span className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
+                🔄 Live Data
+              </span>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                📅 Last Updated: {new Date().toLocaleString()}
+              </span>
+              <span className="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
+                ✅ System Active
+              </span>
+            </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
-            Needs Attention
-          </h3>
-          <div className="space-y-4">
-            {reportData.worstPerformers.map((product, index) => {
-              const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop';
-              
-              return (
-                <div key={product.name} className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 border-2 border-red-300">
-                      <img 
-                        src={product.image || defaultImage}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.src = defaultImage;
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-gray-900">{product.name}</h4>
-                      <p className="text-sm text-gray-600 capitalize">{product.category.replace('-', ' ')}</p>
-                      <div className="flex items-center mt-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`h-3 w-3 ${i < Math.floor(product.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} />
-                        ))}
-                        <span className="text-xs text-gray-600 ml-1">({product.reviews})</span>
-                      </div>
-                    </div>
-                  </div>
-                <div className="text-right">
-                  <p className="font-bold text-red-700">${product.revenue.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">{product.unitsSold} units</p>
-                  <div className="flex items-center text-red-600 text-sm mt-1">
-                    <TrendingDown className="h-3 w-3 mr-1" />
-                    <span>{product.growth}%</span>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
+          <div className="mt-3 text-center">
+            <p className="text-xs text-gray-500">
+              🌱 FarmNex Agricultural Management System - Product Inventory Report
+            </p>
           </div>
         </div>
       </div>
@@ -933,24 +948,24 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Profitability Analysis</h3>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-0">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Product</th>
-                <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Profit Margin</th>
-                <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Gross Profit</th>
-                <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Net Profit</th>
-                <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Profitability</th>
+                <th className="text-left py-2 px-2 text-xs font-medium text-gray-700">Product</th>
+                <th className="text-left py-2 px-2 text-xs font-medium text-gray-700">Margin</th>
+                <th className="text-left py-2 px-2 text-xs font-medium text-gray-700">Gross</th>
+                <th className="text-left py-2 px-2 text-xs font-medium text-gray-700">Net</th>
+                <th className="text-left py-2 px-2 text-xs font-medium text-gray-700">Progress</th>
               </tr>
             </thead>
             <tbody>
               {reportData.profitabilityAnalysis.map((item) => (
                 <tr key={item.name} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-3 text-sm font-medium text-gray-900">{item.name}</td>
-                  <td className="py-3 px-3 text-sm text-gray-900">{item.profitMargin}%</td>
-                  <td className="py-3 px-3 text-sm text-gray-900">${item.grossProfit.toLocaleString()}</td>
-                  <td className="py-3 px-3 text-sm text-gray-900">${item.netProfit.toLocaleString()}</td>
-                  <td className="py-3 px-3">
+                  <td className="py-2 px-2 text-xs font-medium text-gray-900 truncate max-w-32" title={item.name}>{item.name}</td>
+                  <td className="py-2 px-2 text-xs text-gray-900">{item.profitMargin}%</td>
+                  <td className="py-2 px-2 text-xs text-gray-900">{item.grossProfit.toLocaleString()}</td>
+                  <td className="py-2 px-2 text-xs text-gray-900">{item.netProfit.toLocaleString()}</td>
+                  <td className="py-2 px-2">
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-green-500 h-2 rounded-full" 
@@ -970,10 +985,10 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
   const renderInventoryTab = () => (
     <div className="space-y-6">
       {/* Inventory Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="Total Inventory Value"
-          value={`$${reportData.inventoryStatus.totalValue.toLocaleString()}`}
+          value={`LKR ${reportData.inventoryStatus.totalValue.toLocaleString()}`}
           icon={DollarSign}
           color="bg-gradient-to-r from-blue-50 to-blue-100"
         />
@@ -982,6 +997,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           value={reportData.inventoryStatus.inStock}
           icon={CheckCircle}
           color="bg-gradient-to-r from-green-50 to-green-100"
+          description="Including high-stock items"
         />
         <MetricCard
           title="Low Stock"
@@ -994,12 +1010,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           value={reportData.inventoryStatus.outOfStock}
           icon={XCircle}
           color="bg-gradient-to-r from-red-50 to-red-100"
-        />
-        <MetricCard
-          title="Over Stock"
-          value={reportData.inventoryStatus.overStock}
-          icon={Package}
-          color="bg-gradient-to-r from-purple-50 to-purple-100"
         />
       </div>
 
@@ -1020,7 +1030,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
                   <p className="text-xs text-yellow-700">Stock: {item.current} / Min: {item.minimum}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-yellow-700">${item.value}</p>
+                  <p className="font-bold text-yellow-700">LKR {item.value}</p>
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     item.reorderPoint === 'immediate' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
                   }`}>
@@ -1047,7 +1057,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
                   <p className="text-xs text-red-700">Out for {item.daysSinceStock} days</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-red-700">-${item.lostRevenue}</p>
+                  <p className="font-bold text-red-700">-LKR {item.lostRevenue}</p>
                   <p className="text-xs text-gray-600">Lost revenue</p>
                 </div>
               </div>
@@ -1080,7 +1090,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
               {reportData.categoryPerformance.map((category) => (
                 <tr key={category.category} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-3 text-sm font-medium text-gray-900">{category.category}</td>
-                  <td className="py-3 px-3 text-sm text-gray-900">${category.totalRevenue.toLocaleString()}</td>
+                  <td className="py-3 px-3 text-sm text-gray-900">LKR {category.totalRevenue.toLocaleString()}</td>
                   <td className="py-3 px-3 text-sm text-gray-900">{category.unitsSold.toLocaleString()}</td>
                   <td className="py-3 px-3">
                     <div className="flex items-center">

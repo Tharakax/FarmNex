@@ -5,7 +5,7 @@
 LiquidCrystal_I2C lcd(0x27, 16, 2);  // Try 0x3F if 0x27 doesn't work
 
 const int sensorPin = A0;   
-const int powerPin = A1;    // Optional: Power the sensor from a digital pin to reduce corrosion
+const int powerPin = A1;    
 const int greenLED = 7;    
 const int redLED = 8;       
 

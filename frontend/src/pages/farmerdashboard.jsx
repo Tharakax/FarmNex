@@ -57,12 +57,57 @@ const Card = ({ children, className = "" }) => {
   );
 };
 
-// Lazy load components to handle errors gracefully
-const ProductManagement = React.lazy(() => import('../components/products/ProductManagement'));
-const FarmerInventoryManagement = React.lazy(() => import('../components/inventory/FarmerInventoryManagement'));
-const FarmerSuppliesManagement = React.lazy(() => import('../components/supplies/FarmerSuppliesManagement'));
-const ReportsManagement = React.lazy(() => import('../components/reports/ReportsManagement'));
-const TrainingManagementFull = React.lazy(() => import('../components/training/TrainingManagementFull'));
+// Import ErrorFallback
+import ErrorFallback from '../components/common/ErrorFallback';
+
+// Lazy load components with error handling
+const ProductManagement = React.lazy(() => 
+  import('../components/products/ProductManagement')
+    .catch(error => {
+      console.error('Failed to load ProductManagement:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Product Management" /> };
+    })
+);
+
+const FarmerInventoryManagement = React.lazy(() => 
+  import('../components/inventory/FarmerInventoryManagement')
+    .catch(error => {
+      console.error('Failed to load FarmerInventoryManagement:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Inventory Management" /> };
+    })
+);
+
+const FarmerSuppliesManagement = React.lazy(() => 
+  import('../components/supplies/FarmerSuppliesManagement')
+    .catch(error => {
+      console.error('Failed to load FarmerSuppliesManagement:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Supplies Management" /> };
+    })
+);
+
+const ReportsManagement = React.lazy(() => 
+  import('../components/reports/ReportsManagement')
+    .catch(error => {
+      console.error('Failed to load ReportsManagement:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Reports Management" /> };
+    })
+);
+
+const ProductManagementReport = React.lazy(() => 
+  import('../components/reports/ProductManagementReport')
+    .catch(error => {
+      console.error('Failed to load ProductManagementReport:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Product Report" /> };
+    })
+);
+
+const TrainingManagementFull = React.lazy(() => 
+  import('../components/training/TrainingManagementFull')
+    .catch(error => {
+      console.error('Failed to load TrainingManagementFull:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Training Management" /> };
+    })
+);
 
 // Weather Dashboard component
 const WeatherDashboardLazy = React.lazy(() => Promise.resolve({ default: WeatherDashboard }));
@@ -380,106 +425,116 @@ const FarmerDashboard = () => {
   // Render the appropriate content based on active sidebar item
   const renderContent = () => {
     console.log('Current active item:', activeItem);
-    switch (activeItem) {
-      case 'Products':
-        console.log('Rendering ProductManagement');
-        return <ProductManagement />;
-      case 'Inventory':
-        console.log('Rendering FarmerInventoryManagement');
-        return <FarmerInventoryManagement />;
-      case 'Supplies':
-        console.log('Rendering FarmerSuppliesManagement');
-        try {
+    
+    try {
+      switch (activeItem) {
+        case 'Products':
+          console.log('Rendering ProductManagement');
+          return <ProductManagement />;
+        case 'Inventory':
+          console.log('Rendering FarmerInventoryManagement');
+          return <FarmerInventoryManagement />;
+        case 'Supplies':
+          console.log('Rendering FarmerSuppliesManagement');
           return <FarmerSuppliesManagement />;
-        } catch (error) {
-          console.error('Error rendering FarmerSuppliesManagement:', error);
+        case 'Weather':
+          console.log('Rendering WeatherDashboard');
+          return <WeatherDashboardLazy />;
+        case 'Training':
+          console.log('Rendering TrainingManagementFull with all features');
+          return <TrainingManagementFull />;
+        case 'Reports':
+          console.log('Rendering ProductManagementReport');
+          return <ProductManagementReport />;
+        case 'Settings':
+          console.log('Rendering Settings');
+          return <div className="p-6 bg-white rounded-lg shadow"><h2 className="text-xl font-semibold mb-4">Settings</h2><p>Settings panel is under development.</p></div>;
+        case 'Home':
+        default:
           return (
-            <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
-              <h2 className="text-lg font-bold text-red-800 mb-2">Error Loading Supplies</h2>
-              <p className="text-red-600 mb-4">There was an error loading the supplies management component.</p>
-              <pre className="text-sm text-red-700 bg-red-100 p-3 rounded overflow-auto">
-                {error.message || error.toString()}
-              </pre>
-              <button 
-                onClick={() => window.location.reload()}
-                className="mt-3 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Reload Page
-              </button>
-            </div>
-          );
-        }
-      case 'Weather':
-        console.log('Rendering WeatherDashboard');
-        return <WeatherDashboardLazy />;
-      case 'Training':
-        console.log('Rendering TrainingManagementFull with all features');
-        return <TrainingManagementFull />;
-      case 'Reports':
-        return <ReportsManagement />;
-      case 'Settings':
-        console.log('Rendering Settings');
-        return <div className="p-6 bg-white rounded-lg shadow"><h2 className="text-xl font-semibold mb-4">Settings</h2><p>Settings panel is under development.</p></div>;
-      case 'Home':
-      default:
-        return (
-          <div>
-            <DashboardStats />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="md:col-span-2">
-                <ChartSection />
+            <div>
+              <DashboardStats />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="md:col-span-2">
+                  <ChartSection />
+                </div>
+                <div className="flex justify-center md:justify-start">
+                  <SoilMoistureWidget deviceId="ARDUINO-UNO-001" title="Field Moisture Monitor" />
+                </div>
               </div>
-              <div className="flex justify-center md:justify-start">
-                <SoilMoistureWidget deviceId="ARDUINO-UNO-001" title="Field Moisture Monitor" />
-              </div>
-            </div>
-            {/* Weather Overview Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <WeatherWidget 
-                  title="Weather Overview" 
-                  compact={false} 
-                  showForecast={true}
-                  refreshInterval={300000}
-                />
-              </div>
-              <div className="bg-white rounded-lg p-6 shadow-md">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">Today's Farm Conditions</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                      <span className="text-gray-700">Soil Moisture</span>
+              {/* Weather Overview Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div>
+                  <WeatherWidget 
+                    title="Weather Overview" 
+                    compact={false} 
+                    showForecast={true}
+                    refreshInterval={300000}
+                  />
+                </div>
+                <div className="bg-white rounded-lg p-6 shadow-md">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">Today's Farm Conditions</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                        <span className="text-gray-700">Soil Moisture</span>
+                      </div>
+                      <span className="text-green-600 font-semibold">Optimal</span>
                     </div>
-                    <span className="text-green-600 font-semibold">Optimal</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                      <span className="text-gray-700">Weather Conditions</span>
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                        <span className="text-gray-700">Weather Conditions</span>
+                      </div>
+                      <span className="text-blue-600 font-semibold">Favorable</span>
                     </div>
-                    <span className="text-blue-600 font-semibold">Favorable</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-                      <span className="text-gray-700">Irrigation Schedule</span>
+                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                        <span className="text-gray-700">Irrigation Schedule</span>
+                      </div>
+                      <span className="text-yellow-600 font-semibold">Next: 6:00 AM</span>
                     </div>
-                    <span className="text-yellow-600 font-semibold">Next: 6:00 AM</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                      <span className="text-gray-700">Crop Status</span>
+                    <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                      <div className="flex items-center">
+                        <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                        <span className="text-gray-700">Crop Status</span>
+                      </div>
+                      <span className="text-purple-600 font-semibold">Healthy Growth</span>
                     </div>
-                    <span className="text-purple-600 font-semibold">Healthy Growth</span>
                   </div>
                 </div>
               </div>
+              <ActivityTable />
             </div>
-            <ActivityTable />
+          );
+      }
+    } catch (error) {
+      console.error('Error rendering content for:', activeItem, error);
+      return (
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+          <h2 className="text-lg font-bold text-red-800 mb-2">Error Loading {activeItem}</h2>
+          <p className="text-red-600 mb-4">There was an error loading the {activeItem.toLowerCase()} component.</p>
+          <pre className="text-sm text-red-700 bg-red-100 p-3 rounded overflow-auto mb-4">
+            {error.message || error.toString()}
+          </pre>
+          <div className="space-x-2">
+            <button 
+              onClick={() => setActiveItem('Home')}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Go Home
+            </button>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Reload Page
+            </button>
           </div>
-        );
+        </div>
+      );
     }
   };
 

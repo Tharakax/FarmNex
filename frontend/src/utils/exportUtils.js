@@ -118,8 +118,9 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
       throw new Error('No columns defined for export');
     }
 
-    // Create PDF instance
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    // Create PDF instance - use landscape for tables with many columns
+    const orientation = (columns.length >= 8) ? 'l' : 'p'; // Landscape if 8+ columns
+    const pdf = new jsPDF(orientation, 'mm', 'a4');
     
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -197,6 +198,9 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
             return '...' + stringValue.slice(-6);
           }
           return stringValue;
+        } else if (col.key === 'status') {
+          // Status column gets full text without truncation for better visibility
+          return stringValue;
         } else {
           return stringValue.length > 20 ? stringValue.substring(0, 17) + '...' : stringValue;
         }
@@ -258,6 +262,7 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
         columnStyles: (() => {
           // Dynamic column widths that ensure all columns fit within page width
           const availableWidth = pageWidth - 40; // Account for margins
+          const isLandscape = pageWidth > pageHeight; // Detect landscape orientation
           const baseStyles = {
             0: { fontStyle: 'bold', halign: 'center' }, // ID
             1: { fontStyle: 'bold' }, // Name/Product Name
@@ -277,32 +282,65 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
               6: { cellWidth: 17, halign: 'center' }, // Unit
             };
           } else if (columns.length === 8) {
-            // Adjusted for 8 columns with proper Status column width
-            return {
-              ...baseStyles,
-              0: { ...baseStyles[0], cellWidth: 12 }, // ID - smaller to make room
-              1: { ...baseStyles[1], cellWidth: 28 }, // Name - smaller
-              2: { cellWidth: 16 }, // Category - smaller
-              3: { cellWidth: 30, fontSize: 7 }, // Description - smaller
-              4: { cellWidth: 16, fontStyle: 'bold', halign: 'right' }, // Price - smaller
-              5: { cellWidth: 14, halign: 'center' }, // Stock - smaller
-              6: { cellWidth: 10, halign: 'center' }, // Unit - smaller
-              7: { cellWidth: 28, halign: 'center', fontStyle: 'bold' }, // Status - MUCH LARGER WIDTH
-            };
+            // 8 columns - optimized for landscape orientation with generous Status width
+            if (isLandscape) {
+              // Landscape layout with much more space available (297mm vs 210mm)
+              return {
+                ...baseStyles,
+                0: { ...baseStyles[0], cellWidth: 18 }, // ID
+                1: { ...baseStyles[1], cellWidth: 45 }, // Name - much larger
+                2: { cellWidth: 25 }, // Category
+                3: { cellWidth: 35, fontSize: 7 }, // Description
+                4: { cellWidth: 25, fontStyle: 'bold', halign: 'right' }, // Price
+                5: { cellWidth: 20, halign: 'center' }, // Stock
+                6: { cellWidth: 15, halign: 'center' }, // Unit
+                7: { cellWidth: 60, halign: 'center', fontStyle: 'bold' }, // Status - VERY WIDE
+              };
+            } else {
+              // Portrait fallback (shouldn't be used for 8+ columns now)
+              return {
+                ...baseStyles,
+                0: { ...baseStyles[0], cellWidth: 12 }, // ID
+                1: { ...baseStyles[1], cellWidth: 26 }, // Name
+                2: { cellWidth: 16 }, // Category
+                3: { cellWidth: 22, fontSize: 6 }, // Description
+                4: { cellWidth: 18, fontStyle: 'bold', halign: 'right' }, // Price
+                5: { cellWidth: 14, halign: 'center' }, // Stock
+                6: { cellWidth: 10, halign: 'center' }, // Unit
+                7: { cellWidth: 45, halign: 'center', fontStyle: 'bold' }, // Status
+              };
+            }
           } else {
-            // 9 columns - compact layout
-            return {
-              ...baseStyles,
-              0: { ...baseStyles[0], cellWidth: 14 }, // ID
-              1: { ...baseStyles[1], cellWidth: 28 }, // Name
-              2: { cellWidth: 18 }, // Category
-              3: { cellWidth: 32, fontSize: 6 }, // Description
-              4: { cellWidth: 18, fontStyle: 'bold', halign: 'right' }, // Price
-              5: { cellWidth: 14, halign: 'center' }, // Stock
-              6: { cellWidth: 12, halign: 'center' }, // Unit
-              7: { cellWidth: 16, halign: 'center' }, // Status
-              8: { cellWidth: 18, fontSize: 7 }, // Date
-            };
+            // 9+ columns - landscape optimized layout
+            if (isLandscape) {
+              // Landscape layout for 9+ columns with excellent Status width
+              return {
+                ...baseStyles,
+                0: { ...baseStyles[0], cellWidth: 15 }, // ID
+                1: { ...baseStyles[1], cellWidth: 38 }, // Name
+                2: { cellWidth: 22 }, // Category
+                3: { cellWidth: 32, fontSize: 7 }, // Description
+                4: { cellWidth: 22, fontStyle: 'bold', halign: 'right' }, // Price
+                5: { cellWidth: 18, halign: 'center' }, // Stock
+                6: { cellWidth: 12, halign: 'center' }, // Unit
+                7: { cellWidth: 50, halign: 'center', fontStyle: 'bold' }, // Status - VERY WIDE
+                8: { cellWidth: 28, fontSize: 7 }, // Revenue/Rating/Date
+              };
+            } else {
+              // Portrait fallback for 9+ columns
+              return {
+                ...baseStyles,
+                0: { ...baseStyles[0], cellWidth: 12 }, // ID
+                1: { ...baseStyles[1], cellWidth: 26 }, // Name
+                2: { cellWidth: 16 }, // Category
+                3: { cellWidth: 28, fontSize: 6 }, // Description
+                4: { cellWidth: 18, fontStyle: 'bold', halign: 'right' }, // Price
+                5: { cellWidth: 14, halign: 'center' }, // Stock
+                6: { cellWidth: 10, halign: 'center' }, // Unit
+                7: { cellWidth: 22, halign: 'center', fontStyle: 'bold' }, // Status
+                8: { cellWidth: 24, fontSize: 7 }, // Date/Revenue/Rating
+              };
+            }
           }
         })(),
         didParseCell: function(data) {
@@ -804,6 +842,146 @@ const loadImageAsBase64 = (imageUrl) => {
 };
 
 /**
+ * Export products data to PDF as a compact table
+ * @param {Array} data - Array of product objects
+ * @param {string} title - Title for the PDF document
+ * @param {Array} columns - Array of column definitions (not used in this version)
+ * @param {string} filename - Filename without extension
+ * @param {string} section - Section type for color theming
+ */
+export const exportProductsToCompactPDF = async (data, title, columns, filename = 'products_export', section = 'products') => {
+  try {
+    console.log('Starting compact PDF table export...');
+    
+    // Validate input data
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      throw new Error('No data available to export');
+    }
+    
+    // Create PDF instance in portrait mode for better table fitting
+    const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait orientation
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    console.log('PDF instance created (portrait), dimensions:', pageWidth, 'x', pageHeight);
+    
+    // Get section colors
+    const sectionColors = SECTION_COLORS[section] || SECTION_COLORS.default;
+    const sectionPrimary = sectionColors.primary;
+    
+    // Create header
+    pdf.setFillColor(...sectionPrimary);
+    pdf.rect(0, 0, pageWidth, 40, 'F');
+    
+    // Company name
+    pdf.setFontSize(16);
+    pdf.setTextColor(...BRAND_COLORS.white);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('FarmNex', pageWidth / 2, 15, { align: 'center' });
+    
+    // Title
+    pdf.setFontSize(14);
+    pdf.text(title || 'Products Report', pageWidth / 2, 30, { align: 'center' });
+    
+    // Metadata
+    pdf.setFontSize(8);
+    pdf.setTextColor(...BRAND_COLORS.dark);
+    const currentDate = new Date();
+    pdf.text(`Generated: ${currentDate.toLocaleDateString()} at ${currentDate.toLocaleTimeString()}`, 15, 50);
+    pdf.text(`Total Records: ${data.length}`, pageWidth - 15, 50, { align: 'right' });
+    
+    // Prepare table data with compact columns
+    const tableColumns = [
+      { header: 'ID', dataKey: 'id' },
+      { header: 'Product Name', dataKey: 'name' },
+      { header: 'Category', dataKey: 'category' },
+      { header: 'Description', dataKey: 'description' },
+      { header: 'Price', dataKey: 'price' },
+      { header: 'Stock Qty', dataKey: 'stockQuantity' },
+      { header: 'Unit', dataKey: 'unit' },
+      { header: 'Status', dataKey: 'status' }
+    ];
+    
+    const tableData = data.map(product => {
+      // Truncate long descriptions
+      let description = product.description || '';
+      if (description.length > 50) {
+        description = description.substring(0, 47) + '...';
+      }
+      
+      // Format price
+      let price = '';
+      if (product.price) {
+        price = typeof product.price === 'string' ? product.price : `LKR ${product.price}`;
+      }
+      
+      return {
+        id: product.id || '...N/A',
+        name: product.name || 'Unknown',
+        category: (product.category || 'uncategorized').replace('-', ' '),
+        description: description,
+        price: price,
+        stockQuantity: product.stockQuantity || 0,
+        unit: product.unit || 'units',
+        status: product.status || 'Unknown'
+      };
+    });
+    
+    // Add table using autoTable
+    pdf.autoTable({
+      head: [tableColumns.map(col => col.header)],
+      body: tableData.map(row => tableColumns.map(col => row[col.dataKey] || '')),
+      startY: 60,
+      theme: 'grid',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        textColor: [51, 51, 51]
+      },
+      headStyles: {
+        fillColor: sectionPrimary,
+        textColor: [255, 255, 255],
+        fontSize: 9,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      columnStyles: {
+        0: { cellWidth: 20 }, // ID
+        1: { cellWidth: 25 }, // Product Name
+        2: { cellWidth: 20 }, // Category
+        3: { cellWidth: 45 }, // Description
+        4: { cellWidth: 25 }, // Price
+        5: { cellWidth: 15 }, // Stock Qty
+        6: { cellWidth: 15 }, // Unit
+        7: { cellWidth: 20 }  // Status
+      },
+      alternateRowStyles: {
+        fillColor: [248, 249, 250]
+      },
+      margin: { left: 10, right: 10 },
+      didDrawPage: function(data) {
+        // Add footer to each page
+        const pageNumber = pdf.internal.getNumberOfPages();
+        pdf.setFontSize(8);
+        pdf.setTextColor(...BRAND_COLORS.gray);
+        pdf.text('FarmNex Farm Management System', 15, pageHeight - 10);
+        pdf.text(`Page ${data.pageNumber}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+      }
+    });
+    
+    console.log('Compact PDF table generated successfully');
+    
+    // Save the PDF
+    pdf.save(`${filename}.pdf`);
+    return true;
+    
+  } catch (error) {
+    console.error('Error exporting compact PDF table:', error);
+    throw new Error(`Compact PDF Export Failed: ${error.message || 'Unknown error occurred'}`);
+  }
+};
+
+/**
  * Export products data to PDF with embedded images
  * @param {Array} data - Array of product objects with image URLs
  * @param {string} title - Title for the PDF document
@@ -945,7 +1123,7 @@ export const exportProductsToPDFWithImages = async (data, title, columns, filena
       if (product.revenue) {
         pdf.setFontSize(10);
         pdf.setTextColor(...BRAND_COLORS.info);
-        pdf.text(`Revenue: $${product.revenue.toLocaleString()}`, infoStartX + 80, yPosition + 35);
+        pdf.text(`Revenue: LKR ${product.revenue.toLocaleString()}`, infoStartX + 80, yPosition + 35);
       }
       
       // Stock quantity
@@ -1037,6 +1215,7 @@ export default {
   exportToPDF,
   exportToExcel,
   exportProductsToPDFWithImages,
+  exportProductsToCompactPDF,
   loadImageAsBase64,
   formatCurrency,
   formatDate,
