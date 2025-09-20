@@ -1,25 +1,48 @@
-import React, { Suspense } from 'react'
-import { Routes, Route } from 'react-router-dom'
-import { Toaster } from 'react-hot-toast'
-import './App.css'
-import PaymentCardsManager from './pages/client/PaymentCards.jsx'
+import React, { Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import "./App.css";
+import PaymentCardsManager from "./pages/client/PaymentCards.jsx";
+//Recipe
+import RecipeList from "./components/recipes/RecipeList.jsx";
+import AddRecipe from "./components/recipes/AddRecipe.jsx";
+import UpdateRecipe from "./components/recipes/UpdateRecipe.jsx";
+
+//Notification
+import NotificationList from "./components/notifications/NotificationList.jsx";
+import AddNotification from "./components/notifications/AddNotification.jsx";
+import UpdateNotification from "./components/notifications/UpdateNotification.jsx";
+
 
 // Lazy load components to help with debugging
-const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
-const LoginPage = React.lazy(() => import('./pages/loginpage'))
-const AdminDashboard = React.lazy(() => import('./pages/admindashboard'))
-const Testing = React.lazy(() => import('./pages/testing'))
-const ProductsPage = React.lazy(() => import('./pages/client/Products.jsx'))
-const OneProduct = React.lazy(() => import('./pages/client/OneProduct.jsx'))
-const Cart = React.lazy(() => import('./pages/client/cart.jsx'))
-const EnterShipping = React.lazy(() => import('./pages/client/EnterShipping.jsx'))
-const EnterPayment = React.lazy(() => import('./pages/client/EnterPayment.jsx'))
-const TrainingShowcase = React.lazy(() => import('./pages/TrainingShowcase.jsx'))
-const TrainingHomePage = React.lazy(() => import('./pages/TrainingHomePage.jsx'))
-const AddEditTraining = React.lazy(() => import('./pages/farmer/AddEditTraining.jsx'))
-const ViewTraining = React.lazy(() => import('./pages/farmer/ViewTraining.jsx'))
-const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
-const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
+const HomePage = React.lazy(() => import("./pages/homePage.jsx"));
+const LoginPage = React.lazy(() => import("./pages/loginpage"));
+const AdminDashboard = React.lazy(() => import("./pages/admindashboard"));
+const Testing = React.lazy(() => import("./pages/testing"));
+const ProductsPage = React.lazy(() => import("./pages/client/Products.jsx"));
+const OneProduct = React.lazy(() => import("./pages/client/OneProduct.jsx"));
+const Cart = React.lazy(() => import("./pages/client/cart.jsx"));
+const EnterShipping = React.lazy(() =>
+  import("./pages/client/EnterShipping.jsx")
+);
+const EnterPayment = React.lazy(() =>
+  import("./pages/client/EnterPayment.jsx")
+);
+const TrainingShowcase = React.lazy(() =>
+  import("./pages/TrainingShowcase.jsx")
+);
+const TrainingHomePage = React.lazy(() =>
+  import("./pages/TrainingHomePage.jsx")
+);
+const AddEditTraining = React.lazy(() =>
+  import("./pages/farmer/AddEditTraining.jsx")
+);
+const ViewTraining = React.lazy(() =>
+  import("./pages/farmer/ViewTraining.jsx")
+);
+const AboutPage = React.lazy(() => import("./pages/AboutPage.jsx"));
+const FarmerDashboard = React.lazy(() => import("./pages/farmerdashboard.jsx"));
+
 
 // Loading component
 const Loading = () => (
@@ -29,21 +52,21 @@ const Loading = () => (
       <p className="text-gray-600">Loading...</p>
     </div>
   </div>
-)
+);
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
   constructor(props) {
-    super(props)
-    this.state = { hasError: false, error: null }
+    super(props);
+    this.state = { hasError: false, error: null };
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, error }
+    return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo)
+    console.error("Error caught by boundary:", error, errorInfo);
   }
 
   render() {
@@ -51,9 +74,13 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen flex items-center justify-center bg-red-50">
           <div className="text-center p-8">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-            <p className="text-gray-600 mb-4">There was an error loading this component.</p>
-            <button 
+            <h2 className="text-2xl font-bold text-red-600 mb-4">
+              Something went wrong
+            </h2>
+            <p className="text-gray-600 mb-4">
+              There was an error loading this component.
+            </p>
+            <button
               onClick={() => this.setState({ hasError: false, error: null })}
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
             >
@@ -61,9 +88,9 @@ class ErrorBoundary extends React.Component {
             </button>
           </div>
         </div>
-      )
+      );
     }
-    return this.props.children
+    return this.props.children;
   }
 }
 
@@ -93,29 +120,48 @@ function App() {
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
             
+            <Route path="/recipes" element={<RecipeList />} />
+            <Route path="/recipes/add" element={<AddRecipe />} />
+            <Route path="/recipes/edit/:id" element={<UpdateRecipe />} />
+
+            <Route path="/notifications" element={<NotificationList />} />
+            <Route path="/notifications/add" element={<AddNotification />} />
+            <Route path="/notifications/edit/:id" element={<UpdateNotification />} />
+
+
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />
-            
+
             {/* Farmer Dashboard Route */}
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
-            
+
             {/* Fallback route */}
-            <Route path="*" element={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-4">Page Not Found</h2>
-                  <p className="text-gray-600 mb-4">The page you're looking for doesn't exist.</p>
-                  <a href="/" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    Go Home
-                  </a>
+            <Route
+              path="*"
+              element={
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                      Page Not Found
+                    </h2>
+                    <p className="text-gray-600 mb-4">
+                      The page you're looking for doesn't exist.
+                    </p>
+                    <a
+                      href="/"
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    >
+                      Go Home
+                    </a>
+                  </div>
                 </div>
-              </div>
-            } />
+              }
+            />
           </Routes>
         </Suspense>
       </ErrorBoundary>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
