@@ -3,7 +3,7 @@ import { X, Upload, Plus, Minus, AlertCircle, Save, Camera } from 'lucide-react'
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/productAPI';
 import { FormValidator } from '../../utils/validation';
-import { showError, showSuccess, showLoading } from '../../utils/sweetAlert';
+import { showError, showSuccess, showLoading, showValidationError, showWarning, showConfirm, showToast } from '../../utils/sweetAlert';
 
 const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => {
   const [loading, setLoading] = useState(false);
@@ -32,6 +32,13 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
   });
 
   const [newTag, setNewTag] = useState('');
+
+  // Helper to read errors either by field key or by pretty label
+  const getError = (key, label) => {
+    const val = errors[key] ?? errors[label];
+    if (!val) return null;
+    return Array.isArray(val) ? (val[0] || null) : val;
+  };
 
   // Categories matching the product model
   const categories = [
@@ -105,7 +112,9 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
         storageInstructions: '',
       });
       setImagePreview([]);
-      setErrors({});
+      setErrors({
+        'stock.current': 'Current Stock is required and cannot be empty'
+      });
       setNewTag('');
     }
   }, [isOpen]);
@@ -173,110 +182,194 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
       setErrors(newErrors);
     }
 
-    // Real-time validation for current field
+    // Real-time comprehensive validation
     validateField(name, type === 'checkbox' ? checked : value);
   };
 
-  // Real-time field validation
+  // Real-time comprehensive validation - validates all related fields simultaneously
   const validateField = (fieldName, fieldValue) => {
     const validator = new FormValidator();
     
-    switch (fieldName) {
-      case 'name':
-        validator.required(fieldValue, 'Product Name')
-                 .minLength(fieldValue, 2, 'Product Name')
-                 .maxLength(fieldValue, 100, 'Product Name');
-        break;
-      
-      case 'description':
-        validator.required(fieldValue, 'Description')
-                 .minLength(fieldValue, 10, 'Description')
-                 .maxLength(fieldValue, 1000, 'Description');
-        break;
-      
-      case 'price':
-        validator.required(fieldValue, 'Price')
-                 .price(fieldValue, 'Price')
-                 .minValue(fieldValue, 0.01, 'Price')
-                 .maxValue(fieldValue, 999999, 'Price');
-        break;
-      
-      case 'displayprice':
-        if (fieldValue) {
-          validator.price(fieldValue, 'Display Price')
-                   .minValue(fieldValue, 0.01, 'Display Price');
-        }
-        break;
-      
-      case 'discount':
-        // Skip validation for auto-calculated discount field
-        break;
-      
-      case 'stock.current':
-        validator.required(fieldValue, 'Current Stock')
-                 .numeric(fieldValue, 'Current Stock')
-                 .minValue(fieldValue, 0, 'Current Stock');
-        break;
-      
-      case 'stock.maximum':
-        if (fieldValue) {
-          validator.numeric(fieldValue, 'Maximum Stock')
-                   .minValue(fieldValue, 1, 'Maximum Stock');
-          
-          // Ensure maximum is greater than current
-          if (formData.stock.current && Number(fieldValue) < Number(formData.stock.current)) {
-            validator.addError('Maximum Stock', 'Maximum stock must be greater than current stock');
-          }
-        }
-        break;
-      
-      case 'stock.minimum':
-        if (fieldValue) {
-          validator.numeric(fieldValue, 'Minimum Stock')
-                   .minValue(fieldValue, 0, 'Minimum Stock');
-          
-          // Ensure minimum is less than current
-          if (formData.stock.current && Number(fieldValue) > Number(formData.stock.current)) {
-            validator.addError('Minimum Stock', 'Minimum stock must be less than current stock');
-          }
-        }
-        break;
-      
-      case 'shelfLife':
-        if (fieldValue) {
-          validator.numeric(fieldValue, 'Shelf Life')
-                   .minValue(fieldValue, 1, 'Shelf Life')
-                   .maxValue(fieldValue, 365, 'Shelf Life');
-        }
-        break;
-        
-      case 'storageInstructions':
-        if (fieldValue) {
-          validator.maxLength(fieldValue, 500, 'Storage Instructions');
-        }
-        break;
-    }
-
-    const fieldErrors = validator.getFieldErrors(fieldName);
-    if (fieldErrors.length > 0) {
-      setErrors(prev => ({
-        ...prev,
-        [fieldName]: fieldErrors[0]
-      }));
+    // Always run comprehensive validation to catch all related field errors
+    validateAllFields(validator);
+    
+    // Set all errors at once with equal priority
+    const allErrors = validator.getAllErrors();
+    setErrors(allErrors);
+  };
+  
+  // Comprehensive validation function that validates all fields
+  const validateAllFields = (validator) => {
+    // Validate Product Name
+    validator.required(formData.name, 'Product Name')
+             .minLength(formData.name, 2, 'Product Name')
+             .maxLength(formData.name, 100, 'Product Name');
+    
+    // Validate Description
+    validator.required(formData.description, 'Description')
+             .minLength(formData.description, 10, 'Description')
+             .maxLength(formData.description, 1000, 'Description');
+    
+    // Validate Price
+    validator.required(formData.price, 'Price')
+             .price(formData.price, 'Price')
+             .minValue(formData.price, 0.01, 'Price')
+             .maxValue(formData.price, 999999, 'Price');
+    
+    // Validate Category
+    validator.required(formData.category, 'Category');
+    
+    // Validate Unit
+    validator.required(formData.unit, 'Unit');
+    
+    // Validate Current Stock
+    const trimmedCurrentStock = String(formData.stock.current || '').trim();
+    if (!trimmedCurrentStock || trimmedCurrentStock === '' || formData.stock.current === null || formData.stock.current === undefined) {
+      validator.addError('Current Stock', 'Current Stock is required and cannot be empty');
+    } else if (isNaN(Number(trimmedCurrentStock)) || Number(trimmedCurrentStock) < 1) {
+      validator.addError('Current Stock', 'Current Stock must be at least 1 (cannot be 0 or out of stock)');
     } else {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName];
-        return newErrors;
-      });
+      validator.numeric(formData.stock.current, 'Current Stock')
+               .minValue(formData.stock.current, 1, 'Current Stock');
+    }
+    
+    // Validate Maximum Stock (Required)
+    const trimmedMaximumStock = String(formData.stock.maximum ?? '').trim();
+    validator.required(trimmedMaximumStock, 'Maximum Stock');
+    if (trimmedMaximumStock !== '') {
+      validator.numeric(trimmedMaximumStock, 'Maximum Stock')
+               .minValue(trimmedMaximumStock, 2, 'Maximum Stock');
+      
+      // Cross-validation: Maximum > Current
+      const currentNum = Number(String(formData.stock.current ?? '').trim());
+      const maxNum = Number(trimmedMaximumStock);
+      if (!Number.isNaN(currentNum) && maxNum <= currentNum) {
+        validator.addError('Maximum Stock', 'Maximum stock must be greater than current stock');
+      }
+      
+      // Cross-validation: Maximum > Minimum
+      const trimmedMinimumForCompare = String(formData.stock.minimum ?? '').trim();
+      const minNum = Number(trimmedMinimumForCompare);
+      if (trimmedMinimumForCompare !== '' && !Number.isNaN(minNum) && maxNum <= minNum) {
+        validator.addError('Maximum Stock', 'Maximum stock must be greater than minimum stock');
+      }
+    }
+    
+    // Validate Minimum Stock (Required)
+    const trimmedMinimumStock = String(formData.stock.minimum ?? '').trim();
+    validator.required(trimmedMinimumStock, 'Minimum Stock');
+    if (trimmedMinimumStock !== '') {
+      validator.numeric(trimmedMinimumStock, 'Minimum Stock')
+               .minValue(trimmedMinimumStock, 0, 'Minimum Stock');
+      
+      // Cross-validation: Minimum < Current
+      const currentNumForMin = Number(String(formData.stock.current ?? '').trim());
+      const minNum = Number(trimmedMinimumStock);
+      if (!Number.isNaN(currentNumForMin) && !Number.isNaN(minNum) && minNum >= currentNumForMin) {
+        validator.addError('Minimum Stock', 'Minimum stock must be less than current stock');
+      }
+    }
+    
+    // Validate Display Price (Required)
+    const displayPriceStr = String(formData.displayprice ?? '').trim();
+    validator.required(displayPriceStr, 'Display Price');
+    if (displayPriceStr !== '') {
+      validator.price(displayPriceStr, 'Display Price')
+               .minValue(displayPriceStr, 0.01, 'Display Price')
+               .maxValue(displayPriceStr, 999999, 'Display Price');
+      
+      // Cross-validation: Display Price <= Regular Price
+      const priceStr = String(formData.price ?? '').trim();
+      if (priceStr !== '' && Number(displayPriceStr) > Number(priceStr)) {
+        validator.addError('Display Price', 'Display price cannot be greater than regular price');
+      }
+    }
+    
+    // Validate Shelf Life (Required)
+    const shelfLifeStr = String(formData.shelfLife ?? '').trim();
+    validator.required(shelfLifeStr, 'Shelf Life');
+    if (shelfLifeStr !== '') {
+      validator.numeric(shelfLifeStr, 'Shelf Life')
+               .minValue(shelfLifeStr, 1, 'Shelf Life')
+               .maxValue(shelfLifeStr, 365, 'Shelf Life');
+    }
+    
+    // Validate Storage Instructions (Required)
+    validator.required(formData.storageInstructions, 'Storage Instructions');
+    if (formData.storageInstructions && formData.storageInstructions.trim() !== '') {
+      validator.minLength(formData.storageInstructions.trim(), 5, 'Storage Instructions')
+               .maxLength(formData.storageInstructions, 500, 'Storage Instructions');
+    }
+    
+    // Validate Images (Required)
+    if (formData.images.length === 0) {
+      validator.addError('Images', 'Please add at least one product image');
+    } else if (formData.images.length > 5) {
+      validator.addError('Images', 'Maximum 5 images allowed per product');
+    }
+    
+    // Validate Tags (Required)
+    if (formData.tags.length === 0) {
+      validator.addError('Tags', 'At least one tag is required');
+    } else if (formData.tags.length > 10) {
+      validator.addError('Tags', 'Maximum 10 tags allowed');
+    }
+    
+    // Validate individual tags
+    formData.tags.forEach((tag, index) => {
+      if (!tag || tag.trim().length === 0) {
+        validator.addError('Tags', `Tag ${index + 1} cannot be empty`);
+      } else if (tag.trim().length < 2) {
+        validator.addError('Tags', `Tag "${tag}" must be at least 2 characters long`);
+      } else if (tag.trim().length > 30) {
+        validator.addError('Tags', `Tag "${tag}" must be less than 30 characters`);
+      }
+    });
+    
+    // Check for duplicate tags
+    const duplicateTags = formData.tags.filter((tag, index) => formData.tags.indexOf(tag) !== index);
+    if (duplicateTags.length > 0) {
+      validator.addError('Tags', `Duplicate tags found: ${duplicateTags.join(', ')}`);
+    }
+    
+    // Validate new tag input if it has content
+    if (newTag && newTag.trim() !== '') {
+      if (newTag.trim().length < 2) {
+        validator.addError('newTag', 'Tag must be at least 2 characters long');
+      } else if (newTag.trim().length > 30) {
+        validator.addError('newTag', 'Tag must be less than 30 characters');
+      } else if (formData.tags.includes(newTag.trim())) {
+        validator.addError('newTag', 'This tag already exists');
+      }
     }
   };
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     
+    if (files.length === 0) {
+      return;
+    }
+    
+    // Check if adding these images would exceed limit
+    if (formData.images.length + files.length > 5) {
+      showToast('Maximum 5 images allowed per product', 'error');
+      return;
+    }
+    
+    let validFiles = 0;
+    let invalidFiles = 0;
+    
     files.forEach(file => {
+      // Check file size (5MB limit per image)
+      if (file.size > 5 * 1024 * 1024) {
+        invalidFiles++;
+        showToast(`Image "${file.name}" is too large (max 5MB)`, 'error');
+        return;
+      }
+      
       if (file.type.startsWith('image/')) {
+        validFiles++;
         const reader = new FileReader();
         reader.onload = (e) => {
           const imageUrl = e.target.result;
@@ -285,115 +378,136 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
             ...prev,
             images: [...prev.images, imageUrl]
           }));
+          
+          // Show success toast for each successful upload
+          showToast(`Image "${file.name}" added successfully`, 'success');
+          
+          // Trigger comprehensive validation after image upload
+          setTimeout(() => validateField('images', [...formData.images, imageUrl]), 100);
         };
         reader.readAsDataURL(file);
+      } else {
+        invalidFiles++;
+        showToast(`"${file.name}" is not a valid image file`, 'error');
       }
     });
   };
 
   const removeImage = (index) => {
+    const newImages = formData.images.filter((_, i) => i !== index);
     setImagePreview(prev => prev.filter((_, i) => i !== index));
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: newImages
     }));
+    
+    // Trigger comprehensive validation after image removal
+    setTimeout(() => validateField('images', newImages), 100);
   };
 
   const addTag = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, newTag.trim()]
-      }));
-      setNewTag('');
+    const trimmedTag = newTag.trim();
+    
+    if (!trimmedTag) {
+      showToast('Please enter a tag name', 'warning');
+      return;
     }
+    
+    if (formData.tags.includes(trimmedTag)) {
+      showToast('This tag already exists', 'warning');
+      return;
+    }
+    
+    if (formData.tags.length >= 10) {
+      showToast('Maximum 10 tags allowed', 'error');
+      return;
+    }
+    
+    if (trimmedTag.length > 30) {
+      showToast('Tag must be less than 30 characters', 'error');
+      return;
+    }
+    
+    const newTags = [...formData.tags, trimmedTag];
+    setFormData(prev => ({
+      ...prev,
+      tags: newTags
+    }));
+    setNewTag('');
+    showToast(`Tag "${trimmedTag}" added successfully`, 'success');
+    
+    // Trigger comprehensive validation after tag addition
+    setTimeout(() => validateField('tags', newTags), 100);
   };
 
   const removeTag = (tagToRemove) => {
+    const newTags = formData.tags.filter(tag => tag !== tagToRemove);
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
+      tags: newTags
     }));
+    
+    // Trigger comprehensive validation after tag removal
+    setTimeout(() => validateField('tags', newTags), 100);
+  };
+
+  // Check if form has unsaved changes
+  const hasUnsavedChanges = () => {
+    return (
+      formData.name.trim() !== '' ||
+      formData.description.trim() !== '' ||
+      formData.price !== '' ||
+      formData.displayprice !== '' ||
+      formData.stock.current !== '' ||
+      formData.stock.maximum !== '' ||
+      formData.stock.minimum !== '' ||
+      formData.shelfLife !== '' ||
+      formData.storageInstructions.trim() !== '' ||
+      formData.tags.length > 0 ||
+      formData.images.length > 0 ||
+      formData.category !== 'vegetables' ||
+      formData.unit !== 'kg' ||
+      formData.isFeatured !== false
+    );
+  };
+
+  // Handle form close with confirmation if there are unsaved changes
+  const handleFormClose = async () => {
+    if (hasUnsavedChanges() && !product) {
+      const result = await showConfirm(
+        'You have unsaved changes. Are you sure you want to close this form? All your progress will be lost.',
+        'Unsaved Changes',
+        {
+          icon: 'warning',
+          confirmButtonText: 'Yes, Close',
+          cancelButtonText: 'Continue Editing',
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6'
+        }
+      );
+      
+      if (!result.isConfirmed) {
+        return; // User chose to continue editing
+      }
+    }
+    
+    onClose();
   };
 
   const validateForm = async () => {
     const validator = new FormValidator();
     
-    // Validate all required fields
-    validator.required(formData.name, 'Product Name')
-             .minLength(formData.name, 2, 'Product Name')
-             .maxLength(formData.name, 100, 'Product Name');
-    
-    validator.required(formData.description, 'Description')
-             .minLength(formData.description, 10, 'Description')
-             .maxLength(formData.description, 1000, 'Description');
-    
-    validator.required(formData.price, 'Price')
-             .price(formData.price, 'Price')
-             .minValue(formData.price, 0.01, 'Price')
-             .maxValue(formData.price, 999999, 'Price');
-    
-    validator.required(formData.stock.current, 'Current Stock')
-             .numeric(formData.stock.current, 'Current Stock')
-             .minValue(formData.stock.current, 0, 'Current Stock');
-    
-    // Validate optional fields if they have values
-    if (formData.displayprice) {
-      validator.price(formData.displayprice, 'Display Price')
-               .minValue(formData.displayprice, 0.01, 'Display Price');
-    }
-    
-    // Discount is auto-calculated, no validation needed
-    
-    if (formData.stock.maximum) {
-      validator.numeric(formData.stock.maximum, 'Maximum Stock')
-               .minValue(formData.stock.maximum, 1, 'Maximum Stock');
-      
-      if (formData.stock.current && Number(formData.stock.maximum) < Number(formData.stock.current)) {
-        validator.addError('Maximum Stock', 'Maximum stock must be greater than current stock');
-      }
-    }
-    
-    if (formData.stock.minimum) {
-      validator.numeric(formData.stock.minimum, 'Minimum Stock')
-               .minValue(formData.stock.minimum, 0, 'Minimum Stock');
-      
-      if (formData.stock.current && Number(formData.stock.minimum) > Number(formData.stock.current)) {
-        validator.addError('Minimum Stock', 'Minimum stock must be less than current stock');
-      }
-    }
-    
-    if (formData.shelfLife) {
-      validator.numeric(formData.shelfLife, 'Shelf Life')
-               .minValue(formData.shelfLife, 1, 'Shelf Life')
-               .maxValue(formData.shelfLife, 365, 'Shelf Life');
-    }
-    
-    if (formData.storageInstructions) {
-      validator.maxLength(formData.storageInstructions, 500, 'Storage Instructions');
-    }
-    
-    // Custom business logic validations
-    if (formData.images.length === 0) {
-      validator.addError('Images', 'Please add at least one product image');
-    }
-    
-    if (formData.tags.length > 10) {
-      validator.addError('Tags', 'Maximum 10 tags allowed');
-    }
+    // Use comprehensive validation function
+    validateAllFields(validator);
     
     const validationErrors = validator.getAllErrors();
     setErrors(validationErrors);
     
-    // Show SweetAlert with all validation errors if there are any
+    // Show all validation errors with equal priority if there are any
     if (validator.hasErrors()) {
-      const errorList = Object.entries(validationErrors)
-        .map(([field, errors]) => `• ${errors[0]}`)
-        .join('\n');
-      
-      await showError(
-        errorList,
-        'Please Fix These Validation Errors'
+      await showValidationError(
+        validationErrors,
+        'Please Fix All Validation Errors - All Fields Are Equally Important'
       );
     }
     
@@ -401,10 +515,24 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    console.log('🚀 handleSubmit called!', { e, product, loading });
+    e?.preventDefault();
     
-    // Comprehensive validation
-    if (!(await validateForm())) {
+    if (loading) {
+      console.log('⚠️ Already loading, ignoring click');
+      return;
+    }
+
+    console.log('📝 Current form data:', formData);
+    console.log('❌ Current errors:', errors);
+    
+    // Validate before submit (applies to both add and edit)
+    console.log('🔍 Starting validation...');
+    const isValid = await validateForm();
+    console.log('✅ Validation result:', isValid);
+    
+    if (!isValid) {
+      console.log('❌ Validation failed - stopping submit');
       return;
     }
 
@@ -427,7 +555,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
         stock: {
           current: parseInt(formData.stock.current),
           maximum: formData.stock.maximum ? parseInt(formData.stock.maximum) : 100,
-          minimum: formData.stock.minimum ? parseInt(formData.stock.minimum) : 5,
+          minimum: formData.stock.minimum ? parseInt(formData.stock.minimum) : 1,
         }
       };
 
@@ -482,7 +610,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
             {product ? 'Edit Product' : 'Add New Product'}
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleFormClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
           >
             <X className="h-6 w-6" />
@@ -490,7 +618,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} noValidate className="p-6 space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
@@ -502,15 +630,14 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                  errors.name ? 'border-red-500' : 'border-gray-300'
-                }`}
+                onBlur={() => validateField('name', formData.name)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('name','Product Name') ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="Enter product name"
               />
-              {errors.name && (
+              {getError('name','Product Name') && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.name}
+                  {getError('name','Product Name')}
                 </p>
               )}
             </div>
@@ -523,7 +650,8 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 name="category"
                 value={formData.category}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                onBlur={() => validateField('category', formData.category)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('category','Category') ? 'border-red-500' : 'border-gray-300'}`}
               >
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>
@@ -531,6 +659,12 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                   </option>
                 ))}
               </select>
+              {getError('category','Category') && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {getError('category','Category')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -543,16 +677,15 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
               name="description"
               value={formData.description}
               onChange={handleInputChange}
+              onBlur={() => validateField('description', formData.description)}
               rows={4}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('description','Description') ? 'border-red-500' : 'border-gray-300'}`}
               placeholder="Describe your product..."
             />
-            {errors.description && (
+            {getError('description','Description') && (
               <p className="mt-1 text-sm text-red-600 flex items-center">
                 <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.description}
+                {getError('description','Description')}
               </p>
             )}
           </div>
@@ -568,41 +701,53 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 name="price"
                 value={formData.price}
                 onChange={handleInputChange}
+                onBlur={() => validateField('price', formData.price)}
                 step="0.01"
                 min="0"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                  errors.price ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('price','Price') ? 'border-red-500' : 'border-gray-300'}`}
                 placeholder="0.00"
               />
-              {errors.price && (
+              {getError('price','Price') && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors.price}
+                  {getError('price','Price')}
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Display Price (LKR)
+                Display Price (LKR) *
               </label>
               <input
                 type="number"
                 name="displayprice"
                 value={formData.displayprice}
                 onChange={handleInputChange}
+                onBlur={() => validateField('displayprice', formData.displayprice)}
+                required
                 step="0.01"
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Leave empty to use price"
+                min="0.01"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('displayprice','Display Price') ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Enter display price"
               />
+              {getError('displayprice','Display Price') && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {getError('displayprice','Display Price')}
+                </p>
+              )}
+              {!formData.displayprice && !errors.displayprice && (
+                <p className="mt-1 text-xs text-orange-600">
+                  WARNING: Display Price is required (must be less than or equal to regular price)
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Discount (%) 
-                <span className="text-xs text-green-600 font-normal ml-1">• Auto-calculated</span>
+                <span className="text-xs text-green-600 font-normal ml-1">- Auto-calculated</span>
               </label>
               <div className="relative">
                 <input
@@ -637,7 +782,8 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 name="unit"
                 value={formData.unit}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                onBlur={() => validateField('unit', formData.unit)}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('unit','Unit') ? 'border-red-500' : 'border-gray-300'}`}
               >
                 {units.map(unit => (
                   <option key={unit.value} value={unit.value}>
@@ -645,6 +791,12 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                   </option>
                 ))}
               </select>
+              {getError('unit','Unit') && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {getError('unit','Unit')}
+                </p>
+              )}
             </div>
 
             <div>
@@ -656,16 +808,21 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 name="stock.current"
                 value={formData.stock.current}
                 onChange={handleInputChange}
-                min="0"
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${
-                  errors['stock.current'] ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="0"
+                onBlur={() => validateField('stock.current', formData.stock.current)}
+                required
+                min="1"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('stock.current','Current Stock') ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Enter current stock quantity"
               />
-              {errors['stock.current'] && (
+              {getError('stock.current','Current Stock') && (
                 <p className="mt-1 text-sm text-red-600 flex items-center">
                   <AlertCircle className="h-4 w-4 mr-1" />
-                  {errors['stock.current']}
+                  {getError('stock.current','Current Stock')}
+                </p>
+              )}
+              {!formData.stock.current && !getError('stock.current','Current Stock') && (
+                <p className="mt-1 text-xs text-orange-600">
+                  WARNING: This field is required - minimum stock is 1 (cannot be 0 or out of stock)
                 </p>
               )}
             </div>
@@ -675,32 +832,58 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Maximum Stock
+                Maximum Stock *
               </label>
               <input
                 type="number"
                 name="stock.maximum"
                 value={formData.stock.maximum}
                 onChange={handleInputChange}
-                min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="100"
+                onBlur={() => validateField('stock.maximum', formData.stock.maximum)}
+                required
+                min="2"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('stock.maximum','Maximum Stock') ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Enter maximum stock quantity"
               />
+              {getError('stock.maximum','Maximum Stock') && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {getError('stock.maximum','Maximum Stock')}
+                </p>
+              )}
+              {!formData.stock.maximum && !getError('stock.maximum','Maximum Stock') && (
+                <p className="mt-1 text-xs text-orange-600">
+                  WARNING: Maximum Stock is required - must be greater than current stock
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Minimum Stock
+                Minimum Stock *
               </label>
               <input
                 type="number"
                 name="stock.minimum"
                 value={formData.stock.minimum}
                 onChange={handleInputChange}
+                onBlur={() => validateField('stock.minimum', formData.stock.minimum)}
+                required
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="5"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('stock.minimum','Minimum Stock') ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Enter minimum stock"
               />
+              {getError('stock.minimum','Minimum Stock') && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {getError('stock.minimum','Minimum Stock')}
+                </p>
+              )}
+              {!formData.stock.minimum && !getError('stock.minimum','Minimum Stock') && (
+                <p className="mt-1 text-xs text-orange-600">
+                  WARNING: Minimum Stock is required (must be &lt; current stock)
+                </p>
+              )}
             </div>
           </div>
 
@@ -708,17 +891,30 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Shelf Life (days)
+                Shelf Life (days) *
               </label>
               <input
                 type="number"
                 name="shelfLife"
                 value={formData.shelfLife}
                 onChange={handleInputChange}
+                onBlur={() => validateField('shelfLife', formData.shelfLife)}
+                required
                 min="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="7"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('shelfLife','Shelf Life') ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Enter shelf life in days"
               />
+              {getError('shelfLife','Shelf Life') && (
+                <p className="mt-1 text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {getError('shelfLife','Shelf Life')}
+                </p>
+              )}
+              {!formData.shelfLife && !getError('shelfLife','Shelf Life') && (
+                <p className="mt-1 text-xs text-orange-600">
+                  WARNING: Shelf Life is required (1-365 days)
+                </p>
+              )}
             </div>
 
             <div className="flex items-center">
@@ -728,6 +924,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 id="isFeatured"
                 checked={formData.isFeatured}
                 onChange={handleInputChange}
+                onBlur={() => validateField('isFeatured', formData.isFeatured)}
                 className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
               />
               <label htmlFor="isFeatured" className="ml-2 text-sm font-medium text-gray-700">
@@ -739,22 +936,35 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           {/* Storage Instructions */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Storage Instructions
+              Storage Instructions *
             </label>
             <textarea
               name="storageInstructions"
               value={formData.storageInstructions}
               onChange={handleInputChange}
+              onBlur={() => validateField('storageInstructions', formData.storageInstructions)}
+              required
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              placeholder="How should this product be stored?"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${getError('storageInstructions','Storage Instructions') ? 'border-red-500' : 'border-gray-300'}`}
+              placeholder="Enter storage instructions"
             />
+            {getError('storageInstructions','Storage Instructions') && (
+              <p className="mt-1 text-sm text-red-600 flex items-center">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {getError('storageInstructions','Storage Instructions')}
+              </p>
+            )}
+            {!formData.storageInstructions && !getError('storageInstructions','Storage Instructions') && (
+              <p className="mt-1 text-xs text-orange-600">
+                WARNING: Storage Instructions is required (5-500 characters)
+              </p>
+            )}
           </div>
 
           {/* Tags */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tags
+              Tags *
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.tags.map((tag, index) => (
@@ -776,11 +986,16 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
             <div className="flex gap-2">
               <input
                 type="text"
+                name="newTag"
                 value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
+                onChange={(e) => {
+                  setNewTag(e.target.value);
+                  validateField('newTag', e.target.value);
+                }}
+                onBlur={() => validateField('newTag', newTag)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Add a tag..."
+                className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors.newTag || errors.Tags ? 'border-red-500' : 'border-gray-300'}`}
+                placeholder="Add a tag"
               />
               <button
                 type="button"
@@ -790,6 +1005,32 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 <Plus className="h-4 w-4" />
               </button>
             </div>
+            {/* Tags validation feedback */}
+            {(errors.newTag || errors.Tags) && (
+              <div className="mt-2">
+                {errors.newTag && (
+                  <p className="text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errors.newTag}
+                  </p>
+                )}
+                {errors.Tags && (
+                  <p className="text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {errors.Tags}
+                  </p>
+                )}
+              </div>
+            )}
+            {/* Tags requirement notice */}
+            {formData.tags.length === 0 && !errors.Tags && (
+              <div className="mt-2">
+                <p className="text-sm text-orange-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  WARNING: At least one tag is required
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Images */}
@@ -836,20 +1077,47 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                 ))}
               </div>
             )}
+            
+            {/* Image validation feedback */}
+            {errors.Images && (
+              <div className="mt-2">
+                <p className="text-sm text-red-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.Images}
+                </p>
+              </div>
+            )}
+            
+            {/* Image requirement notice */}
+            {formData.images.length === 0 && !errors.Images && (
+              <div className="mt-2">
+                <p className="text-sm text-orange-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  WARNING: At least one product image is required
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Form Actions */}
           <div className="flex justify-end space-x-4 pt-6 border-t">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleFormClose}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
               disabled={loading}
+              onClick={(e) => {
+                console.log('🖱️ Update Product button clicked!');
+                console.log('Event object:', e);
+                console.log('Loading state:', loading);
+                console.log('Product data:', product);
+                handleSubmit(e);
+              }}
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
             >
               {loading ? (
