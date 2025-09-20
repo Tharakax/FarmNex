@@ -7,7 +7,7 @@ const SimpleChatbot = () => {
     {
       id: 1,
       type: 'bot',
-      text: 'Hello! I\'m your Smart Farm Management assistant. How can I help you today?',
+      text: 'Hello! I\'m your FarmNex assistant specializing in Sri Lankan agriculture. Ask me about crops, livestock, seasonal advice, or any farming questions!',
       timestamp: new Date()
     }
   ]);
@@ -49,40 +49,20 @@ const SimpleChatbot = () => {
     setIsLoading(true);
 
     try {
-      // Google AI API call
-      const apiKey = 'AIzaSyDl9lmtimjtTk9JPUlIwxk5VVquLBMg_UU';
-      const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+      // Use FarmNex backend API
+      const backendUrl = import.meta.env.VITE_API_BASE || import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+      const apiEndpoint = '/api/chatbot/chat';
       
-      const systemPrompt = 'You are a helpful AI assistant specializing in smart farm management and agricultural advice. Provide practical, actionable advice for farmers. Keep responses concise and focused on farming topics like crop management, soil health, irrigation, pest control, and sustainable agriculture practices.';
-      const fullPrompt = `${systemPrompt}\n\nUser question: ${userMessage.text}`;
-
-      const response = await fetch(`${endpoint}?key=${apiKey}`, {
+      const response = await fetch(`${backendUrl}${apiEndpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: fullPrompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 150,
-          },
-          safetySettings: [
-            {
-              category: 'HARM_CATEGORY_HARASSMENT',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-            },
-            {
-              category: 'HARM_CATEGORY_HATE_SPEECH',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-            }
-          ]
+          message: userMessage.text.trim(),
+          context: {
+            timestamp: new Date().toISOString()
+          }
         })
       });
 
@@ -90,15 +70,17 @@ const SimpleChatbot = () => {
       
       if (response.ok) {
         const data = await response.json();
-        botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || botResponse;
+        if (data.success && data.data && data.data.response) {
+          botResponse = data.data.response;
+        }
       } else {
-        // Fallback responses
+        // Sri Lankan agriculture focused fallback responses
         const fallbackResponses = [
-          'For optimal crop growth, ensure proper soil drainage and maintain consistent watering schedules.',
-          'Consider implementing crop rotation to improve soil health and reduce pest problems naturally.',
-          'Monitor your plants regularly for signs of pests or diseases, and use integrated pest management techniques.',
-          'Smart farming involves using data-driven decisions for planting, irrigation, and harvesting.',
-          'I can help you with farm management questions like crop planning, irrigation scheduling, and pest control strategies.'
+          'I\'m here to help with Sri Lankan agriculture! Ask me about rice, tea, coconut, livestock, or seasonal farming advice.',
+          'For farming in Sri Lanka, consider our tropical climate and monsoon seasons. What specific crop or animal would you like advice about?',
+          'Sri Lankan farmers can benefit from integrated farming approaches. Tell me about your farming interests - crops, livestock, or soil management?',
+          'I can provide guidance on traditional Sri Lankan crops like rice, tea, coconut, as well as livestock care suited to our climate.',
+          'Whether you\'re interested in Yala or Maha season crops, or year-round livestock management, I\'m here to help!'
         ];
         botResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
       }
@@ -117,7 +99,7 @@ const SimpleChatbot = () => {
       const fallbackMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        text: 'I can help you with farm management questions like crop planning, irrigation scheduling, and pest control strategies.',
+        text: 'I\'m your FarmNex assistant for Sri Lankan agriculture. Ask me about crops like rice, tea, coconut, or livestock care!',
         timestamp: new Date()
       };
 

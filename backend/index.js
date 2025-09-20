@@ -15,6 +15,7 @@ import farmSupplyRouter from './routers/farmSupplyRouter.js';
 import reportRouter from './routers/reportRoutes.js';
 import paymentRouter from './routers/paymentRouter.js';
 import soilRouter from './routers/soilRouter.js';
+import chatbotRouter from './routers/chatbotRouter.js';
 
 const app = express();
 
@@ -97,6 +98,9 @@ app.get('/api/training/published/:id', async (req, res) => {
     });
   }
 });
+
+// Public chatbot routes (no authentication required)
+app.use("/api/chatbot", chatbotRouter);
 
 // Apply JWT auth for all other routes
 app.use(JWTauth)

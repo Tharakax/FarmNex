@@ -611,7 +611,7 @@ const HomePage = () => {
         </footer>
       </div>
       
-      {/* Chatbot Widget */}
+      {/* Chatbot Widget (Temporary fallback to SimpleChatbot) */}
       <SimpleChatbot />
     </div>
   );
