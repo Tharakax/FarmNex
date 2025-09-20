@@ -25,6 +25,7 @@ const ValidationDemo = React.lazy(() => import('./pages/ValidationDemo.jsx'))
 const SweetAlertTest = React.lazy(() => import('./pages/SweetAlertTest.jsx'))
 const RequiredFieldsTest = React.lazy(() => import('./pages/RequiredFieldsTest.jsx'))
 const SweetAlertDebug = React.lazy(() => import('./pages/SweetAlertDebug.jsx'))
+const SoilMoistureDashboard = React.lazy(() => import('./pages/SoilMoistureDashboard.jsx'))
 
 // Loading component
 const Loading = () => (
@@ -102,6 +103,10 @@ function App() {
             <Route path="/sweetalert-test" element={<SweetAlertTest />} />
             <Route path="/required-fields-test" element={<RequiredFieldsTest />} />
             <Route path="/sweetalert-debug" element={<SweetAlertDebug />} />
+            
+            {/* Soil Moisture Dashboard */}
+            <Route path="/soil-dashboard" element={<SoilMoistureDashboard />} />
+            <Route path="/soil" element={<SoilMoistureDashboard />} />
             
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />

@@ -1,5 +1,5 @@
 {
-    "sketch": "arduino\\SoilMoisture_LCD\\SoilMoisture_Simple.ino",
+    "sketch": "arduino\\SoilMoisture_LCD\\SoilMoisture_Unified.ino",
     "board": "arduino:avr:uno",
     "configuration": "cpu=atmega328p",
     "port": "COM3"

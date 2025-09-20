@@ -19,6 +19,8 @@ const SoilMoistureWidget = ({
   const [isConnected, setIsConnected] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [nextRefreshIn, setNextRefreshIn] = useState(0);
+  const [connectionRetries, setConnectionRetries] = useState(0);
+  const [lastDataTime, setLastDataTime] = useState(null);
 
   // Get API base URL from environment or default
   const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
@@ -32,6 +34,9 @@ const SoilMoistureWidget = ({
       const result = await response.json();
       
       if (result.success && result.data) {
+        const dataAge = new Date() - new Date(result.data.createdAt);
+        const isRecentData = dataAge < 120000; // Less than 2 minutes old
+        
         setData(prev => ({
           ...prev,
           current: result.data,
@@ -39,12 +44,21 @@ const SoilMoistureWidget = ({
           lastUpdated: new Date(),
           loading: false
         }));
-        setIsConnected(true);
+        
+        setIsConnected(isRecentData);
+        setConnectionRetries(0);
+        setLastDataTime(new Date(result.data.createdAt));
+        
+        // Show connection status based on data freshness
+        if (!isRecentData) {
+          console.warn(`Soil sensor data is ${Math.round(dataAge/1000)} seconds old - sensor may be disconnected`);
+        }
       } else {
         throw new Error(result.message || 'No data available');
       }
     } catch (error) {
       console.error('Error fetching soil moisture data:', error);
+      setConnectionRetries(prev => prev + 1);
       setData(prev => ({
         ...prev,
         error: error.message,
@@ -91,6 +105,23 @@ const SoilMoistureWidget = ({
       console.error('Error fetching soil moisture stats:', error);
     }
   };
+
+  // Page visibility detection for auto-resume when website is reopened
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible - refreshing soil sensor data...');
+        fetchLatestReading();
+        fetchHistory();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Initial data fetch and setup intervals
   useEffect(() => {
@@ -240,7 +271,7 @@ const SoilMoistureWidget = ({
         </div>
         <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
           <span className="status-dot" style={{ animation: isRefreshing ? 'pulse 1s infinite' : 'none' }}></span>
-          {isRefreshing ? 'Updating...' : (isConnected ? 'Live' : 'Offline')}
+          {isRefreshing ? 'Updating...' : (isConnected ? 'Live' : `Offline ${connectionRetries > 0 ? `(${connectionRetries} attempts)` : ''}`)}
         </div>
       </div>
 
@@ -273,7 +304,12 @@ const SoilMoistureWidget = ({
             <span className="detail-label">Last Reading:</span>
             <span className="detail-value">
               {current?.createdAt 
-                ? new Date(current.createdAt).toLocaleTimeString()
+                ? (() => {
+                    const age = Math.round((new Date() - new Date(current.createdAt)) / 1000);
+                    if (age < 60) return `${age}s ago`;
+                    if (age < 3600) return `${Math.round(age/60)}m ago`;
+                    return new Date(current.createdAt).toLocaleTimeString();
+                  })()
                 : '--'
               }
             </span>

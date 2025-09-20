@@ -9,7 +9,7 @@
                 "compile",
                 "--fqbn",
                 "arduino:avr:uno",
-                "arduino/SoilMoisture_LCD/SoilMoisture_Simple.ino"
+                "arduino/SoilMoisture_LCD/SoilMoisture_Unified.ino"
             ],
             "group": "build",
             "presentation": {
