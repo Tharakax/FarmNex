@@ -80,13 +80,25 @@ export const trainingAPIReal = {
       // Append all text fields
       Object.keys(materialData).forEach(key => {
         if (materialData[key] !== undefined && materialData[key] !== null) {
-          formData.append(key, materialData[key]);
+          // Handle arrays (like tags) properly
+          if (Array.isArray(materialData[key])) {
+            formData.append(key, materialData[key].join(','));
+          } else {
+            formData.append(key, materialData[key]);
+          }
         }
       });
 
       // Append file if provided
       if (file) {
         formData.append('file', file);
+      }
+
+      // Debug logging
+      console.log('API: Creating material with data:', materialData);
+      console.log('API: File provided:', !!file);
+      if (file) {
+        console.log('API: File details:', { name: file.name, size: file.size, type: file.type });
       }
 
       const response = await api.post('/', formData, {
@@ -113,7 +125,12 @@ export const trainingAPIReal = {
       // Append all text fields
       Object.keys(materialData).forEach(key => {
         if (materialData[key] !== undefined && materialData[key] !== null) {
-          formData.append(key, materialData[key]);
+          // Handle arrays (like tags) properly
+          if (Array.isArray(materialData[key])) {
+            formData.append(key, materialData[key].join(','));
+          } else {
+            formData.append(key, materialData[key]);
+          }
         }
       });
 

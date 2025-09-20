@@ -13,13 +13,13 @@ import {
 } from 'lucide-react';
 
 // Import components
-import AddEditTrainingForm from './AddEditTrainingForm';
+import AddEditTrainingForm from '../components/AddEditTrainingForm';
 import TrainingMaterialsList from './TrainingMaterialsList';
 import TrainingMaterialViewer from './TrainingMaterialViewer';
 import ErrorBoundary from '../ErrorBoundary';
 
 // Import APIs - using real API service
-import { trainingAPIReal } from '../../services/trainingAPIReal';
+import { trainingAPIReal } from '../../../services/trainingAPIReal';
 
 const TrainingManagementFixed = () => {
   const [successMessage, setSuccessMessage] = useState('');
@@ -185,13 +185,27 @@ const TrainingManagementFixed = () => {
   const handleSaveMaterial = async (materialData, file) => {
     setIsFormLoading(true);
     console.log('Saving material:', materialData, 'File:', file);
+    
+    // Clear any existing error messages
+    setErrorMessage('');
+    
     try {
-      // Prepare data for API - include file if provided
-      const dataToSend = { ...materialData };
-      if (file) {
-        dataToSend.file = file; // Add the file object directly for FormData creation
-        console.log('File added to data:', { name: file.name, size: file.size, type: file.type });
+      // Validate required fields
+      if (!materialData.title || !materialData.description || !materialData.category) {
+        throw new Error('Title, description, and category are required fields.');
       }
+      
+      // Prepare data for API - do NOT include file in dataToSend (it's passed separately)
+      const dataToSend = { 
+        ...materialData,
+        createdBy: materialData.createdBy || 'Admin' // Ensure createdBy is set
+      };
+      
+      if (file) {
+        console.log('File will be uploaded:', { name: file.name, size: file.size, type: file.type });
+      }
+      
+      console.log('Data being sent to API:', dataToSend);
       
       if (editingMaterial) {
         // Update existing material

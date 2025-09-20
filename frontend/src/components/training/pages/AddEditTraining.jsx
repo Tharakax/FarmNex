@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import Header from '../../../components/Header.jsx';
 import { trainingAPIReal } from '../../../services/trainingAPIReal';
-import { showSuccess, showError } from '../../../utils/sweetAlert';
+import { showSuccess, showError, showWarning, showToast, showConfirm, showValidationError } from '../../../utils/sweetAlertRobust';
 import { getAuthorName } from '../../../utils/userUtils';
 
 const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
@@ -85,6 +85,71 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
     }
   };
 
+  // Validate individual field for onBlur feedback
+  const validateField = (field, current = formData) => {
+    switch (field) {
+      case 'title': {
+        const v = (current.title || '').trim();
+        if (!v) return 'Title is required';
+        if (v.length < 5) return 'Title must be at least 5 characters long';
+        if (v.length > 100) return 'Title must not exceed 100 characters';
+        return '';
+      }
+      case 'description': {
+        const v = (current.description || '').trim();
+        if (!v) return 'Description is required';
+        if (v.length < 20) return 'Description must be at least 20 characters long';
+        if (v.length > 1000) return 'Description must not exceed 1000 characters';
+        return '';
+      }
+      case 'type': {
+        if (!current.type) return 'Content type is required';
+        return '';
+      }
+      case 'category': {
+        if (!current.category) return 'Category is required';
+        return '';
+      }
+      case 'createdBy': {
+        const v = (current.createdBy || '').trim();
+        if (!v) return 'Author name is required';
+        if (v.length < 2) return 'Author name must be at least 2 characters long';
+        if (v.length > 50) return 'Author name must not exceed 50 characters';
+        return '';
+      }
+      case 'uploadLink': {
+        const v = (current.uploadLink || '').trim();
+        if (v) {
+          const urlPattern = /^(https?:\/\/)([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+          if (!urlPattern.test(v)) return 'Please enter a valid URL (must start with http:// or https://)';
+        }
+        return '';
+      }
+      case 'tags': {
+        const v = (current.tags || '').trim();
+        if (v) {
+          const tags = v.split(',').map(tag => tag.trim()).filter(Boolean);
+          if (tags.length > 10) return 'Maximum of 10 tags allowed';
+          if (tags.some(tag => tag.length > 50)) return 'Each tag must be less than 50 characters';
+        }
+        return '';
+      }
+      default:
+        return '';
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    const msg = validateField(name);
+    if (msg) {
+      setErrors(prev => ({ ...prev, [name]: msg }));
+    } else {
+      // Clear error if validation passes
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     
@@ -128,48 +193,61 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
         ...prev,
         file: ''
       }));
-      showToast(`File "${file.name}" selected successfully!`, 'success');
+      const fileSize = (file.size / 1024 / 1024).toFixed(2);
+      showToast(`✅ File "${file.name}" (${fileSize}MB) selected successfully!`, 'success');
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
+    const alertErrors = [];
 
     // Title validation
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
+      alertErrors.push('Title is required.');
     } else if (formData.title.length < 5) {
       newErrors.title = 'Title must be at least 5 characters long';
+      alertErrors.push('Title must be at least 5 characters long.');
     } else if (formData.title.length > 100) {
       newErrors.title = 'Title must not exceed 100 characters';
+      alertErrors.push('Title must not exceed 100 characters.');
     }
 
     // Description validation
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
+      alertErrors.push('Description is required.');
     } else if (formData.description.length < 20) {
       newErrors.description = 'Description must be at least 20 characters long';
+      alertErrors.push('Description must be at least 20 characters long.');
     } else if (formData.description.length > 1000) {
       newErrors.description = 'Description must not exceed 1000 characters';
+      alertErrors.push('Description must not exceed 1000 characters.');
     }
 
     // Type validation
     if (!formData.type) {
       newErrors.type = 'Content type is required';
+      alertErrors.push('Content type is required.');
     }
 
     // Category validation
     if (!formData.category) {
       newErrors.category = 'Category is required';
+      alertErrors.push('Category is required.');
     }
 
     // Author name validation
     if (!formData.createdBy.trim()) {
       newErrors.createdBy = 'Author name is required';
+      alertErrors.push('Author name is required.');
     } else if (formData.createdBy.length < 2) {
       newErrors.createdBy = 'Author name must be at least 2 characters long';
+      alertErrors.push('Author name must be at least 2 characters long.');
     } else if (formData.createdBy.length > 50) {
       newErrors.createdBy = 'Author name must not exceed 50 characters';
+      alertErrors.push('Author name must not exceed 50 characters.');
     }
 
     // URL validation
@@ -177,12 +255,14 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       const urlPattern = /^(https?:\/\/)([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
       if (!urlPattern.test(formData.uploadLink)) {
         newErrors.uploadLink = 'Please enter a valid URL (must start with http:// or https://)';
+        alertErrors.push('Please enter a valid URL (must start with http:// or https://)');
       }
     }
 
-    // Video type validation
-    if (formData.type === 'Video' && !formData.uploadLink.trim() && !selectedFile) {
-      newErrors.uploadLink = 'For video content, either upload a video file or provide a video link';
+    // File requirement validation - required for ALL content types
+    if (!selectedFile) {
+      newErrors.file = 'File is required for all content types';
+      alertErrors.push('File is required for all content types.');
     }
 
     // File validation
@@ -197,11 +277,13 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       const typeAllowed = allowedTypes[formData.type] || [];
       if (typeAllowed.length > 0 && !typeAllowed.includes(selectedFile.type)) {
         newErrors.file = `Invalid file type for ${formData.type}. Please upload a supported format.`;
+        alertErrors.push(`Invalid file type for ${formData.type}. Please upload a supported format.`);
       }
       
       // File size validation (100MB limit)
       if (selectedFile.size > 100 * 1024 * 1024) {
         newErrors.file = 'File size must be less than 100MB';
+        alertErrors.push('File size must be less than 100MB.');
       }
     }
 
@@ -210,22 +292,25 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
       if (tags.length > 10) {
         newErrors.tags = 'Maximum of 10 tags allowed';
+        alertErrors.push('Maximum of 10 tags allowed.');
       }
       const invalidTags = tags.filter(tag => tag.length > 50);
       if (invalidTags.length > 0) {
         newErrors.tags = 'Each tag must be less than 50 characters';
+        alertErrors.push('Each tag must be less than 50 characters.');
       }
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { isValid: Object.keys(newErrors).length === 0, alertErrors };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      await showWarning('Please correct all validation errors before submitting.');
+    const { isValid, alertErrors } = validateForm();
+    if (!isValid) {
+      await showValidationError(alertErrors, 'Please Fix These Issues');
       return;
     }
 
@@ -234,9 +319,12 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       
       const submitData = {
         ...formData,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        file: selectedFile
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
       };
+
+      // Debug logging
+      console.log('Submitting material data:', submitData);
+      console.log('Selected file:', selectedFile);
 
       if (isEditing) {
         await trainingAPIReal.updateTrainingMaterial(materialToEdit?._id || id, submitData, selectedFile);
@@ -265,10 +353,25 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       }
     } catch (error) {
       console.error('Error saving material:', error);
-      await showError(
-        `Failed to ${isEditing ? 'update' : 'create'} training material. Please check your connection and try again.`,
-        'Error!'
-      );
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        submitData,
+        selectedFile
+      });
+      
+      let errorMessage = `Failed to ${isEditing ? 'update' : 'create'} training material.`;
+      
+      if (error.response?.data?.message) {
+        errorMessage += `\n\nError: ${error.response.data.message}`;
+      } else if (error.message) {
+        errorMessage += `\n\nError: ${error.message}`;
+      }
+      
+      errorMessage += '\n\nPlease check your connection and try again.';
+      
+      await showError(errorMessage, 'Error!');
     } finally {
       setLoading(false);
     }
@@ -350,7 +453,8 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
       }
       
       setSelectedFile(file);
-      showToast(`File "${file.name}" uploaded successfully!`, 'success');
+      const fileSize = (file.size / 1024 / 1024).toFixed(2);
+      showToast(`✅ File "${file.name}" (${fileSize}MB) uploaded successfully!`, 'success');
     }
   };
 
@@ -376,9 +480,17 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
     }
   };
 
-  const removeFile = () => {
-    setSelectedFile(null);
-    document.getElementById('file-input').value = '';
+  const removeFile = async () => {
+    const result = await showConfirm(
+      'Are you sure you want to remove the selected file?',
+      'Remove File'
+    );
+    if (result.isConfirmed) {
+      setSelectedFile(null);
+      const input = document.getElementById('file-input');
+      if (input) input.value = '';
+      showToast('File removed', 'info');
+    }
   };
 
   if (loading && (isEditing || materialToEdit)) {
@@ -446,7 +558,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8">
+          <form noValidate onSubmit={handleSubmit} className="p-8">
             {/* Basic Information Section */}
             <div className="mb-8">
               <div className="flex items-center space-x-2 mb-6">
@@ -468,6 +580,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.title ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                     placeholder="e.g., 'Modern Irrigation Techniques for Small Farms'"
                     maxLength={100}
@@ -502,6 +615,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="type"
                     value={formData.type}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.type ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                   >
                     <option value="Article">📄 Article</option>
@@ -530,6 +644,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.category ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                   >
                     <option value="General">🌱 General Farming</option>
@@ -560,6 +675,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="difficulty"
                     value={formData.difficulty}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     className="w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white border-gray-200 hover:border-gray-300"
                   >
                     <option value="Beginner">🟢 Beginner</option>
@@ -581,6 +697,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="createdBy"
                     value={formData.createdBy}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.createdBy ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                     placeholder="e.g., Dr. Sarah Johnson"
                     maxLength={50}
@@ -622,6 +739,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     rows={6}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white resize-none ${errors.description ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                     placeholder="Provide a comprehensive description of what farmers will learn from this material. Include key benefits, techniques covered, and expected outcomes..."
@@ -661,6 +779,7 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="tags"
                     value={formData.tags}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.tags ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                     placeholder="irrigation, water management, sustainability, efficiency"
                   />
@@ -707,10 +826,11 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
                     name="uploadLink"
                     value={formData.uploadLink}
                     onChange={handleInputChange}
+                    onBlur={handleBlur}
                     className={`w-full px-4 py-3 border-2 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${errors.uploadLink ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'}`}
                     placeholder="https://youtube.com/watch?v=example or https://example.com"
                   />
-                  <p className="mt-2 text-sm text-gray-500">Link to YouTube video, website, or online resource</p>
+                  <p className="mt-2 text-sm text-gray-500">Optional: Link to YouTube video, website, or online resource</p>
                   {errors.uploadLink && (
                     <div className="mt-2 flex items-center space-x-2 text-red-600">
                       <AlertCircle className="h-4 w-4" />

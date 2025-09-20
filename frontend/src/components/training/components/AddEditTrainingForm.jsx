@@ -11,7 +11,7 @@ import {
   CheckCircle,
   Loader
 } from 'lucide-react';
-import { showSuccess, showError, showWarning, showConfirm, showToast } from '../../utils/sweetAlert';
+import { showSuccess, showError, showWarning, showConfirm, showToast, showValidationError, showValidationSuccess } from '../../../utils/sweetAlertRobust';
 
 const AddEditTrainingForm = ({ 
   isOpen, 
@@ -36,6 +36,7 @@ const AddEditTrainingForm = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [dragOver, setDragOver] = useState(false);
+  const [validFields, setValidFields] = useState({});
 
   // Update form data when editingMaterial changes
   useEffect(() => {
@@ -65,6 +66,7 @@ const AddEditTrainingForm = ({
     }
     setSelectedFile(null);
     setErrors({});
+    setValidFields({});
   }, [editingMaterial]);
 
   const categories = [
@@ -92,9 +94,11 @@ const AddEditTrainingForm = ({
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    // Basic sanitization (trim only for textareas at submit, keep user typing experience here)
+    const nextValue = value;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: nextValue
     }));
     // Clear error when user starts typing
     if (errors[name]) {
@@ -102,6 +106,101 @@ const AddEditTrainingForm = ({
         ...prev,
         [name]: ''
       }));
+    }
+  };
+
+  // Validate a single field for onBlur/inline feedback
+  const validateField = (field, current = formData, file = selectedFile) => {
+    switch (field) {
+      case 'title': {
+        const v = (current.title || '').trim();
+        if (!v) return 'Title is required';
+        if (v.length < 5) return 'Title must be at least 5 characters long';
+        if (v.length > 100) return 'Title must not exceed 100 characters';
+        return '';
+      }
+      case 'description': {
+        const v = (current.description || '').trim();
+        if (!v) return 'Description is required';
+        if (v.length < 20) return 'Description must be at least 20 characters long';
+        if (v.length > 1000) return 'Description must not exceed 1000 characters';
+        return '';
+      }
+      case 'category': {
+        const v = current.category;
+        if (!v) return 'Category is required';
+        return '';
+      }
+      case 'content': {
+        if (current.type === 'Article') {
+          const v = (current.content || '').trim();
+          if (!v) return 'Content is required for articles';
+          if (v.length < 50) return 'Article content must be at least 50 characters long';
+          if (v.length > 50000) return 'Article content must not exceed 50,000 characters';
+        }
+        return '';
+      }
+      case 'file': {
+        // File is now required for ALL content types
+        if (!file && !editingMaterial) {
+          return 'File is required for all content types';
+        }
+        if (file) {
+          const allowedTypes = {
+            'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
+            'PDF': ['application/pdf'],
+            'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+            'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+            'FAQ': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf']
+          };
+          const typeAllowed = allowedTypes[current.type] || [];
+          if (typeAllowed.length > 0 && !typeAllowed.includes(file.type)) {
+            return `Invalid file type for ${current.type}. Please upload a supported format.`;
+          }
+          // 50MB limit for modal form
+          if (file.size > 50 * 1024 * 1024) {
+            return 'File size must be less than 50MB';
+          }
+        }
+        return '';
+      }
+      case 'tags': {
+        const raw = current.tags || '';
+        const trimmed = raw.trim();
+        if (!trimmed) return 'At least one tag is required';
+        const tags = trimmed.split(',').map(t => t.trim()).filter(Boolean);
+        if (tags.length === 0) return 'At least one tag is required';
+        if (tags.length > 10) return 'Maximum of 10 tags allowed';
+        if (tags.some(t => t.length > 50)) return 'Each tag must be less than 50 characters';
+        return '';
+      }
+      case 'status': {
+        if (!current.status) return 'Status is required';
+        return '';
+      }
+      case 'type': {
+        if (!current.type) return 'Content type is required';
+        return '';
+      }
+      case 'difficulty': {
+        if (!current.difficulty) return 'Difficulty level is required';
+        return '';
+      }
+      default:
+        return '';
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    const msg = validateField(name);
+    if (msg) {
+      setErrors(prev => ({ ...prev, [name]: msg }));
+      setValidFields(prev => ({ ...prev, [name]: false }));
+    } else {
+      // Clear error if validation passes
+      setErrors(prev => ({ ...prev, [name]: '' }));
+      setValidFields(prev => ({ ...prev, [name]: true }));
     }
   };
 
@@ -140,7 +239,8 @@ const AddEditTrainingForm = ({
         ...prev,
         file: ''
       }));
-      showToast(`File "${file.name}" selected successfully!`, 'success');
+      const fileSize = (file.size / 1024 / 1024).toFixed(2);
+      showToast(`✅ File "${file.name}" (${fileSize}MB) selected successfully!`, 'success');
     }
   };
 
@@ -168,44 +268,56 @@ const AddEditTrainingForm = ({
 
   const validateForm = () => {
     const newErrors = {};
+    const alertErrors = [];
     
     // Title validation
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
+      alertErrors.push('Title is required.');
     } else if (formData.title.length < 5) {
       newErrors.title = 'Title must be at least 5 characters long';
+      alertErrors.push('Title must be at least 5 characters long.');
     } else if (formData.title.length > 100) {
       newErrors.title = 'Title must not exceed 100 characters';
+      alertErrors.push('Title must not exceed 100 characters.');
     }
     
     // Description validation
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
+      alertErrors.push('Description is required.');
     } else if (formData.description.length < 20) {
       newErrors.description = 'Description must be at least 20 characters long';
+      alertErrors.push('Description must be at least 20 characters long.');
     } else if (formData.description.length > 1000) {
       newErrors.description = 'Description must not exceed 1000 characters';
+      alertErrors.push('Description must not exceed 1000 characters.');
     }
     
     // Category validation
     if (!formData.category) {
       newErrors.category = 'Category is required';
+      alertErrors.push('Category is required.');
     }
     
     // Content validation for articles
     if (formData.type === 'Article') {
       if (!formData.content.trim()) {
         newErrors.content = 'Content is required for articles';
+        alertErrors.push('Content is required for articles.');
       } else if (formData.content.length < 50) {
         newErrors.content = 'Article content must be at least 50 characters long';
+        alertErrors.push('Article content must be at least 50 characters long.');
       } else if (formData.content.length > 50000) {
         newErrors.content = 'Article content must not exceed 50,000 characters';
+        alertErrors.push('Article content must not exceed 50,000 characters.');
       }
     }
     
-    // File validation for non-article types
-    if ((formData.type === 'Video' || formData.type === 'PDF' || formData.type === 'Guide') && !selectedFile && !editingMaterial) {
-      newErrors.file = 'File is required for this content type';
+    // File validation - now required for ALL content types
+    if (!selectedFile && !editingMaterial) {
+      newErrors.file = 'File is required for all content types';
+      alertErrors.push('A file is required for all content types.');
     }
     
     // File type validation
@@ -214,43 +326,87 @@ const AddEditTrainingForm = ({
         'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
         'PDF': ['application/pdf'],
         'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
-        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'] // For thumbnails
+        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
+        'FAQ': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf']
       };
       
       const typeAllowed = allowedTypes[formData.type] || [];
       if (typeAllowed.length > 0 && !typeAllowed.includes(selectedFile.type)) {
         newErrors.file = `Invalid file type for ${formData.type}. Please upload a supported format.`;
+        alertErrors.push(`Invalid file type for ${formData.type}.`);
       }
       
       // File size validation (50MB limit)
       if (selectedFile.size > 50 * 1024 * 1024) {
         newErrors.file = 'File size must be less than 50MB';
+        alertErrors.push('File size must be less than 50MB.');
       }
     }
     
-    // Tags validation
-    if (formData.tags.trim()) {
+    // Tags validation (required)
+    if (!formData.tags.trim()) {
+      newErrors.tags = 'At least one tag is required';
+      alertErrors.push('At least one tag is required.');
+    } else {
       const tags = formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-      if (tags.length > 10) {
-        newErrors.tags = 'Maximum of 10 tags allowed';
+      if (tags.length === 0) {
+        newErrors.tags = 'At least one tag is required';
+        alertErrors.push('At least one tag is required.');
+      } else {
+        if (tags.length > 10) {
+          newErrors.tags = 'Maximum of 10 tags allowed';
+          alertErrors.push('Maximum of 10 tags allowed.');
+        }
+        const invalidTags = tags.filter(tag => tag.length > 50);
+        if (invalidTags.length > 0) {
+          newErrors.tags = 'Each tag must be less than 50 characters';
+          alertErrors.push('Each tag must be less than 50 characters.');
+        }
       }
-      const invalidTags = tags.filter(tag => tag.length > 50);
-      if (invalidTags.length > 0) {
-        newErrors.tags = 'Each tag must be less than 50 characters';
-      }
+    }
+    
+    // Content Type validation
+    if (!formData.type) {
+      newErrors.type = 'Content type is required';
+      alertErrors.push('Content type is required.');
+    }
+    
+    // Difficulty Level validation
+    if (!formData.difficulty) {
+      newErrors.difficulty = 'Difficulty level is required';
+      alertErrors.push('Difficulty level is required.');
+    }
+    
+    // Status validation
+    if (!formData.status) {
+      newErrors.status = 'Status is required';
+      alertErrors.push('Status is required.');
     }
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { isValid: Object.keys(newErrors).length === 0, alertErrors };
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    console.log('=== FORM SUBMIT STARTED ===');
+    console.log('Event:', e);
+    console.log('Form data:', formData);
+    console.log('Selected file:', selectedFile);
     
-    if (!validateForm()) {
-      showWarning('Please correct the validation errors before submitting.');
+    e.preventDefault();
+    console.log('Form validation starting...');
+
+    const { isValid, alertErrors } = validateForm();
+    console.log('Form validation result:', isValid);
+    console.log('Validation issues:', alertErrors);
+    
+    if (!isValid) {
+      console.log('Form validation failed - showing SweetAlert');
+      showValidationError(alertErrors, 'Please Fix These Issues');
       return;
     }
+    
+    console.log('Form validation passed - proceeding with save');
     
     try {
       const submitData = {
@@ -258,18 +414,57 @@ const AddEditTrainingForm = ({
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
       };
       
+      console.log('Final submit data:', submitData);
+      console.log('onSave function:', typeof onSave, onSave);
+      
+      if (!onSave) {
+        throw new Error('onSave function is not provided!');
+      }
+      
+      console.log('Calling onSave function...');
       await onSave(submitData, selectedFile);
-      showSuccess(
-        `Training material ${editingMaterial ? 'updated' : 'created'} successfully!`,
-        'Success!'
-      );
+      
+      console.log('onSave completed successfully');
+      
+      // Show enhanced success message with recommendations
+      const recommendations = [];
+      
+      if (formData.status === 'draft') {
+        recommendations.push('Remember to publish your material when ready');
+      }
+      if (!formData.tags || formData.tags.trim() === '') {
+        recommendations.push('Consider adding tags to help users find your content');
+      }
+      if (formData.type === 'Article' && formData.content.length < 200) {
+        recommendations.push('Consider adding more detailed content for better engagement');
+      }
+      
+      if (recommendations.length > 0) {
+        showValidationSuccess(
+          `Training material ${editingMaterial ? 'updated' : 'created'} successfully!`,
+          recommendations
+        );
+      } else {
+        showSuccess(
+          `Training material ${editingMaterial ? 'updated' : 'created'} successfully!`,
+          'Success!'
+        );
+      }
     } catch (error) {
       console.error('Error saving material:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        submitData: formData,
+        selectedFile
+      });
       showError(
-        `Failed to ${editingMaterial ? 'update' : 'create'} training material. Please try again.`,
+        `Failed to ${editingMaterial ? 'update' : 'create'} training material. Error: ${error.message}`,
         'Error!'
       );
     }
+    
+    console.log('=== FORM SUBMIT COMPLETED ===');
   };
 
   const resetForm = () => {
@@ -285,16 +480,21 @@ const AddEditTrainingForm = ({
     });
     setSelectedFile(null);
     setErrors({});
+    setValidFields({});
   };
 
   const handleClose = async () => {
     if (!isLoading) {
       // Check if form has unsaved changes
-      const hasUnsavedChanges = formData.title || formData.description || formData.content || selectedFile;
+      const hasUnsavedChanges = formData.title || formData.description || formData.content || formData.tags || selectedFile;
       
       if (hasUnsavedChanges) {
+        let message = 'You have unsaved changes. Are you sure you want to close without saving?';
+        if (selectedFile) {
+          message = 'You have unsaved changes including a selected file. Are you sure you want to close without saving?';
+        }
         const result = await showConfirm(
-          'You have unsaved changes. Are you sure you want to close without saving?',
+          message,
           'Unsaved Changes'
         );
         
@@ -328,30 +528,42 @@ const AddEditTrainingForm = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form noValidate onSubmit={(e) => {
+          console.log('=== FORM onSubmit TRIGGERED ===');
+          console.log('Form submit event:', e);
+          handleSubmit(e);
+        }} className="p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Title */}
             <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Title <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.title ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter material title"
-                maxLength={100}
-              />
+                  <input
+                    type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    onBlur={handleBlur}
+                    aria-invalid={!!errors.title}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      errors.title ? 'border-red-500' : validFields.title ? 'border-green-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter material title"
+                    maxLength={100}
+                  />
               <div className="flex justify-between items-center mt-1">
                 <div>
                   {errors.title && (
                     <p className="text-red-500 text-sm flex items-center">
                       <AlertCircle className="h-4 w-4 mr-1" />
                       {errors.title}
+                    </p>
+                  )}
+                  {!errors.title && validFields.title && (
+                    <p className="text-green-600 text-sm flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Title looks good!
                     </p>
                   )}
                 </div>
@@ -366,14 +578,16 @@ const AddEditTrainingForm = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Category <span className="text-red-500">*</span>
               </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.category ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    onBlur={handleBlur}
+                    aria-invalid={!!errors.category}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                      errors.category ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  >
                 <option value="">Select category</option>
                 {categories.map(category => (
                   <option key={category} value={category}>{category}</option>
@@ -390,7 +604,7 @@ const AddEditTrainingForm = ({
             {/* Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content Type
+                Content Type <span className="text-red-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {types.map(type => {
@@ -399,7 +613,40 @@ const AddEditTrainingForm = ({
                     <button
                       key={type.value}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, type: type.value }))}
+                      onClick={async () => {
+                        // Check if there's a selected file and warn about type change
+                        if (selectedFile && formData.type !== type.value) {
+                          const result = await showConfirm(
+                            `Changing content type may affect file compatibility. Your selected file (${selectedFile.name}) might not be valid for ${type.value} content. Continue?`,
+                            'Content Type Change Warning'
+                          );
+                          if (!result.isConfirmed) {
+                            return;
+                          }
+                        }
+                        
+                        setFormData(prev => ({ ...prev, type: type.value }));
+                        // Trigger validation for type field
+                        const msg = validateField('type', { ...formData, type: type.value });
+                        if (msg) {
+                          setErrors(prev => ({ ...prev, type: msg }));
+                          setValidFields(prev => ({ ...prev, type: false }));
+                        } else {
+                          setErrors(prev => ({ ...prev, type: '' }));
+                          setValidFields(prev => ({ ...prev, type: true }));
+                        }
+                        
+                        // Re-validate file if one is selected
+                        if (selectedFile) {
+                          const fileMsg = validateField('file', { ...formData, type: type.value }, selectedFile);
+                          if (fileMsg) {
+                            setErrors(prev => ({ ...prev, file: fileMsg }));
+                            showWarning(fileMsg, 'File Validation Warning');
+                          } else {
+                            setErrors(prev => ({ ...prev, file: '' }));
+                          }
+                        }
+                      }}
                       className={`p-3 border rounded-lg flex items-center space-x-2 transition-colors ${
                         formData.type === type.value
                           ? 'border-green-500 bg-green-50 text-green-700'
@@ -412,19 +659,36 @@ const AddEditTrainingForm = ({
                   );
                 })}
               </div>
+              {errors.type && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.type}
+                </p>
+              )}
             </div>
 
             {/* Difficulty */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Difficulty Level
+                Difficulty Level <span className="text-red-500">*</span>
               </label>
               <div className="flex space-x-2">
                 {difficulties.map(diff => (
                   <button
                     key={diff.value}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, difficulty: diff.value }))}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, difficulty: diff.value }));
+                      // Trigger validation for difficulty field
+                      const msg = validateField('difficulty', { ...formData, difficulty: diff.value });
+                      if (msg) {
+                        setErrors(prev => ({ ...prev, difficulty: msg }));
+                        setValidFields(prev => ({ ...prev, difficulty: false }));
+                      } else {
+                        setErrors(prev => ({ ...prev, difficulty: '' }));
+                        setValidFields(prev => ({ ...prev, difficulty: true }));
+                      }
+                    }}
                     className={`px-3 py-2 rounded-full text-sm font-medium transition-colors ${
                       formData.difficulty === diff.value
                         ? diff.color
@@ -435,23 +699,39 @@ const AddEditTrainingForm = ({
                   </button>
                 ))}
               </div>
+              {errors.difficulty && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.difficulty}
+                </p>
+              )}
             </div>
 
             {/* Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Status
+                Status <span className="text-red-500">*</span>
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                onBlur={handleBlur}
+                aria-invalid={!!errors.status}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
+                  errors.status ? 'border-red-500' : 'border-gray-300'
+                }`}
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
                 <option value="archived">Archived</option>
               </select>
+              {errors.status && (
+                <p className="text-red-500 text-sm mt-1 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  {errors.status}
+                </p>
+              )}
             </div>
 
             {/* Description */}
@@ -459,17 +739,19 @@ const AddEditTrainingForm = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description <span className="text-red-500">*</span>
               </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-vertical ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Describe what this training material covers"
-                maxLength={1000}
-              />
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    onBlur={handleBlur}
+                    rows={3}
+                    aria-invalid={!!errors.description}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-vertical ${
+                      errors.description ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Describe what this training material covers"
+                    maxLength={1000}
+                  />
               <div className="flex justify-between items-center mt-1">
                 <div>
                   {errors.description && (
@@ -490,13 +772,15 @@ const AddEditTrainingForm = ({
             {/* Tags */}
             <div className="lg:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tags
+                Tags <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="tags"
                 value={formData.tags}
                 onChange={handleInputChange}
+                onBlur={handleBlur}
+                aria-invalid={!!errors.tags}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
                   errors.tags ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -510,7 +794,7 @@ const AddEditTrainingForm = ({
                       {errors.tags}
                     </p>
                   ) : (
-                    <p className="text-gray-500 text-sm">Separate multiple tags with commas (max 10 tags)</p>
+                    <p className="text-gray-500 text-sm">Required: Add at least one tag, separate multiple tags with commas (max 10 tags)</p>
                   )}
                 </div>
                 <p className="text-gray-400 text-xs">
@@ -529,7 +813,9 @@ const AddEditTrainingForm = ({
                   name="content"
                   value={formData.content}
                   onChange={handleInputChange}
+                  onBlur={handleBlur}
                   rows={8}
+                  aria-invalid={!!errors.content}
                   className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-vertical ${
                     errors.content ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -554,11 +840,10 @@ const AddEditTrainingForm = ({
               </div>
             )}
 
-            {/* File Upload (for non-article types) */}
-            {formData.type !== 'Article' && (
-              <div className="lg:col-span-2">
+            {/* File Upload (required for all content types) */}
+            <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload File {!editingMaterial && <span className="text-red-500">*</span>}
+                  Upload File <span className="text-red-500">*</span>
                 </label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
@@ -583,13 +868,45 @@ const AddEditTrainingForm = ({
                         <>Drop your file here or </>
                       )}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="text-green-600 hover:text-green-700 font-medium"
-                    >
-                      browse files
-                    </button>
+                    {selectedFile ? (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="text-blue-600 hover:text-blue-700 font-medium mr-4"
+                        >
+                          change file
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const result = await showConfirm(
+                              'Are you sure you want to remove the selected file?',
+                              'Remove File'
+                            );
+                            if (result.isConfirmed) {
+                              setSelectedFile(null);
+                              if (fileInputRef.current) {
+                                fileInputRef.current.value = '';
+                              }
+                              setErrors(prev => ({ ...prev, file: 'File is required for all content types' }));
+                              showToast('File removed', 'info');
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-700 font-medium"
+                        >
+                          remove file
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-green-600 hover:text-green-700 font-medium"
+                      >
+                        browse files
+                      </button>
+                    )}
                     <p className="text-gray-400 text-sm">
                       Maximum file size: 50MB
                     </p>
@@ -599,7 +916,7 @@ const AddEditTrainingForm = ({
                     type="file"
                     onChange={handleFileChange}
                     className="hidden"
-                    accept={formData.type === 'Video' ? 'video/*' : formData.type === 'PDF' ? '.pdf' : 'image/*'}
+                    accept={formData.type === 'Video' ? 'video/*' : formData.type === 'PDF' ? '.pdf' : 'image/*,.pdf'}
                   />
                 </div>
                 {errors.file && (
@@ -609,7 +926,6 @@ const AddEditTrainingForm = ({
                   </p>
                 )}
               </div>
-            )}
           </div>
 
           {/* Footer */}

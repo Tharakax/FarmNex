@@ -1,18 +1,35 @@
 import Swal from 'sweetalert2';
 
+// Test if SweetAlert2 is properly loaded
+console.log('SweetAlert2 import:', Swal);
+
+if (!Swal) {
+  console.error('SweetAlert2 failed to import!');
+}
+
 /**
  * SweetAlert utility functions to replace native alert(), confirm(), and provide enhanced notifications
  */
 
 // Replace alert() - Simple notification
 export const showAlert = (message, title = 'Alert', type = 'info') => {
-  return Swal.fire({
-    title: title,
-    text: message,
-    icon: type,
-    confirmButtonText: 'OK',
-    confirmButtonColor: '#3085d6'
-  });
+  try {
+    if (!Swal) {
+      alert(`${title}: ${message}`);
+      return Promise.resolve({ isConfirmed: true });
+    }
+    return Swal.fire({
+      title: title,
+      text: message,
+      icon: type,
+      confirmButtonText: 'OK',
+      confirmButtonColor: '#3085d6'
+    });
+  } catch (error) {
+    console.error('SweetAlert error:', error);
+    alert(`${title}: ${message}`);
+    return Promise.resolve({ isConfirmed: true });
+  }
 };
 
 // Replace confirm() - Confirmation dialog
@@ -155,6 +172,12 @@ export const showDeleteConfirm = (itemName = 'this item') => {
 
 // Form validation errors with better formatting
 export const showValidationError = (errors, title = 'Please Fix These Issues') => {
+  try {
+    if (!Swal) {
+      const errorText = Array.isArray(errors) ? errors.join('\n') : 'Please fix validation errors';
+      alert(`${title}:\n\n${errorText}`);
+      return Promise.resolve({ isConfirmed: true });
+    }
   let htmlContent = '<div class="text-left">';
   
   if (Array.isArray(errors)) {
@@ -212,6 +235,12 @@ export const showValidationError = (errors, title = 'Please Fix These Issues') =
       document.head.appendChild(style);
     }
   });
+  } catch (error) {
+    console.error('SweetAlert validation error:', error);
+    const errorText = Array.isArray(errors) ? errors.join('\n') : 'Please fix validation errors';
+    alert(`${title}:\n\n${errorText}`);
+    return Promise.resolve({ isConfirmed: true });
+  }
 };
 
 // Critical validation warning (for high-value items, dangerous operations)

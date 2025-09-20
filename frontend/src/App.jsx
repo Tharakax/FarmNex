@@ -20,6 +20,11 @@ const ViewTraining = React.lazy(() => import('./components/training/pages/ViewTr
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
 const PublicTrainingViewer = React.lazy(() => import('./components/training/pages/PublicTrainingViewer.jsx'))
+const TrainingTest = React.lazy(() => import('./pages/TrainingTest.jsx'))
+const ValidationDemo = React.lazy(() => import('./pages/ValidationDemo.jsx'))
+const SweetAlertTest = React.lazy(() => import('./pages/SweetAlertTest.jsx'))
+const RequiredFieldsTest = React.lazy(() => import('./pages/RequiredFieldsTest.jsx'))
+const SweetAlertDebug = React.lazy(() => import('./pages/SweetAlertDebug.jsx'))
 
 // Loading component
 const Loading = () => (
@@ -92,6 +97,11 @@ function App() {
             <Route path="/add" element={<AddEditTraining />} />
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
+            <Route path="/training-test" element={<TrainingTest />} />
+            <Route path="/validation-demo" element={<ValidationDemo />} />
+            <Route path="/sweetalert-test" element={<SweetAlertTest />} />
+            <Route path="/required-fields-test" element={<RequiredFieldsTest />} />
+            <Route path="/sweetalert-debug" element={<SweetAlertDebug />} />
             
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />

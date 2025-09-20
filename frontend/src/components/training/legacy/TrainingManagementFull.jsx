@@ -23,6 +23,7 @@ import {
   Loader
 } from 'lucide-react';
 import { parseAndCleanTags } from '../../../utils/tagUtils';
+import { showValidationError, showSuccess, showError } from '../../../utils/sweetAlertRobust';
 
 const TrainingManagementFull = () => {
   const [successMessage, setSuccessMessage] = useState('');
@@ -59,6 +60,10 @@ const TrainingManagementFull = () => {
   });
   const [selectedFile, setSelectedFile] = useState(null);
   const [tagInput, setTagInput] = useState('');
+  
+  // Validation states
+  const [validationErrors, setValidationErrors] = useState({});
+  const [validatedFields, setValidatedFields] = useState({});
 
   // Success/Error message auto-hide
   useEffect(() => {
@@ -71,6 +76,163 @@ const TrainingManagementFull = () => {
     }
   }, [successMessage, errorMessage]);
 
+  // Validation function that returns results directly (without state updates)
+  const performValidation = () => {
+    console.log('🔧 Starting comprehensive validation...');
+    const errors = {};
+    const validated = {};
+    
+    // Title validation
+    console.log('📝 Validating title:', formData.title);
+    if (!formData.title || formData.title.trim().length === 0) {
+      errors.title = 'Training material title is required and cannot be empty.';
+      console.log('❌ Title validation failed: empty or missing');
+    } else if (formData.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters long.';
+      console.log('❌ Title validation failed: too short');
+    } else if (formData.title.trim().length > 200) {
+      errors.title = 'Title cannot exceed 200 characters.';
+      console.log('❌ Title validation failed: too long');
+    } else {
+      validated.title = true;
+      console.log('✅ Title validation passed');
+    }
+    
+    // Description validation
+    if (!formData.description || formData.description.trim().length === 0) {
+      errors.description = 'Description is required to help users understand the content.';
+    } else if (formData.description.trim().length < 10) {
+      errors.description = 'Description must be at least 10 characters long for clarity.';
+    } else if (formData.description.trim().length > 1000) {
+      errors.description = 'Description cannot exceed 1000 characters.';
+    } else {
+      validated.description = true;
+    }
+    
+    // Content validation - content is optional but if provided, must be valid
+    const hasContent = formData.content && formData.content.trim().length > 0;
+    const hasNewFile = selectedFile && selectedFile.size > 0;
+    const hasExistingFile = editingMaterial && editingMaterial.fileName;
+    
+    // Validate content if provided
+    if (hasContent) {
+      if (formData.content.trim().length < 20) {
+        errors.content = 'Content must be at least 20 characters long if provided.';
+      } else if (formData.content.trim().length > 10000) {
+        errors.content = 'Content cannot exceed 10,000 characters.';
+      } else {
+        validated.content = true;
+      }
+    } else {
+      // Content is empty - this is OK, training materials can exist with just metadata
+      validated.content = true;
+    }
+    
+    // File validation - file is completely optional
+    if (hasNewFile) {
+      const fileSize = selectedFile.size;
+      const fileName = selectedFile.name.toLowerCase();
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      
+      if (fileSize > maxSize) {
+        errors.file = 'File size cannot exceed 50MB. Please choose a smaller file.';
+      } else if (fileSize === 0) {
+        errors.file = 'The selected file appears to be empty. Please choose a valid file.';
+      } else {
+        // Validate file type based on selected type
+        const validExtensions = {
+          'Video': ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'],
+          'PDF': ['.pdf'],
+          'Image': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
+          'Article': ['.doc', '.docx', '.txt', '.rtf']
+        };
+        
+        const typeExtensions = validExtensions[formData.type] || [];
+        const hasValidExtension = typeExtensions.some(ext => fileName.endsWith(ext));
+        
+        if (typeExtensions.length > 0 && !hasValidExtension) {
+          errors.file = `For ${formData.type} type, please upload a file with one of these extensions: ${typeExtensions.join(', ')}`;
+        } else {
+          validated.file = true;
+        }
+      }
+    } else {
+      // No file selected - this is perfectly fine
+      validated.file = true;
+    }
+    
+    // Type validation (should always have a value, but let's be safe)
+    if (!formData.type || formData.type.trim().length === 0) {
+      errors.type = 'Content type must be selected.';
+    } else {
+      validated.type = true;
+    }
+    
+    // Category validation
+    if (!formData.category || formData.category.trim().length === 0) {
+      errors.category = 'Category must be selected to help organize content.';
+    } else {
+      validated.category = true;
+    }
+    
+    // Difficulty validation
+    if (!formData.difficulty || formData.difficulty.trim().length === 0) {
+      errors.difficulty = 'Difficulty level must be selected.';
+    } else {
+      validated.difficulty = true;
+    }
+    
+    // Status validation
+    if (!formData.status || formData.status.trim().length === 0) {
+      errors.status = 'Status must be selected.';
+    } else {
+      validated.status = true;
+    }
+    
+    // Tags validation - simplified for now
+    if (formData.tags && formData.tags.length > 0) {
+      if (formData.tags.length > 10) {
+        errors.tags = 'Too many tags. Please limit to 10 tags maximum for better organization.';
+      } else {
+        // Check for tag quality
+        const invalidTags = formData.tags.filter(tag => 
+          !tag || tag.trim().length === 0 || tag.trim().length < 2 || tag.trim().length > 30
+        );
+        
+        if (invalidTags.length > 0) {
+          errors.tags = 'Each tag must be between 2 and 30 characters long and cannot be empty.';
+        } else {
+          validated.tags = true;
+        }
+      }
+    } else {
+      // No tags - temporarily allow this for testing
+      console.log('⚠️ No tags provided - allowing for now');
+      validated.tags = true;
+    }
+    
+    console.log('🔍 Validation summary:');
+    console.log('  ❌ Errors found:', Object.keys(errors).length, errors);
+    console.log('  ✅ Fields validated:', Object.keys(validated).length, validated);
+    
+    const isValid = Object.keys(errors).length === 0;
+    console.log('🏁 Final validation result:', isValid);
+    
+    return {
+      isValid,
+      errors,
+      validated
+    };
+  };
+  
+  // Legacy validation function for compatibility (uses state)
+  const validateForm = () => {
+    const result = performValidation();
+    setValidationErrors(result.errors);
+    setValidatedFields(result.validated);
+    return result.isValid;
+  };
+  
   // API Functions
   const fetchMaterials = async () => {
     setLoadingMaterials(true);
@@ -256,6 +418,154 @@ const TrainingManagementFull = () => {
     }
   };
 
+  // Helper functions for validation styling
+  const getFieldClasses = (fieldName, baseClasses = 'w-full px-3 py-2 border rounded-lg focus:ring-green-500') => {
+    if (validationErrors[fieldName]) {
+      return `${baseClasses} border-red-500 bg-red-50 focus:border-red-500 ring-red-200`;
+    } else if (validatedFields[fieldName]) {
+      return `${baseClasses} border-green-500 bg-green-50 focus:border-green-600 ring-green-200`;
+    } else {
+      return `${baseClasses} border-gray-300 focus:border-green-500`;
+    }
+  };
+  
+  const clearValidationState = () => {
+    setValidationErrors({});
+    setValidatedFields({});
+  };
+  
+  // Debug function to test validation
+  const testValidation = () => {
+    console.log('🧪 Testing validation...');
+    console.log('📋 Current form data:', formData);
+    console.log('📁 Selected file:', selectedFile);
+    console.log('❌ Current errors before validation:', validationErrors);
+    console.log('✅ Current validated fields before validation:', validatedFields);
+    
+    const isValid = validateForm();
+    
+    setTimeout(() => {
+      console.log('🔍 Validation result:', isValid);
+      console.log('❌ Errors after validation:', validationErrors);
+      console.log('✅ Validated fields after validation:', validatedFields);
+      
+      if (!isValid) {
+        alert('Validation failed! Check console for details.');
+      } else {
+        alert('Validation passed!');
+      }
+    }, 100);
+  };
+  
+  // Individual field validation for onBlur events
+  const validateField = (fieldName, value = null) => {
+    const errors = { ...validationErrors };
+    const validated = { ...validatedFields };
+    
+    // Remove existing errors and validation for this field
+    delete errors[fieldName];
+    delete validated[fieldName];
+    
+    const fieldValue = value !== null ? value : formData[fieldName];
+    
+    switch (fieldName) {
+      case 'title':
+        if (!fieldValue || fieldValue.trim().length === 0) {
+          errors.title = 'Training material title is required.';
+        } else if (fieldValue.trim().length < 3) {
+          errors.title = 'Title must be at least 3 characters long.';
+        } else if (fieldValue.trim().length > 200) {
+          errors.title = 'Title cannot exceed 200 characters.';
+        } else {
+          validated.title = true;
+        }
+        break;
+        
+      case 'description':
+        if (!fieldValue || fieldValue.trim().length === 0) {
+          errors.description = 'Description is required.';
+        } else if (fieldValue.trim().length < 10) {
+          errors.description = 'Description must be at least 10 characters long.';
+        } else if (fieldValue.trim().length > 1000) {
+          errors.description = 'Description cannot exceed 1000 characters.';
+        } else {
+          validated.description = true;
+        }
+        break;
+        
+      case 'content':
+        if (fieldValue && fieldValue.trim().length > 0) {
+          if (fieldValue.trim().length < 20) {
+            errors.content = 'Content must be at least 20 characters long if provided.';
+          } else if (fieldValue.trim().length > 10000) {
+            errors.content = 'Content cannot exceed 10,000 characters.';
+          } else {
+            validated.content = true;
+          }
+        }
+        break;
+        
+      case 'tags':
+        const tags = value !== null ? value : formData.tags;
+        if (!tags || tags.length === 0) {
+          errors.tags = 'At least one tag is required.';
+        } else if (tags.length > 10) {
+          errors.tags = 'Too many tags. Maximum 10 allowed.';
+        } else {
+          const invalidTags = tags.filter(tag => 
+            !tag || tag.trim().length === 0 || tag.trim().length < 2 || tag.trim().length > 30
+          );
+          
+          if (invalidTags.length > 0) {
+            errors.tags = 'Each tag must be 2-30 characters long.';
+          } else {
+            validated.tags = true;
+          }
+        }
+        break;
+        
+      case 'file':
+        // File validation - file is completely optional
+        const hasNewFile = selectedFile && selectedFile.size > 0;
+        
+        if (hasNewFile) {
+          const fileSize = selectedFile.size;
+          const fileName = selectedFile.name.toLowerCase();
+          const maxSize = 50 * 1024 * 1024; // 50MB
+          
+          if (fileSize > maxSize) {
+            errors.file = 'File size cannot exceed 50MB.';
+          } else if (fileSize === 0) {
+            errors.file = 'The selected file appears to be empty.';
+          } else {
+            // Validate file type based on selected type
+            const validExtensions = {
+              'Video': ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'],
+              'PDF': ['.pdf'],
+              'Image': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
+              'Article': ['.doc', '.docx', '.txt', '.rtf']
+            };
+            
+            const typeExtensions = validExtensions[formData.type] || [];
+            const hasValidExtension = typeExtensions.some(ext => fileName.endsWith(ext));
+            
+            if (typeExtensions.length > 0 && !hasValidExtension) {
+              errors.file = `For ${formData.type} type, valid extensions: ${typeExtensions.join(', ')}`;
+            } else {
+              validated.file = true;
+            }
+          }
+        } else {
+          // No file selected - this is perfectly fine
+          validated.file = true;
+        }
+        break;
+    }
+    
+    setValidationErrors(errors);
+    setValidatedFields(validated);
+  };
+  
   // Form handlers
   const handleAddMaterial = () => {
     setEditingMaterial(null);
@@ -271,6 +581,7 @@ const TrainingManagementFull = () => {
     });
     setSelectedFile(null);
     setTagInput('');
+    clearValidationState();
     setShowForm(true);
   };
 
@@ -288,6 +599,7 @@ const TrainingManagementFull = () => {
     });
     setSelectedFile(null);
     setTagInput('');
+    clearValidationState();
     setShowForm(true);
   };
 
@@ -326,6 +638,51 @@ const TrainingManagementFull = () => {
 
   const handleSaveMaterial = async (e) => {
     e.preventDefault();
+    
+    console.log('🔄 Starting form validation...');
+    console.log('📋 Current form data:', formData);
+    console.log('📁 Current selected file:', selectedFile);
+    
+    // Perform comprehensive validation and get errors directly
+    const validationResult = performValidation();
+    const { isValid, errors, validated } = validationResult;
+    
+    console.log('🔍 Validation result:', isValid);
+    console.log('❌ Validation errors:', errors);
+    console.log('✅ Validated fields:', validated);
+    
+    // Update state with validation results
+    setValidationErrors(errors);
+    setValidatedFields(validated);
+    
+    if (!isValid) {
+      // Show validation error summary using SweetAlert
+      const errorMessages = Object.values(errors);
+      console.log('📢 Preventing form submission due to validation errors:', errorMessages);
+      
+      try {
+        await showValidationError(
+          errorMessages,
+          'Please fix the following validation errors:'
+        );
+      } catch (sweetAlertError) {
+        console.error('SweetAlert error:', sweetAlertError);
+        // Fallback to regular alert if SweetAlert fails
+        alert('Please fix the following validation errors:\n\n' + errorMessages.join('\n'));
+      }
+      
+      console.log('⛔ Form submission BLOCKED due to validation errors');
+      return; // STOP HERE - do not proceed with form submission
+    }
+    
+    // If validation passed, proceed with submission
+    console.log('✅ Validation passed! Proceeding with form submission.');
+    console.log('🚀 About to call submitForm()...');
+    await submitForm();
+    console.log('✨ submitForm() completed successfully');
+  };
+  
+  const submitForm = async () => {
     setIsFormLoading(true);
 
     try {
@@ -343,7 +700,10 @@ const TrainingManagementFull = () => {
 
       // Add file if selected
       if (selectedFile) {
+        console.log('📁 Adding file to FormData:', selectedFile.name, selectedFile.size);
         formDataToSend.append('file', selectedFile);
+      } else {
+        console.log('📁 No file selected - proceeding without file upload');
       }
 
       const url = editingMaterial 
@@ -352,6 +712,8 @@ const TrainingManagementFull = () => {
       
       const method = editingMaterial ? 'PUT' : 'POST';
 
+      console.log('🌐 Making API call to:', url, 'Method:', method);
+      
       const response = await fetch(url, {
         method,
         headers: {
@@ -360,14 +722,25 @@ const TrainingManagementFull = () => {
         body: formDataToSend
       });
 
+      console.log('📡 API Response Status:', response.status, response.statusText);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.log('❌ API Error Response:', errorData);
         throw new Error(errorData.message || 'Failed to save material');
       }
+      
+      const responseData = await response.json();
+      console.log('✅ API Success Response:', responseData);
 
-      setSuccessMessage(editingMaterial 
-        ? 'Training material updated successfully!'
-        : 'Training material created successfully!'
+      // Show success message with SweetAlert
+      await showSuccess(
+        editingMaterial
+          ? 'The training material has been successfully updated with your changes.'
+          : 'Your new training material has been successfully created and is now available.',
+        editingMaterial 
+          ? 'Training Material Updated!' 
+          : 'Training Material Created!'
       );
       
       setShowForm(false);
@@ -378,20 +751,73 @@ const TrainingManagementFull = () => {
       fetchStatistics();
     } catch (error) {
       console.error('Error saving material:', error);
-      setErrorMessage('Failed to save training material: ' + error.message);
+      await showError(
+        `There was an error saving the training material: ${error.message}`,
+        'Failed to Save Material'
+      );
     } finally {
       setIsFormLoading(false);
     }
   };
 
   const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()]
-      }));
-      setTagInput('');
+    const trimmedTag = tagInput.trim();
+    
+    // Validation checks
+    if (!trimmedTag) {
+      return; // Don't add empty tags
     }
+    
+    if (trimmedTag.length < 2) {
+      setValidationErrors(prev => ({
+        ...prev,
+        tags: 'Tag must be at least 2 characters long.'
+      }));
+      return;
+    }
+    
+    if (trimmedTag.length > 30) {
+      setValidationErrors(prev => ({
+        ...prev,
+        tags: 'Tag cannot exceed 30 characters.'
+      }));
+      return;
+    }
+    
+    if (formData.tags.length >= 10) {
+      setValidationErrors(prev => ({
+        ...prev,
+        tags: 'Maximum 10 tags allowed.'
+      }));
+      return;
+    }
+    
+    // Check for duplicates (case-insensitive)
+    if (formData.tags.some(tag => tag.toLowerCase() === trimmedTag.toLowerCase())) {
+      setValidationErrors(prev => ({
+        ...prev,
+        tags: 'This tag has already been added.'
+      }));
+      return;
+    }
+    
+    // Add the tag
+    setFormData(prev => ({
+      ...prev,
+      tags: [...prev.tags, trimmedTag]
+    }));
+    
+    // Clear input and revalidate
+    setTagInput('');
+    
+    // Clear any existing tag validation errors since we successfully added a tag
+    setValidationErrors(prev => {
+      const { tags, ...rest } = prev;
+      return rest;
+    });
+    
+    // Revalidate tags after adding
+    setTimeout(() => validateField('tags'), 50);
   };
 
   const removeTag = (tagToRemove) => {
@@ -441,9 +867,22 @@ const TrainingManagementFull = () => {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                  onBlur={() => validateField('title')}
+                  className={getFieldClasses('title')}
                   placeholder="Enter training material title"
                 />
+                {validationErrors.title && (
+                  <div className="mt-1 flex items-center gap-1 text-red-600 text-sm">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{validationErrors.title}</span>
+                  </div>
+                )}
+                {validatedFields.title && !validationErrors.title && (
+                  <div className="mt-1 flex items-center gap-1 text-green-600 text-sm">
+                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>Title looks good!</span>
+                  </div>
+                )}
               </div>
 
               {/* Description */}
@@ -456,9 +895,22 @@ const TrainingManagementFull = () => {
                   rows={3}
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                  onBlur={() => validateField('description')}
+                  className={getFieldClasses('description')}
                   placeholder="Enter a detailed description"
                 />
+                {validationErrors.description && (
+                  <div className="mt-1 flex items-center gap-1 text-red-600 text-sm">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{validationErrors.description}</span>
+                  </div>
+                )}
+                {validatedFields.description && !validationErrors.description && (
+                  <div className="mt-1 flex items-center gap-1 text-green-600 text-sm">
+                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>Description looks comprehensive!</span>
+                  </div>
+                )}
               </div>
 
               {/* Type, Category, Difficulty */}
@@ -468,7 +920,7 @@ const TrainingManagementFull = () => {
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                    className={getFieldClasses('type')}
                   >
                     <option value="Article">Article</option>
                     <option value="Video">Video</option>
@@ -482,7 +934,7 @@ const TrainingManagementFull = () => {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                    className={getFieldClasses('category')}
                   >
                     <option value="General">General</option>
                     <option value="Crop Management">Crop Management</option>
@@ -498,7 +950,7 @@ const TrainingManagementFull = () => {
                   <select
                     value={formData.difficulty}
                     onChange={(e) => setFormData(prev => ({ ...prev, difficulty: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                    className={getFieldClasses('difficulty')}
                   >
                     <option value="Beginner">Beginner</option>
                     <option value="Intermediate">Intermediate</option>
@@ -509,19 +961,32 @@ const TrainingManagementFull = () => {
 
               {/* Content */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Content (Optional)</label>
                 <textarea
                   rows={5}
                   value={formData.content}
                   onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                  placeholder="Enter the main content (optional if file is uploaded)"
+                  onBlur={() => validateField('content')}
+                  className={getFieldClasses('content')}
+                  placeholder="Enter the main content or training material text (optional)"
                 />
+                {validationErrors.content && (
+                  <div className="mt-1 flex items-center gap-1 text-red-600 text-sm">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{validationErrors.content}</span>
+                  </div>
+                )}
+                {validatedFields.content && !validationErrors.content && (
+                  <div className="mt-1 flex items-center gap-1 text-green-600 text-sm">
+                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>Content is well detailed!</span>
+                  </div>
+                )}
               </div>
 
               {/* File Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">File Upload</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">File Upload (Optional)</label>
                 
                 {/* Show existing file information when editing */}
                 {editingMaterial && editingMaterial.fileName && (
@@ -575,8 +1040,12 @@ const TrainingManagementFull = () => {
                 
                 <input
                   type="file"
-                  onChange={(e) => setSelectedFile(e.target.files[0])}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                  onChange={(e) => {
+                    setSelectedFile(e.target.files[0]);
+                    // Trigger file validation when file changes
+                    setTimeout(() => validateField('file'), 100);
+                  }}
+                  className={getFieldClasses('file', 'w-full px-3 py-2 border rounded-lg focus:ring-green-500')}
                   accept=".pdf,.doc,.docx,.mp4,.avi,.jpg,.jpeg,.png,.gif"
                 />
                 
@@ -597,32 +1066,53 @@ const TrainingManagementFull = () => {
                 
                 {!editingMaterial && !selectedFile && (
                   <div className="text-sm text-gray-500 mt-2">
-                    Choose a file to upload (PDF, Video, Image, or Document)
+                    Optional: Choose a file to upload (PDF, Video, Image, or Document)
+                  </div>
+                )}
+                
+                {validationErrors.file && (
+                  <div className="mt-1 flex items-center gap-1 text-red-600 text-sm">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{validationErrors.file}</span>
+                  </div>
+                )}
+                {validatedFields.file && !validationErrors.file && (
+                  <div className="mt-1 flex items-center gap-1 text-green-600 text-sm">
+                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>File is valid and ready for upload!</span>
                   </div>
                 )}
               </div>
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tags (Optional for Testing)</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                    placeholder="Enter a tag and press Enter"
+                    onBlur={() => {
+                      if (tagInput.trim()) {
+                        addTag();
+                      }
+                      validateField('tags');
+                    }}
+                    className={getFieldClasses('tags', 'flex-1 px-3 py-2 border rounded-lg focus:ring-green-500')}
+                    placeholder="Enter a tag and press Enter (2-30 characters)"
+                    maxLength={30}
                   />
                   <button
                     type="button"
                     onClick={addTag}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                   >
                     Add
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                
+                <div className="flex flex-wrap gap-2 mb-2">
                   {formData.tags.map((tag, index) => (
                     <span
                       key={index}
@@ -631,14 +1121,35 @@ const TrainingManagementFull = () => {
                       {tag}
                       <button
                         type="button"
-                        onClick={() => removeTag(tag)}
-                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => {
+                          removeTag(tag);
+                          // Revalidate after removing tag
+                          setTimeout(() => validateField('tags'), 50);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
                       >
                         <X className="h-3 w-3" />
                       </button>
                     </span>
                   ))}
                 </div>
+                
+                <div className="text-sm text-gray-500 mb-2">
+                  {formData.tags.length}/10 tags • Help users discover your content with relevant keywords
+                </div>
+                
+                {validationErrors.tags && (
+                  <div className="mt-1 flex items-center gap-1 text-red-600 text-sm">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>{validationErrors.tags}</span>
+                  </div>
+                )}
+                {validatedFields.tags && !validationErrors.tags && (
+                  <div className="mt-1 flex items-center gap-1 text-green-600 text-sm">
+                    <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>Great! Your tags will help users find this content.</span>
+                  </div>
+                )}
               </div>
 
               {/* Status */}
@@ -647,13 +1158,25 @@ const TrainingManagementFull = () => {
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                  className={getFieldClasses('status')}
                 >
                   <option value="published">Published</option>
                   <option value="draft">Draft</option>
                 </select>
               </div>
 
+              {/* Debug Test Button - Temporary */}
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+                <h4 className="text-sm font-medium text-yellow-800 mb-2">Debug Tools</h4>
+                <button
+                  type="button"
+                  onClick={testValidation}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
+                >
+                  Test Validation (Check Console)
+                </button>
+              </div>
+              
               {/* Form Actions */}
               <div className="flex gap-4 pt-4">
                 <button
