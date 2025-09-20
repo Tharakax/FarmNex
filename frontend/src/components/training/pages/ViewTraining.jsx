@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaEye, FaEdit, FaTrash, FaCalendar, FaUser } from 'react-icons/fa';
-import Header from '../../components/Header.jsx';
-import { trainingAPIReal } from '../../services/trainingAPIReal';
+import Header from '../../../components/Header.jsx';
+import { trainingAPIReal } from '../../../services/trainingAPIReal';
 
 const ViewTraining = () => {
   const { id } = useParams();

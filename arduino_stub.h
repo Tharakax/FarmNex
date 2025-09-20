@@ -1,24 +1,20 @@
-// Arduino stub header for VS Code IntelliSense
-// This file provides definitions to help IntelliSense understand Arduino code
 
 #ifndef ARDUINO_STUB_H
 #define ARDUINO_STUB_H
 
-// Arduino version and architecture
+
 #define ARDUINO 10819
 #define ARDUINO_AVR_UNO
 #define ARDUINO_ARCH_AVR
 #define __AVR_ATmega328P__
 #define F_CPU 16000000L
 
-// Basic Arduino types
 typedef unsigned char uint8_t;
 typedef unsigned int uint16_t;
 typedef unsigned long uint32_t;
 typedef bool boolean;
 typedef uint8_t byte;
 
-// Pin definitions for Arduino Uno
 #define PIN_A0   (14)
 #define PIN_A1   (15)
 #define PIN_A2   (16)
@@ -65,4 +61,4 @@ extern HardwareSerial Serial;
 // Math functions
 long map(long value, long fromLow, long fromHigh, long toLow, long toHigh);
 
-#endif // ARDUINO_STUB_H
+#endif 

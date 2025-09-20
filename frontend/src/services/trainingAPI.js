@@ -106,7 +106,7 @@ export const trainingAPI = {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       createdBy: materialData.createdBy || 'Current User',
-      // Handle file information if provided
+
       fileSize: materialData.fileSize || null,
       fileName: materialData.fileName || null,
       fileType: materialData.fileType || null,
@@ -122,7 +122,6 @@ export const trainingAPI = {
     };
   },
 
-  // Update an existing training material
   async updateTrainingMaterial(id, materialData) {
     await delay(800);
     
@@ -132,12 +131,10 @@ export const trainingAPI = {
       throw new Error('Training material not found');
     }
     
-    // Validate required fields
     if (!materialData.title || !materialData.description) {
       throw new Error('Title and description are required');
     }
     
-    // Content is only required for article type
     if (materialData.type === 'article' && !materialData.content) {
       throw new Error('Content is required for articles');
     }
@@ -145,9 +142,9 @@ export const trainingAPI = {
     const updatedMaterial = {
       ...mockTrainingMaterials[materialIndex],
       ...materialData,
-      _id: id, // Ensure ID doesn't change
+      _id: id, 
       updatedAt: new Date().toISOString(),
-      // Preserve certain fields
+     
       createdAt: mockTrainingMaterials[materialIndex].createdAt,
       views: mockTrainingMaterials[materialIndex].views
     };
@@ -161,7 +158,7 @@ export const trainingAPI = {
     };
   },
 
-  // Delete a training material
+  
   async deleteTrainingMaterial(id) {
     await delay(500);
     

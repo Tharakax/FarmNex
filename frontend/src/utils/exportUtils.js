@@ -282,20 +282,20 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
               6: { cellWidth: 17, halign: 'center' }, // Unit
             };
           } else if (columns.length === 8) {
-            // 8 columns - optimized for landscape orientation with generous Status width
-            if (isLandscape) {
-              // Landscape layout with much more space available (297mm vs 210mm)
-              return {
-                ...baseStyles,
-                0: { ...baseStyles[0], cellWidth: 18 }, // ID
-                1: { ...baseStyles[1], cellWidth: 45 }, // Name - much larger
-                2: { cellWidth: 25 }, // Category
-                3: { cellWidth: 35, fontSize: 7 }, // Description
-                4: { cellWidth: 25, fontStyle: 'bold', halign: 'right' }, // Price
-                5: { cellWidth: 20, halign: 'center' }, // Stock
-                6: { cellWidth: 15, halign: 'center' }, // Unit
-                7: { cellWidth: 60, halign: 'center', fontStyle: 'bold' }, // Status - VERY WIDE
-              };
+          // 8 columns - optimized for landscape orientation with generous Supplier width
+          if (isLandscape) {
+            // Landscape layout with much more space available (297mm vs 210mm)
+            return {
+              ...baseStyles,
+              0: { ...baseStyles[0], cellWidth: 15 }, // ID - slightly smaller
+              1: { ...baseStyles[1], cellWidth: 35 }, // Name
+              2: { cellWidth: 22 }, // Category
+              3: { cellWidth: 18, halign: 'center' }, // Quantity
+              4: { cellWidth: 15, halign: 'center' }, // Unit
+              5: { cellWidth: 22, fontStyle: 'bold', halign: 'right' }, // Cost per Unit
+              6: { cellWidth: 22, fontStyle: 'bold', halign: 'right' }, // Total Cost
+              7: { cellWidth: 50, fontStyle: 'bold' }, // Supplier - VERY WIDE for full names
+            };
             } else {
               // Portrait fallback (shouldn't be used for 8+ columns now)
               return {
@@ -313,18 +313,18 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
           } else {
             // 9+ columns - landscape optimized layout
             if (isLandscape) {
-              // Landscape layout for 9+ columns with excellent Status width
+              // Landscape layout for 9+ columns with excellent Supplier width
               return {
                 ...baseStyles,
-                0: { ...baseStyles[0], cellWidth: 15 }, // ID
-                1: { ...baseStyles[1], cellWidth: 38 }, // Name
-                2: { cellWidth: 22 }, // Category
-                3: { cellWidth: 32, fontSize: 7 }, // Description
-                4: { cellWidth: 22, fontStyle: 'bold', halign: 'right' }, // Price
-                5: { cellWidth: 18, halign: 'center' }, // Stock
-                6: { cellWidth: 12, halign: 'center' }, // Unit
-                7: { cellWidth: 50, halign: 'center', fontStyle: 'bold' }, // Status - VERY WIDE
-                8: { cellWidth: 28, fontSize: 7 }, // Revenue/Rating/Date
+                0: { ...baseStyles[0], cellWidth: 12 }, // ID
+                1: { ...baseStyles[1], cellWidth: 30 }, // Name
+                2: { cellWidth: 18 }, // Type/Category
+                3: { cellWidth: 16, halign: 'center' }, // Quantity
+                4: { cellWidth: 12, halign: 'center' }, // Unit
+                5: { cellWidth: 20, fontStyle: 'bold', halign: 'right' }, // Cost per Unit
+                6: { cellWidth: 20, fontStyle: 'bold', halign: 'right' }, // Total Cost
+                7: { cellWidth: 45, fontStyle: 'bold' }, // Supplier - VERY WIDE for full names
+                8: { cellWidth: 18, halign: 'center' }, // Status
               };
             } else {
               // Portrait fallback for 9+ columns
@@ -411,27 +411,27 @@ export const exportToPDF = (data, title, columns, filename = 'export', section =
           if (headerLower.includes('category')) return 22;
           if (headerLower.includes('unit')) return 17;
           return Math.max(20, availableWidth / totalCols);
-        } else if (totalCols === 8) {
-          // Tighter spacing for 8 columns with proper Status column width
-          if (headerLower.includes('id')) return 12;
-          if (headerLower.includes('name')) return 28;
-          if (headerLower.includes('description')) return 30;
-          if (headerLower.includes('price') || headerLower.includes('cost')) return 16;
-          if (headerLower.includes('quantity') || headerLower.includes('stock')) return 14;
-          if (headerLower.includes('status')) return 28; // MUCH LARGER WIDTH
-          if (headerLower.includes('category')) return 16;
-          if (headerLower.includes('unit')) return 10;
-          return Math.max(18, availableWidth / totalCols);
+          } else if (columns.length === 8) {
+            // Tighter spacing for 8 columns with proper Supplier column width
+            if (headerLower.includes('id')) return 15;
+            if (headerLower.includes('name')) return 35;
+            if (headerLower.includes('type') || headerLower.includes('category')) return 22;
+            if (headerLower.includes('quantity')) return 18;
+            if (headerLower.includes('unit')) return 15;
+            if (headerLower.includes('cost') || headerLower.includes('price')) return 22;
+            if (headerLower.includes('supplier')) return 50; // MUCH LARGER WIDTH for full supplier names
+            if (headerLower.includes('status')) return 20;
+            return Math.max(18, availableWidth / totalCols);
         } else {
-          // Very tight spacing for 9+ columns
-          if (headerLower.includes('id')) return 14;
-          if (headerLower.includes('name')) return 28;
-          if (headerLower.includes('description')) return 32;
-          if (headerLower.includes('price') || headerLower.includes('cost')) return 18;
-          if (headerLower.includes('quantity') || headerLower.includes('stock')) return 14;
-          if (headerLower.includes('status')) return 16;
-          if (headerLower.includes('category')) return 18;
+          // Very tight spacing for 9+ columns with wide supplier column
+          if (headerLower.includes('id')) return 12;
+          if (headerLower.includes('name')) return 30;
+          if (headerLower.includes('type') || headerLower.includes('category')) return 18;
+          if (headerLower.includes('quantity')) return 16;
           if (headerLower.includes('unit')) return 12;
+          if (headerLower.includes('cost') || headerLower.includes('price')) return 20;
+          if (headerLower.includes('supplier')) return 45; // MUCH LARGER WIDTH for full supplier names
+          if (headerLower.includes('status')) return 18;
           if (headerLower.includes('date') || headerLower.includes('created')) return 18;
           return Math.max(15, availableWidth / totalCols);
         }
@@ -649,8 +649,21 @@ export const exportToExcel = async (data, title, columns, filename = 'export') =
     // Create worksheet
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     
-    // Set column widths
-    const columnWidths = columns.map(col => ({ width: 15 }));
+    // Set column widths with specific widths for different column types
+    const columnWidths = columns.map(col => {
+      const header = (col.header || '').toLowerCase();
+      if (header.includes('id')) return { width: 12 };
+      if (header.includes('name')) return { width: 25 };
+      if (header.includes('supplier')) return { width: 30 }; // Much wider for supplier names
+      if (header.includes('type') || header.includes('category')) return { width: 18 };
+      if (header.includes('description')) return { width: 40 };
+      if (header.includes('cost') || header.includes('price')) return { width: 15 };
+      if (header.includes('quantity')) return { width: 12 };
+      if (header.includes('unit')) return { width: 10 };
+      if (header.includes('status')) return { width: 15 };
+      if (header.includes('date')) return { width: 12 };
+      return { width: 15 }; // Default width
+    });
     worksheet['!cols'] = columnWidths;
     
     // Style the header row

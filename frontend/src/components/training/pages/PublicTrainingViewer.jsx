@@ -13,7 +13,8 @@ import {
   Play,
   Image
 } from 'lucide-react';
-import Navigation from '../navigation';
+import Navigation from '../../navigation';
+import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 
 const PublicTrainingViewer = () => {
   const { id } = useParams();
@@ -104,6 +105,7 @@ const PublicTrainingViewer = () => {
     
     return cleanedTags;
   };
+
 
 
   if (loading) {
@@ -316,21 +318,23 @@ const PublicTrainingViewer = () => {
                 <p className="text-gray-600 font-medium">Watch this comprehensive training video to enhance your farming skills</p>
               </div>
               
-              <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-200/50">
-                <video 
-                  controls 
-                  className="w-full max-h-[600px] object-contain"
-                  poster=""
-                >
-                  <source 
-                    src={`http://localhost:3000/uploads/${material.fileName}`} 
-                    type="video/mp4" 
-                  />
-                  Your browser does not support the video tag.
-                </video>
+              <div className="relative shadow-2xl border-4 border-gray-200/50 rounded-3xl overflow-hidden">
+                <EnhancedVideoPlayer
+                  src={`http://localhost:3000/uploads/${material.fileName}`}
+                  title={material.title}
+                  className="max-h-[600px]"
+                  onTimeUpdate={(time) => {
+                    // Optional: Track video progress for analytics
+                    console.log('Video progress:', time);
+                  }}
+                  onEnded={() => {
+                    // Optional: Handle video completion
+                    console.log('Video completed');
+                  }}
+                />
               </div>
               
-              <div className="mt-8 flex items-center justify-between bg-gradient-to-r from-gray-50 to-red-50/30 rounded-2xl p-6 border-2 border-gray-200/50 shadow-lg">
+              <div className="mt-8 flex items-center justify-center bg-gradient-to-r from-gray-50 to-red-50/30 rounded-2xl p-6 border-2 border-gray-200/50 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center shadow-lg">
                     <Video className="h-6 w-6 text-red-700" />
@@ -340,15 +344,6 @@ const PublicTrainingViewer = () => {
                     <p className="font-bold text-gray-900">{material.fileName}</p>
                   </div>
                 </div>
-                <a 
-                  href={`http://localhost:3000/uploads/${material.fileName}`}
-                  download
-                  className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border-2 border-green-400/30"
-                  style={{ color: '#ffffff' }}
-                >
-                  <Download className="h-5 w-5 text-white transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide text-white font-extrabold">Download Video</span>
-                </a>
               </div>
             </div>
           )}
@@ -362,25 +357,10 @@ const PublicTrainingViewer = () => {
               </div>
               
               <div className="flex items-center justify-center gap-4 mb-8">
-                <a 
-                  href={`http://localhost:3000/uploads/${material.fileName}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border-2 border-blue-400/30"
-                  style={{ color: '#ffffff' }}
-                >
-                  <Play className="h-5 w-5 text-white transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide text-white font-extrabold">Open in New Tab</span>
-                </a>
-                <a 
-                  href={`http://localhost:3000/uploads/${material.fileName}`}
-                  download
-                  className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border-2 border-green-400/30"
-                  style={{ color: '#ffffff' }}
-                >
-                  <Download className="h-5 w-5 text-white transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide text-white font-extrabold">Download PDF</span>
-                </a>
+                <div className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-2xl shadow-xl border-2 border-blue-400/30">
+                  <Play className="h-5 w-5 text-white" />
+                  <span className="tracking-wide text-white font-extrabold">PDF Document Available</span>
+                </div>
               </div>
               
               <iframe
@@ -408,15 +388,10 @@ const PublicTrainingViewer = () => {
               </div>
               
               <div className="text-center mb-8">
-                <a 
-                  href={`http://localhost:3000/uploads/${material.fileName}`}
-                  download
-                  className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-300 transform hover:scale-105 shadow-xl hover:shadow-2xl border-2 border-green-400/30"
-                  style={{ color: '#ffffff' }}
-                >
-                  <Download className="h-5 w-5 text-white transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide text-white font-extrabold">Download Image</span>
-                </a>
+                <div className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-bold rounded-2xl shadow-xl border-2 border-green-400/30">
+                  <Image className="h-5 w-5 text-white" />
+                  <span className="tracking-wide text-white font-extrabold">Training Image</span>
+                </div>
               </div>
               
               <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-200/50">

@@ -110,6 +110,33 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
     }
   }, [isOpen]);
 
+  // Auto-calculate discount when price or displayprice changes
+  useEffect(() => {
+    if (formData.price && formData.displayprice) {
+      const calculatedDiscount = calculateDiscount(formData.price, formData.displayprice);
+      if (calculatedDiscount !== formData.discount) {
+        setFormData(prev => ({
+          ...prev,
+          discount: calculatedDiscount
+        }));
+      }
+    }
+  }, [formData.price, formData.displayprice]);
+
+  // Function to calculate discount percentage
+  const calculateDiscount = (originalPrice, displayPrice) => {
+    const price = parseFloat(originalPrice) || 0;
+    const discountedPrice = parseFloat(displayPrice) || 0;
+    
+    if (price <= 0 || discountedPrice <= 0 || discountedPrice >= price) {
+      return 0;
+    }
+    
+    const discountAmount = price - discountedPrice;
+    const discountPercentage = (discountAmount / price) * 100;
+    return Math.round(discountPercentage * 100) / 100; // Round to 2 decimal places
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
@@ -123,10 +150,20 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
         }
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
+      const updatedFormData = {
+        ...formData,
         [name]: type === 'checkbox' ? checked : value
-      }));
+      };
+      
+      // Auto-calculate discount when price or displayprice changes
+      if (name === 'price' || name === 'displayprice') {
+        const price = name === 'price' ? value : formData.price;
+        const displayPrice = name === 'displayprice' ? value : formData.displayprice;
+        const calculatedDiscount = calculateDiscount(price, displayPrice);
+        updatedFormData.discount = calculatedDiscount;
+      }
+      
+      setFormData(updatedFormData);
     }
 
     // Clear specific field error when user starts typing
@@ -172,11 +209,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
         break;
       
       case 'discount':
-        if (fieldValue) {
-          validator.numeric(fieldValue, 'Discount')
-                   .minValue(fieldValue, 0, 'Discount')
-                   .maxValue(fieldValue, 100, 'Discount');
-        }
+        // Skip validation for auto-calculated discount field
         break;
       
       case 'stock.current':
@@ -310,11 +343,7 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
                .minValue(formData.displayprice, 0.01, 'Display Price');
     }
     
-    if (formData.discount) {
-      validator.numeric(formData.discount, 'Discount')
-               .minValue(formData.discount, 0, 'Discount')
-               .maxValue(formData.discount, 100, 'Discount');
-    }
+    // Discount is auto-calculated, no validation needed
     
     if (formData.stock.maximum) {
       validator.numeric(formData.stock.maximum, 'Maximum Stock')
@@ -572,18 +601,29 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Discount (%)
+                Discount (%) 
+                <span className="text-xs text-green-600 font-normal ml-1">• Auto-calculated</span>
               </label>
-              <input
-                type="number"
-                name="discount"
-                value={formData.discount}
-                onChange={handleInputChange}
-                min="0"
-                max="100"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="0"
-              />
+              <div className="relative">
+                <input
+                  type="number"
+                  name="discount"
+                  value={formData.discount}
+                  readOnly
+                  min="0"
+                  max="100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed"
+                  placeholder="0"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <span className="text-xs text-gray-400">%</span>
+                </div>
+              </div>
+              {formData.price && formData.displayprice && formData.discount > 0 && (
+                <p className="mt-1 text-xs text-green-600">
+                  Savings: LKR {(parseFloat(formData.price) - parseFloat(formData.displayprice)).toFixed(2)}
+                </p>
+              )}
             </div>
           </div>
 

@@ -180,10 +180,16 @@ const ProductManagement = () => {
 
   // Export handlers
   const handleExportToPDF = async () => {
-    // Show loading toast
+    console.log('🔥 PDF Export started...');
     const loadingToast = toast.loading('Generating PDF report...');
     
     try {
+      // Debug data
+      console.log('Data check:', {
+        filteredProducts: filteredProducts?.length || 0,
+        sampleData: filteredProducts?.[0]
+      });
+      
       // Validate data
       if (!filteredProducts || filteredProducts.length === 0) {
         toast.dismiss(loadingToast);
@@ -191,6 +197,9 @@ const ProductManagement = () => {
         return;
       }
 
+      // Import export function dynamically to test
+      const { exportToPDF, getProductsColumns } = await import('../../utils/exportUtils');
+      
       // Prepare data for export with better error handling
       const exportData = filteredProducts.map((product, index) => {
         try {
@@ -284,13 +293,31 @@ const ProductManagement = () => {
     }
   };
 
-  const handleExportToExcel = () => {
+  const handleExportToExcel = async () => {
+    console.log('📊 Excel Export started...');
+    const loadingToast = toast.loading('Generating Excel report...');
+    
     try {
-      const exportData = filteredProducts.map(product => ({
-        id: product._id || product.id,
-        name: product.name,
-        category: product.category,
-        description: product.description,
+      // Debug data
+      console.log('Data check:', {
+        filteredProducts: filteredProducts?.length || 0,
+        sampleData: filteredProducts?.[0]
+      });
+      
+      if (!filteredProducts || filteredProducts.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.error('No products available to export');
+        return;
+      }
+
+      // Import export function dynamically
+      const { exportToExcel, getProductsColumns } = await import('../../utils/exportUtils');
+      
+      const exportData = filteredProducts.map((product, index) => ({
+        id: product._id || product.id || `P${index + 1}`,
+        name: product.name || 'Unknown Product',
+        category: product.category || 'Uncategorized',
+        description: product.description || 'No description',
         price: product.price || 0,
         stockQuantity: product.stock?.current || 0,
         unit: product.unit || 'units',
@@ -301,24 +328,54 @@ const ProductManagement = () => {
           if (current <= minimum) return 'Low Stock';
           return 'In Stock';
         })(),
-        createdDate: product.createdAt || new Date().toISOString().split('T')[0]
+        createdDate: product.createdAt 
+          ? new Date(product.createdAt).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0]
       }));
+
+      console.log('📋 Export data prepared:', exportData.length, 'items');
 
       const categoryFilter = selectedCategory !== 'all' ? `_${selectedCategory}` : '';
       const stockFilterText = stockFilter !== 'all' ? `_${stockFilter}` : '';
       const filename = `products_report${categoryFilter}${stockFilterText}_${new Date().toISOString().split('T')[0]}`;
 
-      exportToExcel(
+      await exportToExcel(
         exportData,
         'Products Report',
         getProductsColumns(),
         filename
       );
       
-      toast.success('Products exported to Excel successfully!');
+      toast.dismiss(loadingToast);
+      toast.success('Excel file exported successfully! Check your downloads folder.');
+      
+      console.log('✅ Excel Export completed successfully');
+      
     } catch (error) {
-      console.error('Error exporting products to Excel:', error);
-      toast.error('Failed to export products to Excel');
+      console.error('❌ Excel Export error:', error);
+      toast.dismiss(loadingToast);
+      
+      let errorMessage = 'Failed to export to Excel. ';
+      
+      if (error.message?.includes('No data')) {
+        errorMessage += 'No data available to export.';
+      } else if (error.message?.includes('blocked')) {
+        errorMessage += 'Download blocked. Please allow downloads in your browser.';
+      } else if (error.message?.includes('Excel')) {
+        errorMessage += 'Excel generation failed. Try again or check console for details.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred.';
+      }
+      
+      toast.error(errorMessage);
+      
+      // Show detailed error for debugging
+      console.error('Detailed error info:', {
+        message: error.message,
+        stack: error.stack,
+        dataLength: filteredProducts?.length,
+        hasExportUtils: typeof exportToExcel
+      });
     }
   };
 

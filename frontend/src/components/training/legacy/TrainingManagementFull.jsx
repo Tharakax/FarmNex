@@ -22,7 +22,7 @@ import {
   Save,
   Loader
 } from 'lucide-react';
-import { parseAndCleanTags } from '../../utils/tagUtils';
+import { parseAndCleanTags } from '../../../utils/tagUtils';
 
 const TrainingManagementFull = () => {
   const [successMessage, setSuccessMessage] = useState('');

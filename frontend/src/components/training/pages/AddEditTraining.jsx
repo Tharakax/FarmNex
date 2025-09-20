@@ -5,10 +5,10 @@ import {
   AlertCircle, CheckCircle, Info, Tag, User, Calendar,
   Eye, Clock, Target, Lightbulb, Award
 } from 'lucide-react';
-import Header from '../../components/Header.jsx';
-import { trainingAPIReal } from '../../services/trainingAPIReal';
-import { showSuccess, showError } from '../../utils/sweetAlert';
-import { getAuthorName } from '../../utils/userUtils';
+import Header from '../../../components/Header.jsx';
+import { trainingAPIReal } from '../../../services/trainingAPIReal';
+import { showSuccess, showError } from '../../../utils/sweetAlert';
+import { getAuthorName } from '../../../utils/userUtils';
 
 const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
   const { id } = useParams();

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaSearch, FaFilter, FaPlus, FaChartBar } from 'react-icons/fa';
-import Header from '../Header.jsx';
-import TrainingCard from './TrainingCard.jsx';
-import { trainingAPIReal } from '../../services/trainingAPIReal';
-import { showSuccess, showError, showConfirm } from '../../utils/sweetAlert';
+import Header from '../../../components/Header.jsx';
+import TrainingCard from '../components/TrainingCard.jsx';
+import { trainingAPIReal } from '../../../services/trainingAPIReal';
+import { showSuccess, showError, showConfirm } from '../../../utils/sweetAlert';
 
 const TrainingHomePage = () => {
   const [materials, setMaterials] = useState([]);

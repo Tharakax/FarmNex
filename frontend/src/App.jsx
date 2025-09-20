@@ -13,13 +13,13 @@ const OneProduct = React.lazy(() => import('./pages/client/OneProduct.jsx'))
 const Cart = React.lazy(() => import('./pages/client/cart.jsx'))
 const EnterShipping = React.lazy(() => import('./pages/client/EnterShipping.jsx'))
 const EnterPayment = React.lazy(() => import('./pages/client/EnterPayment.jsx'))
-const TrainingShowcase = React.lazy(() => import('./components/training/TrainingShowcase.jsx'))
-const TrainingHomePage = React.lazy(() => import('./components/training/TrainingHomePage.jsx'))
-const AddEditTraining = React.lazy(() => import('./components/training/AddEditTraining.jsx'))
-const ViewTraining = React.lazy(() => import('./components/training/ViewTraining.jsx'))
+const TrainingShowcase = React.lazy(() => import('./components/training/pages/TrainingShowcase.jsx'))
+const TrainingHomePage = React.lazy(() => import('./components/training/pages/TrainingHomePage.jsx'))
+const AddEditTraining = React.lazy(() => import('./components/training/pages/AddEditTraining.jsx'))
+const ViewTraining = React.lazy(() => import('./components/training/pages/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
-const PublicTrainingViewer = React.lazy(() => import('./components/training/PublicTrainingViewer.jsx'))
+const PublicTrainingViewer = React.lazy(() => import('./components/training/pages/PublicTrainingViewer.jsx'))
 
 // Loading component
 const Loading = () => (

@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
-// Create axios instance with default configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -10,7 +9,6 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -24,16 +22,13 @@ api.interceptors.request.use(
   }
 );
 
-// Product API service functions
 export const productAPI = {
-  // Get all products
   getAllProducts: async () => {
     try {
       console.log('🚀 ProductAPI: Making request to /api/product');
       console.log('🚀 ProductAPI: Base URL:', API_BASE_URL);
       console.log('🚀 ProductAPI: Full URL:', `${API_BASE_URL}/api/product`);
       
-      // Check if we have a token
       const token = localStorage.getItem('token');
       console.log('🔐 ProductAPI: Auth token present:', !!token);
       
@@ -71,7 +66,6 @@ export const productAPI = {
         stack: error.stack
       });
       
-      // Check for specific error types
       if (error.code === 'ECONNREFUSED') {
         console.error('❌ ProductAPI: Connection refused - backend server may be down');
       } else if (error.code === 'NETWORK_ERROR') {
@@ -91,7 +85,6 @@ export const productAPI = {
     }
   },
 
-  // Get product by ID
   getProductById: async (id) => {
     try {
       const response = await api.get(`/api/product/${id}`);
@@ -108,12 +101,10 @@ export const productAPI = {
     }
   },
 
-  // Create new product
   createProduct: async (productData) => {
   try {
     console.log('📦 Sending product data:', productData);
 
-    // Prepare FormData for multipart/form-data requests
     const formData = new FormData();
     Object.keys(productData).forEach((key) => {
       if (productData[key] !== undefined && productData[key] !== null) {

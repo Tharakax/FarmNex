@@ -3,7 +3,7 @@ import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, Bo
 import { FaLeaf } from 'react-icons/fa';
 import Navigation from '../components/navigation';
 import SimpleChatbot from '../components/chatbot/SimpleChatbot';
-import PublishedTrainingSection from '../components/training/PublishedTrainingSection';
+import PublishedTrainingSection from '../components/training/components/PublishedTrainingSection';
 import { NavLink } from 'react-router-dom';
 
 

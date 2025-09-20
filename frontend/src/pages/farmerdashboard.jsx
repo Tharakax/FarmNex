@@ -102,7 +102,7 @@ const ProductManagementReport = React.lazy(() =>
 );
 
 const TrainingManagementFull = React.lazy(() => 
-  import('../components/training/TrainingManagementFull')
+  import('../components/training/legacy/TrainingManagementFull')
     .catch(error => {
       console.error('Failed to load TrainingManagementFull:', error);
       return { default: () => <ErrorFallback error={error} componentName="Training Management" /> };

@@ -26,7 +26,8 @@ const farmSupplySchema = new mongoose.Schema({
         'machinery',
         'equipment',
         'soil-amendments',
-        'greenhouse-supplies'
+        'greenhouse-supplies',
+        'fuel'
       ],
       message: 'Please select correct category for farm supply'
     }

@@ -46,7 +46,7 @@ const TrainingQuickAccess = () => {
 
   return (
     <div className="relative">
-      {/* Main Training Link with Dropdown */}
+    
       <div 
         className="relative"
         onMouseEnter={() => setIsDropdownOpen(true)}
@@ -74,18 +74,16 @@ const TrainingQuickAccess = () => {
           )}
         </NavLink>
 
-        {/* Enhanced Dropdown Menu */}
+       
         <div className={`absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden transition-all duration-300 transform origin-top ${
           isDropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
         }`}>
           
-          {/* Header */}
           <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-4">
             <h3 className="font-semibold text-lg">Training Categories</h3>
             <p className="text-green-100 text-sm">Choose your learning path</p>
           </div>
           
-          {/* Categories */}
           <div className="p-2">
             {trainingCategories.map((category, index) => {
               const IconComponent = category.icon;
@@ -110,10 +108,8 @@ const TrainingQuickAccess = () => {
             })}
           </div>
           
-          {/* Divider */}
           <div className="border-t border-gray-100"></div>
           
-          {/* Quick Actions */}
           <div className="p-2">
             {quickActions.map((action, index) => {
               const IconComponent = action.icon;
@@ -138,7 +134,6 @@ const TrainingQuickAccess = () => {
             })}
           </div>
           
-          {/* Footer Stats */}
           <div className="bg-gray-50 px-4 py-3 border-t border-gray-100">
             <div className="flex items-center justify-between text-sm text-gray-600">
               <div className="flex items-center">

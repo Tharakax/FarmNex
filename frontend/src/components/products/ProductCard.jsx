@@ -203,11 +203,7 @@ const ProductCard = ({ product, onEdit, onDelete, onView, isPublicView = false }
         )}
 
         {/* Footer Info */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div className="flex items-center text-xs text-gray-500">
-            <User className="h-3 w-3 mr-1" />
-            {product.createdBy?.firstName || 'Unknown'} {product.createdBy?.lastName || 'Farmer'}
-          </div>
+        <div className="flex items-center justify-center pt-3 border-t border-gray-100">
           <div className="flex items-center text-xs text-gray-500">
             <Calendar className="h-3 w-3 mr-1" />
             {new Date(product.createdAt).toLocaleDateString()}
