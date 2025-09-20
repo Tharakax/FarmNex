@@ -5,7 +5,6 @@ import { getAllProducts, saveProduct, getProductById, deleteProduct, editProduct
 
 const router = express.Router();
 
-// Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -32,7 +31,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit for images
+    fileSize: 5 * 1024 * 1024 
   },
   fileFilter: fileFilter
 });

@@ -22,10 +22,3 @@ export { default as TrainingReport } from './utils/TrainingReport';
 export { default as TrainingQuickAccess } from './utils/TrainingQuickAccess';
 export { default as TrainingIntegration } from './utils/TrainingIntegration';
 
-
-export { default as TrainingManagementFull } from './legacy/TrainingManagementFull';
-export { default as TrainingManagementFixed } from './legacy/TrainingManagementFixed';
-export { default as TrainingMaterialViewer } from './legacy/TrainingMaterialViewer';
-export { default as TrainingMaterialsList } from './legacy/TrainingMaterialsList';
-export { default as AddEditTraining_Old } from './legacy/AddEditTraining_Old';
-export { default as ViewTrainingMaterial } from './legacy/ViewTrainingMaterial';

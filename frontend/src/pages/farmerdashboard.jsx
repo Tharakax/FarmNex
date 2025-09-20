@@ -101,10 +101,10 @@ const ProductManagementReport = React.lazy(() =>
     })
 );
 
-const TrainingManagementFull = React.lazy(() => 
-  import('../components/training/legacy/TrainingManagementFull')
+const TrainingManagementComponent = React.lazy(() => 
+  import('../components/training/management/TrainingManagement')
     .catch(error => {
-      console.error('Failed to load TrainingManagementFull:', error);
+      console.error('Failed to load TrainingManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Training Management" /> };
     })
 );
@@ -441,8 +441,8 @@ const FarmerDashboard = () => {
           console.log('Rendering WeatherDashboard');
           return <WeatherDashboardLazy />;
         case 'Training':
-          console.log('Rendering TrainingManagementFull with all features');
-          return <TrainingManagementFull />;
+          console.log('Rendering TrainingManagement with all features');
+          return <TrainingManagementComponent />;
         case 'Reports':
           console.log('Rendering ProductManagementReport');
           return <ProductManagementReport />;
