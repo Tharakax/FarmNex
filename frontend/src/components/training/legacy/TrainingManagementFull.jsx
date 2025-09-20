@@ -23,7 +23,7 @@ import {
   Loader
 } from 'lucide-react';
 import { parseAndCleanTags } from '../../../utils/tagUtils';
-import { showValidationError, showSuccess, showError } from '../../../utils/sweetAlertRobust';
+import { showValidationError, showSuccess, showError, showConfirm } from '../../../utils/sweetAlertRobust';
 
 const TrainingManagementFull = () => {
   const [successMessage, setSuccessMessage] = useState('');
@@ -128,8 +128,10 @@ const TrainingManagementFull = () => {
       validated.content = true;
     }
     
-    // File validation - file is completely optional
-    if (hasNewFile) {
+    // File validation - file is now REQUIRED
+    if (!hasNewFile && !hasExistingFile) {
+      errors.file = 'A file must be uploaded. Please select a file to attach to this training material.';
+    } else if (hasNewFile) {
       const fileSize = selectedFile.size;
       const fileName = selectedFile.name.toLowerCase();
       const maxSize = 50 * 1024 * 1024; // 50MB
@@ -144,7 +146,7 @@ const TrainingManagementFull = () => {
           'Video': ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'],
           'PDF': ['.pdf'],
           'Image': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
-          'Article': ['.doc', '.docx', '.txt', '.rtf']
+          'Article': ['.doc', '.docx', '.txt', '.rtf', '.pdf']
         };
         
         const typeExtensions = validExtensions[formData.type] || [];
@@ -157,7 +159,7 @@ const TrainingManagementFull = () => {
         }
       }
     } else {
-      // No file selected - this is perfectly fine
+      // Existing file is present (editing scenario)
       validated.file = true;
     }
     
@@ -189,26 +191,22 @@ const TrainingManagementFull = () => {
       validated.status = true;
     }
     
-    // Tags validation - simplified for now
-    if (formData.tags && formData.tags.length > 0) {
-      if (formData.tags.length > 10) {
-        errors.tags = 'Too many tags. Please limit to 10 tags maximum for better organization.';
-      } else {
-        // Check for tag quality
-        const invalidTags = formData.tags.filter(tag => 
-          !tag || tag.trim().length === 0 || tag.trim().length < 2 || tag.trim().length > 30
-        );
-        
-        if (invalidTags.length > 0) {
-          errors.tags = 'Each tag must be between 2 and 30 characters long and cannot be empty.';
-        } else {
-          validated.tags = true;
-        }
-      }
+    // Tags validation - tags are now REQUIRED
+    if (!formData.tags || formData.tags.length === 0) {
+      errors.tags = 'At least one tag is required to help categorize and discover the training material.';
+    } else if (formData.tags.length > 10) {
+      errors.tags = 'Too many tags. Please limit to 10 tags maximum for better organization.';
     } else {
-      // No tags - temporarily allow this for testing
-      console.log('⚠️ No tags provided - allowing for now');
-      validated.tags = true;
+      // Check for tag quality
+      const invalidTags = formData.tags.filter(tag => 
+        !tag || tag.trim().length === 0 || tag.trim().length < 2 || tag.trim().length > 30
+      );
+      
+      if (invalidTags.length > 0) {
+        errors.tags = 'Each tag must be between 2 and 30 characters long and cannot be empty.';
+      } else {
+        validated.tags = true;
+      }
     }
     
     console.log('🔍 Validation summary:');
@@ -508,7 +506,7 @@ const TrainingManagementFull = () => {
       case 'tags':
         const tags = value !== null ? value : formData.tags;
         if (!tags || tags.length === 0) {
-          errors.tags = 'At least one tag is required.';
+          errors.tags = 'At least one tag is required to categorize this material.';
         } else if (tags.length > 10) {
           errors.tags = 'Too many tags. Maximum 10 allowed.';
         } else {
@@ -525,10 +523,13 @@ const TrainingManagementFull = () => {
         break;
         
       case 'file':
-        // File validation - file is completely optional
+        // File validation - file is now REQUIRED
         const hasNewFile = selectedFile && selectedFile.size > 0;
+        const hasExistingFile = editingMaterial && editingMaterial.fileName;
         
-        if (hasNewFile) {
+        if (!hasNewFile && !hasExistingFile) {
+          errors.file = 'A file must be uploaded. Please select a file.';
+        } else if (hasNewFile) {
           const fileSize = selectedFile.size;
           const fileName = selectedFile.name.toLowerCase();
           const maxSize = 50 * 1024 * 1024; // 50MB
@@ -543,7 +544,7 @@ const TrainingManagementFull = () => {
               'Video': ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'],
               'PDF': ['.pdf'],
               'Image': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
-              'Article': ['.doc', '.docx', '.txt', '.rtf']
+              'Article': ['.doc', '.docx', '.txt', '.rtf', '.pdf']
             };
             
             const typeExtensions = validExtensions[formData.type] || [];
@@ -556,7 +557,7 @@ const TrainingManagementFull = () => {
             }
           }
         } else {
-          // No file selected - this is perfectly fine
+          // Existing file is present (editing scenario)
           validated.file = true;
         }
         break;
@@ -581,7 +582,12 @@ const TrainingManagementFull = () => {
     });
     setSelectedFile(null);
     setTagInput('');
-    clearValidationState();
+    // Set initial validation errors for required fields
+    setValidationErrors({
+      file: 'A file must be uploaded. Please select a file.',
+      tags: 'At least one tag is required to categorize this material.'
+    });
+    setValidatedFields({});
     setShowForm(true);
   };
 
@@ -608,12 +614,39 @@ const TrainingManagementFull = () => {
     setShowViewer(true);
   };
 
-  const handleDeleteMaterial = async (materialId) => {
-    if (!window.confirm('Are you sure you want to delete this training material?')) {
-      return;
-    }
-
+  const handleDeleteMaterial = async (materialId, materialTitle = 'this training material') => {
     try {
+      const result = await showConfirm(
+        `Are you sure you want to delete "${materialTitle}"? This action cannot be undone and will permanently remove the material and its associated file.`,
+        'Delete Training Material',
+        {
+          confirmButtonText: 'Yes, Delete It',
+          cancelButtonText: 'Cancel',
+          confirmButtonColor: '#dc2626',
+          cancelButtonColor: '#6b7280',
+          icon: 'warning',
+          showCancelButton: true,
+          focusCancel: true
+        }
+      );
+
+      if (!result.isConfirmed) {
+        return; // User cancelled the deletion
+      }
+
+      // Show loading state while deleting
+      const loadingResult = await showConfirm(
+        'Deleting training material...',
+        'Please Wait',
+        {
+          showConfirmButton: false,
+          showCancelButton: false,
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          icon: 'info'
+        }
+      );
+
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/training/${materialId}`, {
         method: 'DELETE',
@@ -627,12 +660,27 @@ const TrainingManagementFull = () => {
         throw new Error('Failed to delete material');
       }
 
-      setSuccessMessage('Training material deleted successfully!');
+      // Close loading dialog
+      if (loadingResult.dismiss) {
+        loadingResult.dismiss();
+      }
+
+      // Show success message
+      await showSuccess(
+        `Training material "${materialTitle}" has been successfully deleted.`,
+        'Deleted Successfully!'
+      );
+
+      // Refresh the materials list and statistics
       fetchMaterials();
       fetchStatistics();
+      
     } catch (error) {
       console.error('Error deleting material:', error);
-      setErrorMessage('Failed to delete training material.');
+      await showError(
+        `Failed to delete training material. ${error.message}`,
+        'Deletion Failed'
+      );
     }
   };
 
@@ -986,7 +1034,7 @@ const TrainingManagementFull = () => {
 
               {/* File Upload */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">File Upload (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">File Upload <span className="text-red-500">*</span> <span className="text-sm text-gray-600">(Required)</span></label>
                 
                 {/* Show existing file information when editing */}
                 {editingMaterial && editingMaterial.fileName && (
@@ -1065,8 +1113,8 @@ const TrainingManagementFull = () => {
                 )}
                 
                 {!editingMaterial && !selectedFile && (
-                  <div className="text-sm text-gray-500 mt-2">
-                    Optional: Choose a file to upload (PDF, Video, Image, or Document)
+                  <div className="text-sm text-red-500 mt-2 font-medium">
+                    ⚠️ File upload is mandatory - Please choose a file (PDF, Video, Image, or Document)
                   </div>
                 )}
                 
@@ -1086,7 +1134,7 @@ const TrainingManagementFull = () => {
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tags (Optional for Testing)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tags <span className="text-red-500">*</span> <span className="text-sm text-gray-600">(Required)</span></label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
@@ -1134,8 +1182,13 @@ const TrainingManagementFull = () => {
                   ))}
                 </div>
                 
-                <div className="text-sm text-gray-500 mb-2">
-                  {formData.tags.length}/10 tags • Help users discover your content with relevant keywords
+                <div className={`text-sm mb-2 ${
+                  formData.tags.length === 0 ? 'text-red-500 font-medium' : 'text-gray-500'
+                }`}>
+                  {formData.tags.length === 0 
+                    ? '⚠️ At least one tag is required • Help users discover your content with relevant keywords'
+                    : `${formData.tags.length}/10 tags • Help users discover your content with relevant keywords`
+                  }
                 </div>
                 
                 {validationErrors.tags && (
@@ -1165,18 +1218,6 @@ const TrainingManagementFull = () => {
                 </select>
               </div>
 
-              {/* Debug Test Button - Temporary */}
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
-                <h4 className="text-sm font-medium text-yellow-800 mb-2">Debug Tools</h4>
-                <button
-                  type="button"
-                  onClick={testValidation}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 text-sm"
-                >
-                  Test Validation (Check Console)
-                </button>
-              </div>
-              
               {/* Form Actions */}
               <div className="flex gap-4 pt-4">
                 <button
@@ -1495,7 +1536,7 @@ const TrainingManagementFull = () => {
                       <span className="text-sm font-medium">Edit</span>
                     </button>
                     <button
-                      onClick={() => handleDeleteMaterial(material._id)}
+                      onClick={() => handleDeleteMaterial(material._id, material.title)}
                       className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
                       title="Delete Material"
                     >

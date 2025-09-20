@@ -51,6 +51,8 @@ const AddEditTrainingForm = ({
         content: editingMaterial.content || '',
         status: editingMaterial.status || 'draft'
       });
+      setErrors({}); // Clear errors for editing
+      setValidFields({});
     } else {
       // Reset form for new material
       setFormData({
@@ -63,10 +65,14 @@ const AddEditTrainingForm = ({
         content: '',
         status: 'draft'
       });
+      // Set initial validation errors for required fields
+      setErrors({
+        file: 'File upload is mandatory - Please select a file',
+        tags: 'At least one tag is required'
+      });
+      setValidFields({});
     }
     setSelectedFile(null);
-    setErrors({});
-    setValidFields({});
   }, [editingMaterial]);
 
   const categories = [
@@ -141,9 +147,9 @@ const AddEditTrainingForm = ({
         return '';
       }
       case 'file': {
-        // File is now required for ALL content types
+        // File is MANDATORY for ALL content types
         if (!file && !editingMaterial) {
-          return 'File is required for all content types';
+          return 'File upload is mandatory - Please select a file';
         }
         if (file) {
           const allowedTypes = {
@@ -221,7 +227,7 @@ const AddEditTrainingForm = ({
         'Video': ['video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/quicktime'],
         'PDF': ['application/pdf'],
         'Guide': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'],
-        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+        'Article': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf']
       };
       
       const typeAllowed = allowedTypes[formData.type] || [];
@@ -238,6 +244,10 @@ const AddEditTrainingForm = ({
       setErrors(prev => ({
         ...prev,
         file: ''
+      }));
+      setValidFields(prev => ({
+        ...prev,
+        file: true
       }));
       const fileSize = (file.size / 1024 / 1024).toFixed(2);
       showToast(`✅ File "${file.name}" (${fileSize}MB) selected successfully!`, 'success');
@@ -314,10 +324,10 @@ const AddEditTrainingForm = ({
       }
     }
     
-    // File validation - now required for ALL content types
+    // File validation - MANDATORY for ALL content types
     if (!selectedFile && !editingMaterial) {
-      newErrors.file = 'File is required for all content types';
-      alertErrors.push('A file is required for all content types.');
+      newErrors.file = 'File upload is mandatory - Please select a file';
+      alertErrors.push('File upload is mandatory - Please select a file.');
     }
     
     // File type validation
@@ -782,7 +792,7 @@ const AddEditTrainingForm = ({
                 onBlur={handleBlur}
                 aria-invalid={!!errors.tags}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 ${
-                  errors.tags ? 'border-red-500' : 'border-gray-300'
+                  errors.tags ? 'border-red-500' : validFields.tags ? 'border-green-500' : 'border-gray-300'
                 }`}
                 placeholder="Enter tags separated by commas (e.g., farming, crops, irrigation)"
               />
@@ -792,6 +802,11 @@ const AddEditTrainingForm = ({
                     <p className="text-red-500 text-sm flex items-center">
                       <AlertCircle className="h-4 w-4 mr-1" />
                       {errors.tags}
+                    </p>
+                  ) : validFields.tags ? (
+                    <p className="text-green-600 text-sm flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Tags added successfully!
                     </p>
                   ) : (
                     <p className="text-gray-500 text-sm">Required: Add at least one tag, separate multiple tags with commas (max 10 tags)</p>
@@ -840,24 +855,28 @@ const AddEditTrainingForm = ({
               </div>
             )}
 
-            {/* File Upload (required for all content types) */}
+            {/* File Upload - REQUIRED */}
             <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload File <span className="text-red-500">*</span>
+                  Upload File <span className="text-red-500">*</span> <span className="text-sm text-gray-600">(Required)</span>
                 </label>
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                     dragOver 
                       ? 'border-green-400 bg-green-50' 
                       : errors.file 
-                        ? 'border-red-300 bg-red-50' 
-                        : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-red-400 bg-red-50' 
+                        : selectedFile
+                          ? 'border-green-400 bg-green-50'
+                          : 'border-red-200 bg-red-25 hover:border-red-300'
                   }`}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                 >
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <Upload className={`h-12 w-12 mx-auto mb-4 ${
+                    selectedFile ? 'text-green-500' : 'text-red-400'
+                  }`} />
                   <div className="space-y-2">
                     <p className="text-gray-600">
                       {selectedFile ? (
@@ -865,7 +884,7 @@ const AddEditTrainingForm = ({
                           Selected: {selectedFile.name}
                         </span>
                       ) : (
-                        <>Drop your file here or </>
+                        <><strong>File Required:</strong> Drop your file here or </>
                       )}
                     </p>
                     {selectedFile ? (
@@ -889,7 +908,8 @@ const AddEditTrainingForm = ({
                               if (fileInputRef.current) {
                                 fileInputRef.current.value = '';
                               }
-                              setErrors(prev => ({ ...prev, file: 'File is required for all content types' }));
+                              setErrors(prev => ({ ...prev, file: 'File upload is mandatory - Please select a file' }));
+                              setValidFields(prev => ({ ...prev, file: false }));
                               showToast('File removed', 'info');
                             }
                           }}
@@ -908,7 +928,7 @@ const AddEditTrainingForm = ({
                       </button>
                     )}
                     <p className="text-gray-400 text-sm">
-                      Maximum file size: 50MB
+                      <strong>Required:</strong> Upload a file (Maximum size: 50MB)
                     </p>
                   </div>
                   <input
@@ -919,12 +939,24 @@ const AddEditTrainingForm = ({
                     accept={formData.type === 'Video' ? 'video/*' : formData.type === 'PDF' ? '.pdf' : 'image/*,.pdf'}
                   />
                 </div>
-                {errors.file && (
-                  <p className="text-red-500 text-sm mt-1 flex items-center">
-                    <AlertCircle className="h-4 w-4 mr-1" />
-                    {errors.file}
-                  </p>
-                )}
+                <div className="mt-2">
+                  {errors.file ? (
+                    <p className="text-red-500 text-sm flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      {errors.file}
+                    </p>
+                  ) : selectedFile ? (
+                    <p className="text-green-600 text-sm flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      File selected successfully! ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
+                    </p>
+                  ) : (
+                    <p className="text-red-500 text-sm flex items-center font-medium">
+                      <AlertCircle className="h-4 w-4 mr-1" />
+                      ⚠️ File upload is mandatory - Please select a file
+                    </p>
+                  )}
+                </div>
               </div>
           </div>
 
