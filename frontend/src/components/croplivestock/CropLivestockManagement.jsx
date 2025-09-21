@@ -102,49 +102,69 @@ const CropLivestockManagement = () => {
     }
   };
 
+  // Robust navigation helper with multiple fallback methods
+  const navigateToRoute = (route, description) => {
+    console.log(`Attempting navigation to: ${route}`);
+    toast.success(`${description}`);
+    
+    // Method 1: Try React Router navigate first
+    try {
+      navigate(route);
+      console.log('React Router navigation successful');
+      return;
+    } catch (error) {
+      console.error('React Router navigation failed:', error);
+    }
+    
+    // Method 2: Try window.location as fallback
+    try {
+      window.location.href = route;
+      console.log('Window location navigation successful');
+      return;
+    } catch (error) {
+      console.error('Window location navigation failed:', error);
+    }
+    
+    // Method 3: Last resort - create a hidden link and click it
+    try {
+      const link = document.createElement('a');
+      link.href = route;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      console.log('Programmatic link navigation successful');
+    } catch (error) {
+      console.error('All navigation methods failed:', error);
+      toast.error('Navigation failed. Please try manually navigating to the page.');
+    }
+  };
+
   const handleCropAction = (action) => {
     console.log('Crop action triggered:', action);
-    try {
-      switch (action) {
-        case 'add':
-          console.log('Navigating to /crops/add');
-          toast.success('Navigating to Add Crop Plan...');
-          navigate('/crops/add', { replace: true });
-          break;
-        case 'view':
-          console.log('Navigating to /crops');
-          toast.success('Navigating to All Crops...');
-          navigate('/crops', { replace: true });
-          break;
-        default:
-          break;
-      }
-    } catch (error) {
-      console.error('Navigation error:', error);
-      toast.error('Navigation failed. Please try again.');
+    switch (action) {
+      case 'add':
+        navigateToRoute('/crops/add', 'Opening Add Crop Plan page...');
+        break;
+      case 'view':
+        navigateToRoute('/crops', 'Opening All Crops page...');
+        break;
+      default:
+        break;
     }
   };
 
   const handleLivestockAction = (action) => {
     console.log('Livestock action triggered:', action);
-    try {
-      switch (action) {
-        case 'add':
-          console.log('Navigating to /livestock/add');
-          toast.success('Navigating to Add Livestock...');
-          navigate('/livestock/add', { replace: true });
-          break;
-        case 'view':
-          console.log('Navigating to /livestock');
-          toast.success('Navigating to All Livestock...');
-          navigate('/livestock', { replace: true });
-          break;
-        default:
-          break;
-      }
-    } catch (error) {
-      console.error('Navigation error:', error);
-      toast.error('Navigation failed. Please try again.');
+    switch (action) {
+      case 'add':
+        navigateToRoute('/livestock/add', 'Opening Add Livestock page...');
+        break;
+      case 'view':
+        navigateToRoute('/livestock', 'Opening All Livestock page...');
+        break;
+      default:
+        break;
     }
   };
 
@@ -217,6 +237,38 @@ const CropLivestockManagement = () => {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
+        
+        {/* Alternative HTML Link-based Navigation */}
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="font-semibold text-yellow-800 mb-2">Direct Links (Alternative Navigation)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+            <a 
+              href="/crops/add" 
+              className="inline-block text-center bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 transition-colors"
+            >
+              Add Crop Plan
+            </a>
+            <a 
+              href="/livestock/add" 
+              className="inline-block text-center bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition-colors"
+            >
+              Add Livestock
+            </a>
+            <a 
+              href="/crops" 
+              className="inline-block text-center bg-emerald-500 text-white px-3 py-2 rounded hover:bg-emerald-600 transition-colors"
+            >
+              View All Crops
+            </a>
+            <a 
+              href="/livestock" 
+              className="inline-block text-center bg-indigo-500 text-white px-3 py-2 rounded hover:bg-indigo-600 transition-colors"
+            >
+              View All Livestock
+            </a>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickActionButton
             title="Add Crop Plan"
