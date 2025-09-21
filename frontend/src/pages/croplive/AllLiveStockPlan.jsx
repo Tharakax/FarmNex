@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getLivestock } from "../../services/livestockService";
 import { useToast } from "./ToastProvider.jsx";
+import BackButton from '../../components/common/BackButton';
 
 import {
   Plus,
@@ -156,15 +157,19 @@ function AllLiveStockPlans() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">
-              All Livestock
-            </h2>
-            <p className="text-gray-600">
-              Manage and monitor all your farm livestock
-            </p>
+        <div className="mb-8">
+          <div className="mb-4">
+            <BackButton label="Back to Dashboard" className="" />
           </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                All Livestock
+              </h2>
+              <p className="text-gray-600">
+                Manage and monitor all your farm livestock
+              </p>
+            </div>
           <div className="flex items-center space-x-2 text-sm text-gray-600 bg-white px-4 py-2 rounded-lg border border-gray-200">
             <Activity className="w-4 h-4" />
             <span>{livestock.length} Total Animals</span>
@@ -193,6 +198,7 @@ function AllLiveStockPlans() {
             <BarChart3 className="w-5 h-5" />
             <span>Download PDF</span>
           </button>
+          </div>
         </div>
 
         {/* Livestock Grid */}

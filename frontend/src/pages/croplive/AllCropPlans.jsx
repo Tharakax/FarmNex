@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 import { useToast } from './ToastProvider.jsx';
+import BackButton from '../../components/common/BackButton';
 
 import { 
   Sprout, 
@@ -113,6 +114,9 @@ function AllCropPlans() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header Section */}
         <div className="mb-8">
+          <div className="mb-4">
+            <BackButton label="Back to Dashboard" className="" />
+          </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-800 mb-2">All Crop Plans</h2>

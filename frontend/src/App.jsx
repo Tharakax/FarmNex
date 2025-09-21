@@ -6,6 +6,7 @@ import PaymentCardsManager from './pages/client/PaymentCards.jsx'
 import MyOrders from './pages/client/MyOrders.jsx'
 import ViewOrder from './pages/client/ViewOrder.jsx'
 import { ToastProvider } from "./pages/croplive/ToastProvider.jsx"; // ✅ import ToastProvider
+import { GlobalBackButton } from './components/common/BackButton'
 
 // Lazy loaded components ...
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
@@ -111,6 +112,7 @@ function App() {
   return (
     <ToastProvider> {/* ✅ Wrap everything with ToastProvider */}
       <Toaster position="top-center" />
+      <GlobalBackButton />
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addLivestock } from "../../services/livestockService";   
 import { useToast } from "./ToastProvider.jsx";
+import BackButton from '../../components/common/BackButton';
 
 
 function AddLivestockPlan() {
@@ -164,6 +165,9 @@ function AddLivestockPlan() {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div className="bg-white rounded-xl shadow p-6 border">
+          <div className="mb-4">
+            <BackButton label="Back to Livestock" className="" />
+          </div>
           <h1 className="text-3xl font-bold text-gray-800">
             Add Livestock Record
           </h1>

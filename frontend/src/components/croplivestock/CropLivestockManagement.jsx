@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sprout, Users, Plus, List, BarChart3, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import NavigationTest from './NavigationTest';
+import BackButton from '../common/BackButton';
+import axios from 'axios';
 
 // Card Component
 const Card = ({ children, className = "", onClick }) => {
@@ -82,21 +83,46 @@ const CropLivestockManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Fetch crops and livestock data
-      // For now, using mock data
-      setCrops([
-        { id: 1, name: 'Tomatoes', status: 'Growing', plantingDate: '2024-03-15', expectedHarvest: '2024-06-15' },
-        { id: 2, name: 'Corn', status: 'Harvesting', plantingDate: '2024-02-10', expectedHarvest: '2024-05-20' },
-        { id: 3, name: 'Wheat', status: 'Planning', plantingDate: '2024-04-01', expectedHarvest: '2024-07-15' },
-      ]);
-      setLivestock([
-        { id: 1, type: 'Cattle', count: 25, status: 'Healthy' },
-        { id: 2, type: 'Chickens', count: 150, status: 'Healthy' },
-        { id: 3, type: 'Sheep', count: 40, status: 'Under Care' },
-      ]);
+      
+      // Fetch crops data from API
+      const cropsResponse = await axios.get('http://localhost:3000/api/crop/get');
+      const cropsData = cropsResponse.data || [];
+      
+      // Transform crops data to match component expectations
+      const transformedCrops = cropsData.map(crop => ({
+        id: crop._id,
+        name: crop.planName || crop.cropType || 'Unknown Crop',
+        status: crop.status || 'Active',
+        plantingDate: crop.plantingDate || 'Not set',
+        expectedHarvest: crop.harvestDate || 'Not set',
+        cropType: crop.cropType,
+        variety: crop.variety
+      }));
+      
+      // Fetch livestock data from API
+      const livestockResponse = await axios.get('http://localhost:3000/api/livestock/get');
+      const livestockData = livestockResponse.data || [];
+      
+      // Transform livestock data to match component expectations
+      const transformedLivestock = livestockData.map(animal => ({
+        id: animal._id,
+        type: animal.animalType || 'Unknown Animal',
+        count: 1, // Since each record is one animal
+        status: 'Healthy', // Default status, could be derived from health records
+        breed: animal.breed,
+        gender: animal.gender,
+        weight: animal.weight
+      }));
+      
+      setCrops(transformedCrops);
+      setLivestock(transformedLivestock);
+      
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load crop and livestock data');
+      // Set empty arrays on error
+      setCrops([]);
+      setLivestock([]);
     } finally {
       setLoading(false);
     }
@@ -181,22 +207,25 @@ const CropLivestockManagement = () => {
 
   return (
     <div className="space-y-6">
+      {/* Custom CSS to force white text */}
+      <style>{`
+        .nav-link-white,
+        .nav-link-white:visited,
+        .nav-link-white:hover,
+        .nav-link-white:focus,
+        .nav-link-white:active,
+        .nav-link-white span {
+          color: #ffffff !important;
+          text-decoration: none !important;
+        }
+      `}</style>
+      
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="mb-4">
+        <BackButton label="Back to Dashboard" className="mb-4" />
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Crop & Livestock Management</h1>
           <p className="text-gray-600 mt-1">Manage your farm's crops and livestock in one place</p>
-        </div>
-        <div>
-          <button 
-            onClick={() => {
-              console.log('Test button clicked!');
-              toast.success('Test button works!');
-            }}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Test Click
-          </button>
         </div>
       </div>
 
@@ -207,30 +236,30 @@ const CropLivestockManagement = () => {
           value={crops.length}
           icon={Sprout}
           color="bg-green-500"
-          change="+3 this month"
+          change={crops.length > 0 ? `${crops.length} crop plans` : "No crops yet"}
           onClick={() => handleCropAction('view')}
         />
         <StatsCard
-          title="Livestock Types"
+          title="Total Livestock"
           value={livestock.length}
           icon={Users}
           color="bg-blue-500"
-          change={`${livestock.reduce((sum, l) => sum + l.count, 0)} total animals`}
+          change={livestock.length > 0 ? `${livestock.length} animals` : "No livestock yet"}
           onClick={() => handleLivestockAction('view')}
         />
         <StatsCard
           title="Active Plans"
-          value={crops.filter(c => c.status === 'Growing').length + livestock.filter(l => l.status === 'Healthy').length}
+          value={crops.filter(c => c.status && c.status.toLowerCase() !== 'completed').length}
           icon={BarChart3}
           color="bg-purple-500"
-          change="All systems active"
+          change={crops.length > 0 ? "Plans in progress" : "No active plans"}
         />
         <StatsCard
-          title="Alerts"
-          value={livestock.filter(l => l.status === 'Under Care').length}
+          title="Health Status"
+          value={livestock.filter(l => l.status === 'Healthy').length}
           icon={AlertTriangle}
-          color="bg-red-500"
-          change={livestock.filter(l => l.status === 'Under Care').length > 0 ? "Needs attention" : "All good"}
+          color={livestock.length > 0 ? "bg-green-500" : "bg-gray-500"}
+          change={livestock.length > 0 ? "Healthy animals" : "No data"}
         />
       </div>
 
@@ -244,27 +273,51 @@ const CropLivestockManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
             <a 
               href="/crops/add" 
-              className="inline-block text-center bg-green-500 text-white px-3 py-2 rounded hover:bg-green-600 transition-colors"
+              className="nav-link-white inline-block text-center bg-green-700 text-white font-bold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl hover:bg-green-800 transition-all !text-white"
+              style={{ 
+                color: '#ffffff', 
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)', 
+                textDecoration: 'none',
+                '--tw-text-opacity': '1'
+              }}
             >
-              Add Crop Plan
+              <span className="text-white font-bold" style={{ color: '#ffffff !important' }}>Add Crop Plan</span>
             </a>
             <a 
               href="/livestock/add" 
-              className="inline-block text-center bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 transition-colors"
+              className="nav-link-white inline-block text-center bg-blue-700 text-white font-bold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl hover:bg-blue-800 transition-all !text-white"
+              style={{ 
+                color: '#ffffff', 
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)', 
+                textDecoration: 'none',
+                '--tw-text-opacity': '1'
+              }}
             >
-              Add Livestock
+              <span className="text-white font-bold" style={{ color: '#ffffff !important' }}>Add Livestock</span>
             </a>
             <a 
               href="/crops" 
-              className="inline-block text-center bg-emerald-500 text-white px-3 py-2 rounded hover:bg-emerald-600 transition-colors"
+              className="nav-link-white inline-block text-center bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl hover:bg-emerald-800 transition-all !text-white"
+              style={{ 
+                color: '#ffffff', 
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)', 
+                textDecoration: 'none',
+                '--tw-text-opacity': '1'
+              }}
             >
-              View All Crops
+              <span className="text-white font-bold" style={{ color: '#ffffff !important' }}>View All Crops</span>
             </a>
             <a 
               href="/livestock" 
-              className="inline-block text-center bg-indigo-500 text-white px-3 py-2 rounded hover:bg-indigo-600 transition-colors"
+              className="nav-link-white inline-block text-center bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl hover:bg-indigo-800 transition-all !text-white"
+              style={{ 
+                color: '#ffffff', 
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)', 
+                textDecoration: 'none',
+                '--tw-text-opacity': '1'
+              }}
             >
-              View All Livestock
+              <span className="text-white font-bold" style={{ color: '#ffffff !important' }}>View All Livestock</span>
             </a>
           </div>
         </div>
@@ -330,23 +383,36 @@ const CropLivestockManagement = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {crops.slice(0, 3).map((crop) => (
-              <div key={crop.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">{crop.name}</p>
-                  <p className="text-sm text-gray-600">Planted: {crop.plantingDate}</p>
+            {crops.length > 0 ? (
+              crops.slice(0, 3).map((crop) => (
+                <div key={crop.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-800">{crop.name}</p>
+                    <p className="text-sm text-gray-600">Planted: {new Date(crop.plantingDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                      crop.status?.toLowerCase() === 'growing' ? 'bg-green-100 text-green-800' :
+                      crop.status?.toLowerCase() === 'harvesting' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {crop.status || 'Active'}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                    crop.status === 'Growing' ? 'bg-green-100 text-green-800' :
-                    crop.status === 'Harvesting' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    {crop.status}
-                  </span>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Sprout className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">No crop plans yet</p>
+                <button 
+                  onClick={() => handleCropAction('add')}
+                  className="mt-2 text-sm text-green-600 hover:text-green-800"
+                >
+                  Add your first crop plan
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </Card>
 
@@ -365,22 +431,35 @@ const CropLivestockManagement = () => {
             </button>
           </div>
           <div className="space-y-3">
-            {livestock.map((animal) => (
-              <div key={animal.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-800">{animal.type}</p>
-                  <p className="text-sm text-gray-600">Count: {animal.count}</p>
+            {livestock.length > 0 ? (
+              livestock.slice(0, 3).map((animal) => (
+                <div key={animal.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-800">{animal.type}</p>
+                    <p className="text-sm text-gray-600">Breed: {animal.breed || 'Not specified'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                      animal.status === 'Healthy' ? 'bg-green-100 text-green-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {animal.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                    animal.status === 'Healthy' ? 'bg-green-100 text-green-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {animal.status}
-                  </span>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">No livestock records yet</p>
+                <button 
+                  onClick={() => handleLivestockAction('add')}
+                  className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Add your first livestock record
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </Card>
       </div>
@@ -395,22 +474,24 @@ const CropLivestockManagement = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <p className="text-2xl font-bold text-green-600">85%</p>
+            <p className="text-2xl font-bold text-green-600">
+              {crops.length > 0 ? Math.round((crops.filter(c => c.status && c.status.toLowerCase() !== 'failed').length / crops.length) * 100) : 0}%
+            </p>
             <p className="text-sm text-gray-600 mt-1">Crop Success Rate</p>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">92%</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {livestock.length > 0 ? Math.round((livestock.filter(l => l.status === 'Healthy').length / livestock.length) * 100) : 0}%
+            </p>
             <p className="text-sm text-gray-600 mt-1">Livestock Health Rate</p>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
-            <p className="text-2xl font-bold text-purple-600">78%</p>
-            <p className="text-sm text-gray-600 mt-1">Overall Efficiency</p>
+            <p className="text-2xl font-bold text-purple-600">{crops.length + livestock.length}</p>
+            <p className="text-sm text-gray-600 mt-1">Total Records</p>
           </div>
         </div>
       </Card>
 
-      {/* Temporary Navigation Test */}
-      <NavigationTest />
     </div>
   );
 };

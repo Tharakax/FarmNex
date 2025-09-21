@@ -3,6 +3,7 @@ import { useToast } from "./ToastProvider.jsx";
 import { Calendar, Droplets, Sprout, MapPin, Beaker, Clock, Plus, Trash2, Leaf, ChevronUp, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
+import BackButton from '../../components/common/BackButton';
 
 
 function AddCropPlan() {
@@ -151,6 +152,9 @@ function AddCropPlan() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl mb-8 p-6 border border-green-100">
+          <div className="flex items-center justify-between mb-4">
+            <BackButton label="Back to Crops" className="" />
+          </div>
           <div className="flex items-center space-x-3 mb-2">
             <div className="bg-green-100 p-3 rounded-full">
               <Sprout className="w-8 h-8 text-green-600" />
