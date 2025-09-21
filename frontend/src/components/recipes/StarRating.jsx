@@ -1,13 +1,11 @@
 import React from "react";
 
-/**
- * A11y-friendly star rating.
- * - value: number 0..5
- * - onChange: (n) => void
- * - size: "sm" | "md" | "lg"
- * - readOnly: boolean
- */
-export default function StarRating({ value = 0, onChange, size = "md", readOnly = false }) {
+export default function StarRating({
+  value = 0,
+  onChange,
+  size = "md",
+  readOnly = false,
+}) {
   const stars = [1, 2, 3, 4, 5];
   const sizes = {
     sm: "h-5 w-5",
@@ -32,7 +30,11 @@ export default function StarRating({ value = 0, onChange, size = "md", readOnly 
   };
 
   return (
-    <div className="flex items-center gap-1" role="radiogroup" aria-label="Rating">
+    <div
+      className="flex items-center gap-1"
+      role="radiogroup"
+      aria-label="Rating"
+    >
       {stars.map((n) => {
         const filled = n <= Math.round(value);
         return (
@@ -54,7 +56,9 @@ export default function StarRating({ value = 0, onChange, size = "md", readOnly 
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
               fill={filled ? "currentColor" : "none"}
-              className={`${sizes[size]} ${filled ? "text-amber-400" : "text-gray-300"} stroke-2`}
+              className={`${sizes[size]} ${
+                filled ? "text-amber-400" : "text-gray-300"
+              } stroke-2`}
               stroke={filled ? "none" : "#9CA3AF"}
             >
               <path
@@ -66,7 +70,9 @@ export default function StarRating({ value = 0, onChange, size = "md", readOnly 
         );
       })}
       {!readOnly && (
-        <span className="ml-2 text-xs text-gray-500">{value ? `${value}/5` : "No rating"}</span>
+        <span className="ml-2 text-xs text-gray-500">
+          {value ? `${value}/5` : "No rating"}
+        </span>
       )}
     </div>
   );

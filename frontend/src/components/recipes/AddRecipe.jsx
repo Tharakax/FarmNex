@@ -32,7 +32,8 @@ export default function AddRecipe() {
     if (!inputs.recipeId.trim()) {
       newErrors.recipeId = "Recipe ID is required";
     } else if (!/^[A-Za-z0-9-]+$/.test(inputs.recipeId)) {
-      newErrors.recipeId = "Recipe ID can only contain letters, numbers, and hyphens";
+      newErrors.recipeId =
+        "Recipe ID can only contain letters, numbers, and hyphens";
     }
 
     if (!inputs.title.trim()) {
@@ -49,8 +50,11 @@ export default function AddRecipe() {
 
     if (!inputs.ingredients.trim()) {
       newErrors.ingredients = "Ingredients are required";
-    } else if (inputs.ingredients.split(",").filter((i) => i.trim()).length < 2) {
-      newErrors.ingredients = "Please provide at least 2 ingredients separated by commas";
+    } else if (
+      inputs.ingredients.split(",").filter((i) => i.trim()).length < 2
+    ) {
+      newErrors.ingredients =
+        "Please provide at least 2 ingredients separated by commas";
     }
 
     if (inputs.meal.length === 0) {
@@ -147,7 +151,9 @@ export default function AddRecipe() {
         description: inputs.description,
         ingredients: inputs.ingredients,
         type: inputs.type,
-        meal: Array.isArray(inputs.meal) ? inputs.meal : String(inputs.meal).split(","),
+        meal: Array.isArray(inputs.meal)
+          ? inputs.meal
+          : String(inputs.meal).split(","),
         rating: Number(inputs.rating) || 0,
       };
 
@@ -175,7 +181,7 @@ export default function AddRecipe() {
   return (
     <div>
       <Navigation />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-36 md:pt-32">
         <h1 className="text-3xl font-extrabold tracking-tight mb-6">
           <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
             Create Recipe
@@ -266,7 +272,9 @@ export default function AddRecipe() {
                   placeholder="Short description of the recipe..."
                 />
                 {errors.description && (
-                  <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.description}
+                  </p>
                 )}
               </div>
 
@@ -284,7 +292,9 @@ export default function AddRecipe() {
                   placeholder="flour, sugar, eggs, milk"
                 />
                 {errors.ingredients && (
-                  <p className="mt-1 text-sm text-red-600">{errors.ingredients}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.ingredients}
+                  </p>
                 )}
               </div>
             </div>

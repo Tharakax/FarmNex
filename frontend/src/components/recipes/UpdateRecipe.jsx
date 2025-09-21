@@ -1,4 +1,3 @@
-// UpdateRecipe.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,23 +12,20 @@ export default function UpdateRecipe() {
   const nav = useNavigate();
   const { id } = useParams();
 
-  // form state
   const [inputs, setInputs] = useState({
     recipeId: "",
     title: "",
     description: "",
-    ingredients: "", // keep as CSV string in the UI
+    ingredients: "",
     type: "Vegetarian",
     meal: [],
     rating: 0,
-    image: "",       // existing image URL (if any)
+    image: "",
   });
 
-  // image state
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  // ui state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -44,9 +40,18 @@ export default function UpdateRecipe() {
           recipeId: r.recipeId || "",
           title: r.title || "",
           description: r.description || "",
-          ingredients: Array.isArray(r.ingredients) ? r.ingredients.join(", ") : (r.ingredients || ""),
+          ingredients: Array.isArray(r.ingredients)
+            ? r.ingredients.join(", ")
+            : r.ingredients || "",
           type: r.type || "Vegetarian",
-          meal: Array.isArray(r.meal) ? r.meal : (typeof r.meal === "string" ? r.meal.split(",").map(s=>s.trim()).filter(Boolean) : []),
+          meal: Array.isArray(r.meal)
+            ? r.meal
+            : typeof r.meal === "string"
+            ? r.meal
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [],
           rating: Number(r.rating) || 0,
           image: r.image || "",
         });
@@ -59,14 +64,14 @@ export default function UpdateRecipe() {
     })();
   }, [id]);
 
-  // -------- validation (same rules as AddRecipe) --------
   const validateForm = () => {
     const newErrors = {};
 
     if (!inputs.recipeId.trim()) {
       newErrors.recipeId = "Recipe ID is required";
     } else if (!/^[A-Za-z0-9-]+$/.test(inputs.recipeId)) {
-      newErrors.recipeId = "Recipe ID can only contain letters, numbers, and hyphens";
+      newErrors.recipeId =
+        "Recipe ID can only contain letters, numbers, and hyphens";
     }
 
     if (!inputs.title.trim()) {
@@ -83,8 +88,11 @@ export default function UpdateRecipe() {
 
     if (!inputs.ingredients.trim()) {
       newErrors.ingredients = "Ingredients are required";
-    } else if (inputs.ingredients.split(",").filter((i) => i.trim()).length < 2) {
-      newErrors.ingredients = "Please provide at least 2 ingredients separated by commas";
+    } else if (
+      inputs.ingredients.split(",").filter((i) => i.trim()).length < 2
+    ) {
+      newErrors.ingredients =
+        "Please provide at least 2 ingredients separated by commas";
     }
 
     if (!inputs.type) {
@@ -95,7 +103,6 @@ export default function UpdateRecipe() {
       newErrors.meal = "Please select at least one meal type";
     }
 
-    // image is required for your schema; allow existing URL OR new upload, and enforce ≤ 5MB on new file
     if (!imageFile && !inputs.image) {
       newErrors.image = "Please upload an image";
     } else if (imageFile) {
@@ -110,7 +117,6 @@ export default function UpdateRecipe() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // -------- handlers --------
   const onChange = (e) => {
     const { name, value } = e.target;
     setInputs((s) => ({ ...s, [name]: value }));
@@ -132,7 +138,6 @@ export default function UpdateRecipe() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // live checks (same as final validation)
     if (!file.type.startsWith("image/")) {
       setErrors((prev) => ({ ...prev, image: "Please select an image file" }));
       return;
@@ -152,7 +157,7 @@ export default function UpdateRecipe() {
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
-    setInputs((s) => ({ ...s, image: "" })); // forces user to pick a new image before saving
+    setInputs((s) => ({ ...s, image: "" }));
     setErrors((prev) => ({ ...prev, image: "Please upload an image" }));
   };
 
@@ -164,14 +169,13 @@ export default function UpdateRecipe() {
     try {
       let finalImageUrl = inputs.image;
 
-      // upload only if a new file is chosen
       if (imageFile) {
         finalImageUrl = await MediaUpload(imageFile);
       }
 
       const payload = {
         recipeId: String(inputs.recipeId),
-        image: finalImageUrl, // required by schema
+        image: finalImageUrl,
         title: String(inputs.title),
         description: String(inputs.description),
         ingredients: String(inputs.ingredients)
@@ -179,7 +183,12 @@ export default function UpdateRecipe() {
           .map((s) => s.trim())
           .filter(Boolean),
         type: String(inputs.type),
-        meal: Array.isArray(inputs.meal) ? inputs.meal : String(inputs.meal).split(",").map(s=>s.trim()).filter(Boolean),
+        meal: Array.isArray(inputs.meal)
+          ? inputs.meal
+          : String(inputs.meal)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
         rating: Number(inputs.rating) || 0,
       };
 
@@ -200,11 +209,10 @@ export default function UpdateRecipe() {
     }
   };
 
-  // -------- UI --------
   return (
     <div>
       <Navigation />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-36 md:pt-32">
         <h1 className="text-3xl font-extrabold tracking-tight mb-6">
           <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
             Update Recipe
@@ -344,7 +352,11 @@ export default function UpdateRecipe() {
               </div>
 
               {/* Type (radio) */}
-              <div className={`rounded-xl border p-4 ${errors.type ? "border-red-500" : "border-gray-200"}`}>
+              <div
+                className={`rounded-xl border p-4 ${
+                  errors.type ? "border-red-500" : "border-gray-200"
+                }`}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700">
                     Type *
@@ -371,7 +383,11 @@ export default function UpdateRecipe() {
               </div>
 
               {/* Meal (checkbox) */}
-              <div className={`rounded-xl border p-4 ${errors.meal ? "border-red-500" : "border-gray-200"}`}>
+              <div
+                className={`rounded-xl border p-4 ${
+                  errors.meal ? "border-red-500" : "border-gray-200"
+                }`}
+              >
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-700">
                     Meal *
