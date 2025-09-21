@@ -16,17 +16,18 @@ import {
   Eye,
   Video,
   Image,
-  Download,
-  X,
   Upload,
+  X,
   Save,
   Loader,
   BarChart3,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react';
 import { parseAndCleanTags } from '../../../utils/tagUtils';
 import TrainingViewer from '../components/TrainingViewer';
 import AddEditTrainingForm from '../components/AddEditTrainingForm';
+import { getFileUrl } from '../../../config/env';
 
 /**
  * Training Management Component
@@ -72,6 +73,7 @@ const TrainingManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [filteredMaterials, setFilteredMaterials] = useState([]);
 
   // Success/Error message auto-hide
@@ -103,9 +105,13 @@ const TrainingManagement = () => {
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(material => material.category === selectedCategory);
     }
+    
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(material => material.status === statusFilter);
+    }
 
     setFilteredMaterials(filtered);
-  }, [materials, searchQuery, selectedType, selectedCategory]);
+  }, [materials, searchQuery, selectedType, selectedCategory, statusFilter]);
 
   // API Functions
   const fetchMaterials = async () => {
@@ -487,7 +493,7 @@ const TrainingManagement = () => {
         </div>
 
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             type="text"
             placeholder="Search materials..."
@@ -520,6 +526,17 @@ const TrainingManagement = () => {
             <option value="Equipment">Equipment</option>
             <option value="Finance">Finance</option>
             <option value="Marketing">Marketing</option>
+          </select>
+          
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">All Status</option>
+            <option value="published">✅ Published</option>
+            <option value="draft">📝 Draft</option>
+            <option value="archived">📋 Archived</option>
           </select>
         </div>
       </div>
@@ -561,32 +578,79 @@ const TrainingManagement = () => {
                   {material.description}
                 </p>
 
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                  <span>{material.category}</span>
-                  <span>{material.difficulty}</span>
+                <div className="flex items-center justify-between text-xs mb-4">
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full">{material.category}</span>
+                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">{material.difficulty}</span>
+                </div>
+                
+                {/* File and Status Info */}
+                <div className="flex items-center justify-between text-xs mb-4">
+                  <div className="flex items-center text-gray-500">
+                    {material.uploadLink || material.fileName ? (
+                      <>
+                        <Upload className="h-3 w-3 mr-1" />
+                        <span>
+                          File: {material.fileName || material.uploadLink?.split('/').pop() || 'Uploaded'}
+                          {material.fileSize > 0 && (
+                            <span className="ml-1 text-gray-400">({(material.fileSize / 1024 / 1024).toFixed(1)}MB)</span>
+                          )}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        <span>No file</span>
+                      </>
+                    )}
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    material.status === 'published' 
+                      ? 'bg-green-100 text-green-800' 
+                      : material.status === 'draft'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {material.status === 'published' ? '✅ Published' : material.status === 'draft' ? '📝 Draft' : material.status || 'Unknown'}
+                  </span>
                 </div>
 
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleViewMaterial(material)}
-                    className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
-                  >
-                    <Eye className="h-4 w-4 inline mr-1" />
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleEditMaterial(material)}
-                    className="flex-1 bg-green-50 text-green-600 px-3 py-2 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
-                  >
-                    <Edit className="h-4 w-4 inline mr-1" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteMaterial(material._id)}
-                    className="bg-red-50 text-red-600 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                <div className="space-y-2">
+                  {/* First row - View File button (if file exists) */}
+                  {(material.uploadLink || material.fileName) && (
+                    <a
+                      href={getFileUrl(material.uploadLink, material.fileName)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-purple-50 text-purple-600 px-3 py-2 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium flex items-center justify-center"
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      View File
+                    </a>
+                  )}
+                  
+                  {/* Second row - Action buttons */}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleViewMaterial(material)}
+                      className="flex-1 bg-blue-50 text-blue-600 px-3 py-2 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                    >
+                      <Eye className="h-4 w-4 inline mr-1" />
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleEditMaterial(material)}
+                      className="flex-1 bg-green-50 text-green-600 px-3 py-2 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
+                    >
+                      <Edit className="h-4 w-4 inline mr-1" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteMaterial(material._id)}
+                      className="bg-red-50 text-red-600 px-3 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

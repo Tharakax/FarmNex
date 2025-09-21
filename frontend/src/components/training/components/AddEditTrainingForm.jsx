@@ -9,9 +9,11 @@ import {
   File,
   AlertCircle,
   CheckCircle,
-  Loader
+  Loader,
+  Download
 } from 'lucide-react';
 import { showSuccess, showError, showWarning, showConfirm, showToast, showValidationError, showValidationSuccess } from '../../../utils/sweetAlertRobust';
+import { getFileUrl } from '../../../config/env';
 
 const AddEditTrainingForm = ({ 
   isOpen, 
@@ -65,7 +67,7 @@ const AddEditTrainingForm = ({
         content: '',
         status: 'draft'
       });
-      // Set initial validation errors for required fields
+      // Set initial validation errors for required fields (only for new materials)
       setErrors({
         file: 'File upload is mandatory - Please select a file',
         tags: 'At least one tag is required'
@@ -855,18 +857,98 @@ const AddEditTrainingForm = ({
               </div>
             )}
 
-            {/* File Upload - REQUIRED */}
+            {/* File Upload */}
             <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload File <span className="text-red-500">*</span> <span className="text-sm text-gray-600">(Required)</span>
+                  Upload File {!editingMaterial && <span className="text-red-500">*</span>} 
+                  {editingMaterial ? (
+                    <span className="text-sm text-gray-600">(Optional - leave empty to keep current file)</span>
+                  ) : (
+                    <span className="text-sm text-gray-600">(Required)</span>
+                  )}
                 </label>
+                
+                {/* Show existing file info when editing */}
+                {editingMaterial && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        {editingMaterial.type === 'Video' && <Video className="h-5 w-5 text-blue-600 mr-2" />}
+                        {editingMaterial.type === 'PDF' && <FileText className="h-5 w-5 text-blue-600 mr-2" />}
+                        {editingMaterial.type === 'Article' && <FileText className="h-5 w-5 text-blue-600 mr-2" />}
+                        {editingMaterial.type === 'Guide' && <Image className="h-5 w-5 text-blue-600 mr-2" />}
+                        {!['Video', 'PDF', 'Article', 'Guide'].includes(editingMaterial.type) && <File className="h-5 w-5 text-blue-600 mr-2" />}
+                        <div>
+                          <p className="font-medium text-blue-900">Current File:</p>
+                          <p className="text-sm text-blue-700">
+                            {editingMaterial.fileName || 
+                             editingMaterial.originalFileName || 
+                             editingMaterial.uploadLink?.split('/').pop() || 
+                             `${editingMaterial.type} file`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full block mb-1">
+                          {editingMaterial.type || 'File'}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          editingMaterial.status === 'published' 
+                            ? 'bg-green-100 text-green-800' 
+                            : editingMaterial.status === 'draft'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {editingMaterial.status === 'published' ? '✅ Published' : 
+                           editingMaterial.status === 'draft' ? '📝 Draft' : 
+                           editingMaterial.status || 'Unknown'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* File status and info */}
+                    <div className="grid grid-cols-3 gap-4 text-xs text-blue-700 mb-2">
+                      <div>
+                        <span className="font-medium">Views:</span> {editingMaterial.views || 0}
+                      </div>
+                      <div>
+                        <span className="font-medium">Category:</span> {editingMaterial.category || 'N/A'}
+                      </div>
+                      <div>
+                        <span className="font-medium">Size:</span> 
+                        {editingMaterial.fileSize > 0
+                          ? `${(editingMaterial.fileSize / 1024 / 1024).toFixed(1)}MB`
+                          : 'Unknown'
+                        }
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-blue-600 bg-blue-100 p-2 rounded flex-1 mr-2">
+                        💡 Upload a new file below to replace the current one, or leave empty to keep it.
+                      </p>
+                      {(editingMaterial.uploadLink || editingMaterial.fileName) && (
+                        <a
+                          href={getFileUrl(editingMaterial.uploadLink, editingMaterial.fileName)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors flex items-center"
+                        >
+                          <Download className="h-3 w-3 mr-1" />
+                          View File
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                     dragOver 
                       ? 'border-green-400 bg-green-50' 
                       : errors.file 
                         ? 'border-red-400 bg-red-50' 
-                        : selectedFile
+                        : selectedFile || editingMaterial
                           ? 'border-green-400 bg-green-50'
                           : 'border-red-200 bg-red-25 hover:border-red-300'
                   }`}
@@ -875,14 +957,16 @@ const AddEditTrainingForm = ({
                   onDragLeave={handleDragLeave}
                 >
                   <Upload className={`h-12 w-12 mx-auto mb-4 ${
-                    selectedFile ? 'text-green-500' : 'text-red-400'
+                    selectedFile || editingMaterial ? 'text-green-500' : 'text-red-400'
                   }`} />
                   <div className="space-y-2">
                     <p className="text-gray-600">
                       {selectedFile ? (
                         <span className="text-green-600 font-medium">
-                          Selected: {selectedFile.name}
+                          New file selected: {selectedFile.name}
                         </span>
+                      ) : editingMaterial ? (
+                        <><strong>Optional:</strong> Drop a new file here to replace current file or </>
                       ) : (
                         <><strong>File Required:</strong> Drop your file here or </>
                       )}
@@ -924,11 +1008,15 @@ const AddEditTrainingForm = ({
                         onClick={() => fileInputRef.current?.click()}
                         className="text-green-600 hover:text-green-700 font-medium"
                       >
-                        browse files
+                        {editingMaterial ? 'browse files to replace' : 'browse files'}
                       </button>
                     )}
                     <p className="text-gray-400 text-sm">
-                      <strong>Required:</strong> Upload a file (Maximum size: 50MB)
+                      {editingMaterial ? (
+                        <><strong>Optional:</strong> Upload a new file to replace current (Maximum size: 50MB)</>
+                      ) : (
+                        <><strong>Required:</strong> Upload a file (Maximum size: 50MB)</>
+                      )}
                     </p>
                   </div>
                   <input
@@ -948,7 +1036,12 @@ const AddEditTrainingForm = ({
                   ) : selectedFile ? (
                     <p className="text-green-600 text-sm flex items-center">
                       <CheckCircle className="h-4 w-4 mr-1" />
-                      File selected successfully! ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
+                      New file selected successfully! ({(selectedFile.size / 1024 / 1024).toFixed(2)}MB)
+                    </p>
+                  ) : editingMaterial ? (
+                    <p className="text-blue-600 text-sm flex items-center font-medium">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      ✅ Current file will be kept (no changes)
                     </p>
                   ) : (
                     <p className="text-red-500 text-sm flex items-center font-medium">

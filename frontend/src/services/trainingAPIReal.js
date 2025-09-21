@@ -2,7 +2,7 @@ import axios from 'axios';
 import { saveAs } from 'file-saver';
 
 // Base URL for the training API
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const API_ENDPOINT = `${BASE_URL}/api/training`;
 
 // Create axios instance with default config

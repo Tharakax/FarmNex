@@ -107,6 +107,7 @@ const createMaterial = async (req, res) => {
     if (req.file) {
       material.fileName = req.file.filename;
       material.fileSize = req.file.size;
+      material.uploadLink = `/uploads/${req.file.filename}`; // Set proper upload link
     }
     
     const savedMaterial = await material.save();
@@ -143,9 +144,11 @@ const updateMaterial = async (req, res) => {
       status
     };
     
+    // Only update file info if a new file is uploaded
     if (req.file) {
       updateData.fileName = req.file.filename;
       updateData.fileSize = req.file.size;
+      updateData.uploadLink = `/uploads/${req.file.filename}`; // Set proper upload link
     }
     
     const material = await TrainingMaterial.findByIdAndUpdate(
