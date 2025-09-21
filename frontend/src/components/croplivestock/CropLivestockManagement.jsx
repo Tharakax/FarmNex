@@ -32,8 +32,17 @@ const StatsCard = ({ title, value, icon: Icon, color, change, onClick }) => {
 
 // Quick Action Button
 const QuickActionButton = ({ title, description, icon: Icon, color, onClick }) => {
+  const handleClick = () => {
+    console.log(`QuickActionButton clicked: ${title}`);
+    if (onClick) {
+      onClick();
+    } else {
+      console.error('No onClick handler provided for button:', title);
+    }
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105" onClick={onClick}>
+    <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105" onClick={handleClick}>
       <div className="flex items-center space-x-4">
         <div className={`p-3 rounded-full ${color}`}>
           <Icon className="h-6 w-6 text-white" />
@@ -81,28 +90,48 @@ const CropLivestockManagement = () => {
   };
 
   const handleCropAction = (action) => {
-    switch (action) {
-      case 'add':
-        navigate('/crops/add');
-        break;
-      case 'view':
-        navigate('/crops');
-        break;
-      default:
-        break;
+    console.log('Crop action triggered:', action);
+    try {
+      switch (action) {
+        case 'add':
+          console.log('Navigating to /crops/add');
+          toast.success('Navigating to Add Crop Plan...');
+          navigate('/crops/add', { replace: true });
+          break;
+        case 'view':
+          console.log('Navigating to /crops');
+          toast.success('Navigating to All Crops...');
+          navigate('/crops', { replace: true });
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      toast.error('Navigation failed. Please try again.');
     }
   };
 
   const handleLivestockAction = (action) => {
-    switch (action) {
-      case 'add':
-        navigate('/livestock/add');
-        break;
-      case 'view':
-        navigate('/livestock');
-        break;
-      default:
-        break;
+    console.log('Livestock action triggered:', action);
+    try {
+      switch (action) {
+        case 'add':
+          console.log('Navigating to /livestock/add');
+          toast.success('Navigating to Add Livestock...');
+          navigate('/livestock/add', { replace: true });
+          break;
+        case 'view':
+          console.log('Navigating to /livestock');
+          toast.success('Navigating to All Livestock...');
+          navigate('/livestock', { replace: true });
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      toast.error('Navigation failed. Please try again.');
     }
   };
 
@@ -170,28 +199,40 @@ const CropLivestockManagement = () => {
             description="Create a new crop cultivation plan"
             icon={Plus}
             color="bg-green-500"
-            onClick={() => handleCropAction('add')}
+            onClick={() => {
+              console.log('Add Crop Plan button clicked');
+              handleCropAction('add');
+            }}
           />
           <QuickActionButton
             title="Add Livestock"
             description="Register new livestock or update existing"
             icon={Plus}
             color="bg-blue-500"
-            onClick={() => handleLivestockAction('add')}
+            onClick={() => {
+              console.log('Add Livestock button clicked');
+              handleLivestockAction('add');
+            }}
           />
           <QuickActionButton
             title="View All Crops"
             description="Manage and monitor all crop plans"
             icon={List}
             color="bg-emerald-500"
-            onClick={() => handleCropAction('view')}
+            onClick={() => {
+              console.log('View All Crops button clicked');
+              handleCropAction('view');
+            }}
           />
           <QuickActionButton
             title="View All Livestock"
             description="Monitor livestock health and status"
             icon={List}
             color="bg-indigo-500"
-            onClick={() => handleLivestockAction('view')}
+            onClick={() => {
+              console.log('View All Livestock button clicked');
+              handleLivestockAction('view');
+            }}
           />
         </div>
       </div>
