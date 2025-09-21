@@ -5,7 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import WeatherWidget from '../components/WeatherWidget';
 import WeatherDashboard from '../components/WeatherDashboard';
-import { 
+import {
   Home, 
   Wheat, 
   Users, 
@@ -26,7 +26,8 @@ import {
   Calendar,
   Activity,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Sprout
 } from 'lucide-react';
 
 // Sample data
@@ -107,6 +108,14 @@ const TrainingManagementComponent = React.lazy(() =>
     .catch(error => {
       console.error('Failed to load TrainingManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Training Management" /> };
+    })
+);
+
+const CropLivestockManagement = React.lazy(() => 
+  import('../components/croplivestock/CropLivestockManagement')
+    .catch(error => {
+      console.error('Failed to load CropLivestockManagement:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Crop & Livestock Management" /> };
     })
 );
 
@@ -253,6 +262,7 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
     { name: 'Home', icon: Home },
     { name: 'Products', icon: ShoppingBag },
     { name: 'Supplies', icon: Truck },
+    { name: 'Crop & Livestock', icon: Sprout },
     { name: 'Weather', icon: Cloud },
     { name: 'Inventory', icon: Package },
     { name: 'Training', icon: BookOpen },
@@ -455,6 +465,9 @@ const FarmerDashboard = () => {
         case 'Supplies':
           console.log('Rendering FarmerSuppliesManagement');
           return <FarmerSuppliesManagement />;
+        case 'Crop & Livestock':
+          console.log('Rendering CropLivestockManagement');
+          return <CropLivestockManagement />;
         case 'Weather':
           console.log('Rendering WeatherDashboard');
           return <WeatherDashboardLazy />;
