@@ -245,6 +245,93 @@ export const saveShipping = async (req, res) => {
     });
   }
 };
+// Add these functions to your orderController.js
 
-// Route definition (add this to your routes file)
-// router.put('/order/:id/shipping', saveShipping);
+// Get all orders (admin only)
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .sort({ createdAt: -1 })
+      .populate('customerId', 'firstName lastName email');
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders
+    });
+  } catch (error) {
+    console.error('Error fetching all orders:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch orders',
+      error: error.message
+    });
+  }
+};
+
+// Get orders for current user
+export const getMyOrders = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Since your order schema doesn't have customerId field (it's commented out),
+    // we'll need to match by contact email or you'll need to add customerId back
+    const orders = await Order.find({ 
+      contactEmail: req.user.email 
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      orders
+    });
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch orders',
+      error: error.message
+    });
+  }
+};
+
+// Delete an order
+export const deleteOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    // Only allow deletion if order is pending or cancelled
+    if (!['pending', 'cancelled'].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete order that is being processed or completed'
+      });
+    }
+
+    await Order.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Order deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete order',
+      error: error.message
+    });
+  }
+};

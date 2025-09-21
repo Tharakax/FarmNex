@@ -78,6 +78,10 @@ const orderSchema = new mongoose.Schema({
     zipCode: String,
     country: String,
   },
+  contactName: {
+  type: String,
+  required: false,
+},
   contactEmail: {
     type: String,
     required: false,
@@ -102,6 +106,18 @@ const orderSchema = new mongoose.Schema({
     default: false,
   },
   shippinginfo: {
+    type: Boolean,
+    default: false,
+  },
+  // Add this to your order schema
+  emailSent: {
+    type: Boolean,
+    default: false,
+  },
+  emailSentAt: {
+    type: Date,
+  },
+  isHidden: {
     type: Boolean,
     default: false,
   },

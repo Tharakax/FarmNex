@@ -3,6 +3,8 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import './App.css'
 import PaymentCardsManager from './pages/client/PaymentCards.jsx'
+import MyOrders from './pages/client/MyOrders.jsx'
+import ViewOrder from './pages/client/ViewOrder.jsx'
 
 // Lazy load components to help with debugging
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
@@ -20,6 +22,10 @@ const AddEditTraining = React.lazy(() => import('./pages/farmer/AddEditTraining.
 const ViewTraining = React.lazy(() => import('./pages/farmer/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
+const PaymentSuccess = React.lazy(() => import('./pages/PaymentSuccess.jsx'))
+const PaymentUnsuccess = React.lazy(() => import('./pages/PaymentUnsuccess.jsx'))
+
+
 
 // Loading component
 const Loading = () => (
@@ -70,7 +76,7 @@ class ErrorBoundary extends React.Component {
 function App() {
   return (
     <div className="min-h-screen w-full">
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -85,11 +91,16 @@ function App() {
             <Route path="/shipping/:orderId" element={<EnterShipping />} />
             <Route path="/payment/:orderId" element={<EnterPayment />} />
             <Route path="payment-methods" element={<PaymentCardsManager />} />
+            <Route path="/order-success/:orderId" element={<PaymentSuccess />} />
+            <Route path="/order-unsuccess/:orderId" element={<PaymentUnsuccess />} />
             {/* Training Management Routes */}
             <Route path="/training" element={<TrainingShowcase />} />
             <Route path="/training-showcase" element={<TrainingShowcase />} />
             <Route path="/training-home" element={<TrainingHomePage />} />
             <Route path="/add" element={<AddEditTraining />} />
+            <Route path="/myorders" element={<MyOrders   />} />
+            <Route path="/order-details/:orderid" element={<ViewOrder   />} />
+
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
             

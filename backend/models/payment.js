@@ -9,7 +9,7 @@ const PaymentSchema = new mongoose.Schema({
   paymentMethodId: {
     type: String,
     required: [true, 'Payment processor ID is required'],
-    unique: true
+    unique: false
   },
   cardBrand: {
     type: String,
