@@ -6,7 +6,9 @@ import {
   RefreshCw, 
   BarChart3,
   FileText,
-  FileSpreadsheet 
+  FileSpreadsheet,
+  TrendingUp,
+  Eye 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,6 +16,7 @@ import { productAPI } from '../../services/productAPI';
 import AddProductForm from './AddProductForm';
 import ProductList from './ProductList';
 import ProductStats from './ProductStats';
+import ProductManagementReport from '../reports/ProductManagementReport';
 import { 
   exportToPDF, 
   exportToExcel, 
@@ -32,6 +35,7 @@ const ProductManagement = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [showStats, setShowStats] = useState(true);
+  const [showReports, setShowReports] = useState(false);
   
   // Filter and search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -175,61 +179,145 @@ const ProductManagement = () => {
   };
 
   // Export handlers
-  const handleExportToPDF = () => {
+  const handleExportToPDF = async () => {
+    console.log('🔥 PDF Export started...');
+    const loadingToast = toast.loading('Generating PDF report...');
+    
     try {
-      // Prepare data for export
-      const exportData = filteredProducts.map(product => ({
-        id: product._id || product.id,
-        name: product.name,
-        category: product.category,
-        description: product.description,
-        price: product.price || 0,
-        stockQuantity: product.stock?.current || 0,
-        unit: product.unit || 'units',
-        status: (() => {
-          const current = product.stock?.current || 0;
-          const minimum = product.stock?.minimum || 5;
-          if (current === 0) return 'Out of Stock';
-          if (current <= minimum) return 'Low Stock';
-          return 'In Stock';
-        })(),
-        createdDate: product.createdAt || new Date().toISOString().split('T')[0]
-      }));
+      // Debug data
+      console.log('Data check:', {
+        filteredProducts: filteredProducts?.length || 0,
+        sampleData: filteredProducts?.[0]
+      });
+      
+      // Validate data
+      if (!filteredProducts || filteredProducts.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.error('No products available to export');
+        return;
+      }
 
-      // Process data with formatting
-      const processedData = processDataForExport(
-        exportData, 
-        ['price'], 
-        ['createdDate']
-      );
+      // Import export function dynamically to test
+      const { exportToPDF, getProductsColumns } = await import('../../utils/exportUtils');
+      
+      // Prepare data for export with better error handling
+      const exportData = filteredProducts.map((product, index) => {
+        try {
+          return {
+            id: product._id || product.id || `P${index + 1}`,
+            name: product.name || 'Unknown Product',
+            category: product.category || 'Uncategorized',
+            description: (product.description || 'No description available').substring(0, 80),
+            price: product.price || 0,
+            stockQuantity: product.stock?.current ?? product.stockQuantity ?? 0,
+            unit: product.unit || 'units',
+            status: (() => {
+              const current = product.stock?.current ?? product.stockQuantity ?? 0;
+              const minimum = product.stock?.minimum || 5;
+              if (current === 0) return 'Out of Stock';
+              if (current <= minimum) return 'Low Stock';
+              return 'In Stock';
+            })(),
+            createdDate: product.createdAt || product.createdDate || new Date().toISOString().split('T')[0]
+          };
+        } catch (productError) {
+          console.warn('Error processing product:', product, productError);
+          return {
+            id: `P${index + 1}`,
+            name: 'Error loading product',
+            category: 'Unknown',
+            description: 'Data unavailable',
+            price: 0,
+            stockQuantity: 0,
+            unit: 'units',
+            status: 'Unknown',
+            createdDate: new Date().toISOString().split('T')[0]
+          };
+        }
+      });
 
-      // Generate filename with current filters
+      // Process data with formatting (skip this if causing issues)
+      let processedData;
+      try {
+        processedData = processDataForExport(
+          exportData, 
+          ['price'], 
+          ['createdDate']
+        );
+      } catch (processError) {
+        console.warn('Error in processDataForExport, using raw data:', processError);
+        processedData = exportData;
+      }
+
       const categoryFilter = selectedCategory !== 'all' ? `_${selectedCategory}` : '';
       const stockFilterText = stockFilter !== 'all' ? `_${stockFilter}` : '';
-      const filename = `products_report${categoryFilter}${stockFilterText}_${new Date().toISOString().split('T')[0]}`;
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `products_report${categoryFilter}${stockFilterText}_${timestamp}`;
 
-      exportToPDF(
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      
+      const success = await exportToPDF(
         processedData,
         'Products Management Report',
         getProductsColumns(),
-        filename
+        filename,
+        'products'
       );
       
-      toast.success('Products exported to PDF successfully!');
+      toast.dismiss(loadingToast);
+      
+      if (success) {
+        toast.success(`PDF report exported successfully! (${exportData.length} products)`);
+      } else {
+        toast.error('Failed to export PDF report');
+      }
+      
     } catch (error) {
       console.error('Error exporting products to PDF:', error);
-      toast.error('Failed to export products to PDF');
+      toast.dismiss(loadingToast);
+      
+
+      let errorMessage = 'Export failed: ';
+      if (error.message?.includes('autoTable')) {
+        errorMessage += 'PDF library not loaded properly. Please refresh the page.';
+      } else if (error.message?.includes('data')) {
+        errorMessage += 'Invalid product data detected.';
+      } else if (error.message?.includes('download')) {
+        errorMessage += 'Download blocked. Please allow downloads in your browser.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred';
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
-  const handleExportToExcel = () => {
+  const handleExportToExcel = async () => {
+    console.log('📊 Excel Export started...');
+    const loadingToast = toast.loading('Generating Excel report...');
+    
     try {
-      // Prepare data for export
-      const exportData = filteredProducts.map(product => ({
-        id: product._id || product.id,
-        name: product.name,
-        category: product.category,
-        description: product.description,
+      // Debug data
+      console.log('Data check:', {
+        filteredProducts: filteredProducts?.length || 0,
+        sampleData: filteredProducts?.[0]
+      });
+      
+      if (!filteredProducts || filteredProducts.length === 0) {
+        toast.dismiss(loadingToast);
+        toast.error('No products available to export');
+        return;
+      }
+
+      // Import export function dynamically
+      const { exportToExcel, getProductsColumns } = await import('../../utils/exportUtils');
+      
+      const exportData = filteredProducts.map((product, index) => ({
+        id: product._id || product.id || `P${index + 1}`,
+        name: product.name || 'Unknown Product',
+        category: product.category || 'Uncategorized',
+        description: product.description || 'No description',
         price: product.price || 0,
         stockQuantity: product.stock?.current || 0,
         unit: product.unit || 'units',
@@ -240,25 +328,54 @@ const ProductManagement = () => {
           if (current <= minimum) return 'Low Stock';
           return 'In Stock';
         })(),
-        createdDate: product.createdAt || new Date().toISOString().split('T')[0]
+        createdDate: product.createdAt 
+          ? new Date(product.createdAt).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0]
       }));
 
-      // Generate filename with current filters
+      console.log('📋 Export data prepared:', exportData.length, 'items');
+
       const categoryFilter = selectedCategory !== 'all' ? `_${selectedCategory}` : '';
       const stockFilterText = stockFilter !== 'all' ? `_${stockFilter}` : '';
       const filename = `products_report${categoryFilter}${stockFilterText}_${new Date().toISOString().split('T')[0]}`;
 
-      exportToExcel(
+      await exportToExcel(
         exportData,
         'Products Report',
         getProductsColumns(),
         filename
       );
       
-      toast.success('Products exported to Excel successfully!');
+      toast.dismiss(loadingToast);
+      toast.success('Excel file exported successfully! Check your downloads folder.');
+      
+      console.log('✅ Excel Export completed successfully');
+      
     } catch (error) {
-      console.error('Error exporting products to Excel:', error);
-      toast.error('Failed to export products to Excel');
+      console.error('❌ Excel Export error:', error);
+      toast.dismiss(loadingToast);
+      
+      let errorMessage = 'Failed to export to Excel. ';
+      
+      if (error.message?.includes('No data')) {
+        errorMessage += 'No data available to export.';
+      } else if (error.message?.includes('blocked')) {
+        errorMessage += 'Download blocked. Please allow downloads in your browser.';
+      } else if (error.message?.includes('Excel')) {
+        errorMessage += 'Excel generation failed. Try again or check console for details.';
+      } else {
+        errorMessage += error.message || 'Unknown error occurred.';
+      }
+      
+      toast.error(errorMessage);
+      
+      // Show detailed error for debugging
+      console.error('Detailed error info:', {
+        message: error.message,
+        stack: error.stack,
+        dataLength: filteredProducts?.length,
+        hasExportUtils: typeof exportToExcel
+      });
     }
   };
 
@@ -284,6 +401,14 @@ const ProductManagement = () => {
           >
             <BarChart3 className="h-4 w-4 mr-2 inline" />
             {showStats ? 'Hide' : 'Show'} Stats
+          </button>
+          
+          <button
+            onClick={() => setShowReports(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <TrendingUp className="h-4 w-4 mr-2 inline" />
+            View Reports
           </button>
           
           <button
@@ -433,6 +558,34 @@ const ProductManagement = () => {
         product={editingProduct}
         onProductSaved={handleProductSaved}
       />
+      
+      {/* Product Reports Modal */}
+      {showReports && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Product Management Reports</h2>
+                <p className="text-sm text-gray-600 mt-1">Comprehensive analytics and insights for your products</p>
+              </div>
+              <button
+                onClick={() => setShowReports(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
+              <ProductManagementReport />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

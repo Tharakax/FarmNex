@@ -63,12 +63,6 @@ const productSchema = new mongoose.Schema({
       default: 5,
       min: [0, 'Minimum stock cannot be negative']
     },
-    average: {
-      type: Number,
-      required: [false, 'Average stock level'],
-      default: 50,
-      min: [0, 'Average stock cannot be negative']
-    },
     lastRestocked: {
       type: Date,
       default: Date.now
@@ -82,7 +76,7 @@ const productSchema = new mongoose.Schema({
   unit: {
     type: String,
     required: true,
-    enum: ['kg', 'lb','g', 'piece', 'bunch', 'pack'],
+    enum: ['kg', 'lb','g', 'L', 'piece', 'bunch', 'pack'],
     default: 'kg'
   },
   images: [],
@@ -150,7 +144,7 @@ const productSchema = new mongoose.Schema({
   }
 });
 
-// Indexes for better performance
+
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ category: 1 });
 productSchema.index({ price: 1 });
@@ -158,3 +152,5 @@ productSchema.index({ price: 1 });
 const Product = mongoose.model('Product', productSchema);
 
 export default Product;
+
+

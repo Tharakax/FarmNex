@@ -9,8 +9,7 @@ import {
   FaChartBar
 } from 'react-icons/fa';
 
-const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
-  // Handle both old and new stock formats
+const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false, publicView = false }) => {
   const getCurrentStock = () => {
     if (typeof stock === 'number') return stock;
     if (stock && typeof stock === 'object') return stock.current || 0;
@@ -22,10 +21,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
     return 100;
   };
 
-  const getAvgStock = () => {
-    if (stock && typeof stock === 'object') return stock.average || 50;
-    return 50;
-  };
 
   const getMinStock = () => {
     if (stock && typeof stock === 'object') return stock.minimum || 5;
@@ -46,25 +41,23 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
 
   const currentStock = getCurrentStock();
   const maxStock = getMaxStock();
-  const avgStock = getAvgStock();
   const minStock = getMinStock();
   const reservedStock = getReservedStock();
   const availableStock = currentStock - reservedStock;
 
-  // Calculate stock percentage
+  
   const stockPercentage = maxStock > 0 ? (currentStock / maxStock) * 100 : 0;
 
-  // Determine stock status
+
   const getStockStatus = () => {
     if (currentStock === 0) return { status: 'out', color: 'red', icon: FaWarning };
     if (currentStock <= minStock) return { status: 'low', color: 'orange', icon: FaExclamationTriangle };
-    if (currentStock >= avgStock) return { status: 'good', color: 'green', icon: FaCheckCircle };
+    if (currentStock >= (maxStock * 0.7)) return { status: 'good', color: 'green', icon: FaCheckCircle };
     return { status: 'moderate', color: 'yellow', icon: FaInfoCircle };
   };
 
   const { status, color, icon: StatusIcon } = getStockStatus();
 
-  // Stock status messages
   const getStatusMessage = () => {
     switch (status) {
       case 'out': return 'Out of Stock';
@@ -75,7 +68,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
     }
   };
 
-  // Color classes for different states
   const colorClasses = {
     red: {
       bg: 'bg-red-100',
@@ -115,13 +107,43 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
       <div className="flex items-center space-x-2">
         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${classes.badge}`}>
           <StatusIcon className="inline w-3 h-3 mr-1" />
-          {currentStock > 0 ? `${currentStock} ${unit}` : 'Out of stock'}
+          {publicView ? getStatusMessage() : (currentStock > 0 ? `${currentStock} ${unit}` : 'Out of stock')}
         </span>
       </div>
     );
   }
 
-  // Detailed view for product detail pages
+  // Public view - only show availability status
+  if (publicView && showDetailedView) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+            <FaChartBar className="mr-2 text-blue-600" />
+            Availability
+          </h3>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${classes.badge}`}>
+            <StatusIcon className="inline w-4 h-4 mr-1" />
+            {getStatusMessage()}
+          </span>
+        </div>
+        
+        {/* Simple availability message */}
+        <div className="text-center py-8">
+          <StatusIcon className="h-16 w-16 mx-auto mb-4" style={{ color: color === 'red' ? '#ef4444' : color === 'orange' ? '#f97316' : color === 'yellow' ? '#eab308' : '#10b981' }} />
+          <h4 className="text-xl font-semibold text-gray-900 mb-2">{getStatusMessage()}</h4>
+          <p className="text-gray-600">
+            {status === 'out' && 'This product is currently unavailable.'}
+            {status === 'low' && 'Limited quantities available - order soon!'}
+            {status === 'moderate' && 'Available for purchase.'}
+            {status === 'good' && 'Ready to ship - in stock now!'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Detailed view for product detail pages (admin/farmer only)
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
       <div className="flex items-center justify-between">
@@ -146,11 +168,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
             className={`h-full ${classes.progress} transition-all duration-300 rounded-full`}
             style={{ width: `${Math.min(stockPercentage, 100)}%` }}
           ></div>
-          {/* Average stock indicator */}
-          <div 
-            className="absolute top-0 h-full w-0.5 bg-gray-600"
-            style={{ left: `${Math.min((avgStock / maxStock) * 100, 100)}%` }}
-          ></div>
           {/* Minimum stock indicator */}
           <div 
             className="absolute top-0 h-full w-0.5 bg-red-400"
@@ -159,7 +176,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
         </div>
         <div className="flex justify-between text-xs text-gray-500">
           <span>Min: {minStock}</span>
-          <span>Avg: {avgStock}</span>
           <span>Max: {maxStock}</span>
         </div>
       </div>
@@ -203,10 +219,6 @@ const StockDisplay = ({ stock, unit = 'unit', showDetailedView = false }) => {
           <div className="flex items-center">
             <div className="w-2 h-2 bg-red-400 rounded-full mr-1"></div>
             <span>Minimum Threshold</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-2 h-2 bg-gray-600 rounded-full mr-1"></div>
-            <span>Average Level</span>
           </div>
           <div className="flex items-center">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>

@@ -35,8 +35,8 @@ const Navigate = useNavigate();
   // Calculate totals
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   const tax = subtotal * 0.08; // 8% tax
-  const shipping = subtotal > 2000 ? 0 : 15; // Free shipping over Rs. 2000
-  const discount = subtotal > 3000 ? subtotal * 0.05 : 0; // 5% discount over Rs. 3000
+  const shipping = subtotal > 2000 ? 0 : 15; // Free shipping over LKR 2000
+  const discount = subtotal > 3000 ? subtotal * 0.05 : 0; // 5% discount over LKR 3000
   const total = subtotal + tax + shipping - discount;
 
   // Cart actions
@@ -293,10 +293,10 @@ const Navigate = useNavigate();
 
                         <div className="flex flex-col items-end space-y-2">
                           <p className="text-lg font-semibold text-gray-900">
-                            Rs. {(item.price * item.quantity).toFixed(2)}
+                            LKR {(item.price * item.quantity).toFixed(2)}
                           </p>
                           <p className="text-sm text-gray-500">
-                            Rs. {item.price.toFixed(2)} each
+                            LKR {item.price.toFixed(2)} each
                           </p>
                         </div>
                       </div>
@@ -321,7 +321,7 @@ const Navigate = useNavigate();
                             className="w-full h-32 object-cover rounded-md mb-3"
                           />
                           <h4 className="font-medium text-gray-900 mb-1">{item.name}</h4>
-                          <p className="text-sm text-gray-500 mb-2">Rs. {item.price.toFixed(2)}</p>
+                          <p className="text-sm text-gray-500 mb-2">LKR {item.price.toFixed(2)}</p>
                           <button
                             onClick={() => handleMoveToCart(item)}
                             className="w-full bg-blue-600 text-white py-2 rounded-md text-sm hover:bg-blue-700 transition-colors"
@@ -347,13 +347,13 @@ const Navigate = useNavigate();
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal ({totalItems} items):</span>
-                      <span className="font-medium">Rs. {subtotal.toFixed(2)}</span>
+                      <span className="font-medium">LKR {subtotal.toFixed(2)}</span>
                     </div>
                     
                     {discount > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-green-600">Discount (5%):</span>
-                        <span className="text-green-600 font-medium">-Rs. {discount.toFixed(2)}</span>
+                        <span className="text-green-600 font-medium">-LKR {discount.toFixed(2)}</span>
                       </div>
                     )}
                     
@@ -363,20 +363,20 @@ const Navigate = useNavigate();
                         {shipping === 0 ? (
                           <span className="text-green-600">Free</span>
                         ) : (
-                          `Rs.${shipping.toFixed(2)}`
+                          `LKR ${shipping.toFixed(2)}`
                         )}
                       </span>
                     </div>
                     
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Tax:</span>
-                      <span className="font-medium">Rs. {tax.toFixed(2)}</span>
+                      <span className="font-medium">LKR {tax.toFixed(2)}</span>
                     </div>
                     
                     <div className="border-t pt-3">
                       <div className="flex justify-between">
                         <span className="text-lg font-semibold text-gray-900">Total:</span>
-                        <span className="text-lg font-semibold text-gray-900">Rs. {total.toFixed(2)}</span>
+                        <span className="text-lg font-semibold text-gray-900">LKR {total.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -398,8 +398,8 @@ const Navigate = useNavigate();
                   {subtotal < 100 && (
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                       <p className="text-sm text-blue-800">
-                        <span className="font-medium">Free shipping</span> on orders over Rs. 2000.
-                        Add <span className="font-medium">Rs. {(2000 - subtotal).toFixed(2)}</span> more to qualify!
+                        <span className="font-medium">Free shipping</span> on orders over LKR 2000.
+                        Add <span className="font-medium">LKR {(2000 - subtotal).toFixed(2)}</span> more to qualify!
                       </p>
                     </div>
                   )}

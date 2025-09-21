@@ -145,7 +145,7 @@ const Navigation = () => {
                   )}
                 </NavLink>
                 <NavLink 
-                  to="/farmer-dashboard" 
+                  to="/login" 
                   className={({ isActive }) => 
                     `relative px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
                       isActive 
@@ -156,7 +156,7 @@ const Navigation = () => {
                 >
                   {({ isActive }) => (
                     <>
-                      Dashboard
+                      Login
                       {isActive && (
                         <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       )}
@@ -194,6 +194,14 @@ const Navigation = () => {
               </div>
 
               <div className="flex items-center space-x-2">
+                {/* Explore More Button */}
+                <button 
+                  onClick={() => Navigate('/login')}
+                  className="hidden md:flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-md mr-2"
+                >
+                  <span className="text-sm">Explore More</span>
+                </button>
+                
                 {/* Enhanced Icon Buttons */}
                 <button className="group p-3 rounded-full text-gray-600 hover:text-green-600 hover:bg-green-50/80 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 transition-all duration-300 transform hover:scale-110 relative overflow-hidden">
                   <FiHeart className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
@@ -211,7 +219,11 @@ const Navigation = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-blue-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-full"></div>
                 </button>
                 
-                <button className="group p-3 rounded-full text-gray-600 hover:text-green-600 hover:bg-green-50/80 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 transition-all duration-300 transform hover:scale-110 relative overflow-hidden">
+                <button 
+                  onClick={() => Navigate('/login')}
+                  className="group p-3 rounded-full text-gray-600 hover:text-green-600 hover:bg-green-50/80 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 transition-all duration-300 transform hover:scale-110 relative overflow-hidden"
+                  title="Login / Sign Up"
+                >
                   <FiUser className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
                   <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-yellow-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-full"></div>
                 </button>
@@ -347,9 +359,15 @@ const Navigation = () => {
             {/* Enhanced Mobile Action Buttons */}
             <div className="border-t border-green-200 pt-4 mt-4">
               <div className="flex items-center justify-around px-4 space-x-2">
-                <button className="group flex flex-col items-center justify-center p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-100/80 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 transform hover:scale-110 min-w-0 flex-1">
+                <button 
+                  onClick={() => {
+                    Navigate('/login');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="group flex flex-col items-center justify-center p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-100/80 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 transform hover:scale-110 min-w-0 flex-1"
+                >
                   <FiUser className="h-6 w-6 mb-1 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="text-xs font-medium">Account</span>
+                  <span className="text-xs font-medium">Login</span>
                 </button>
                 
                 <button className="group flex flex-col items-center justify-center p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-100/80 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 transform hover:scale-110 min-w-0 flex-1">
