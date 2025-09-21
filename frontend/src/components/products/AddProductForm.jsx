@@ -694,7 +694,9 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+
                 Price (LKR) *
+
               </label>
               <input
                 type="number"
@@ -717,7 +719,9 @@ const AddProductForm = ({ isOpen, onClose, product = null, onProductSaved }) => 
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+
                 Display Price (LKR) *
+
               </label>
               <input
                 type="number"

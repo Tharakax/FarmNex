@@ -48,7 +48,9 @@ const ProductStats = ({ products = [] }) => {
     },
     {
       title: 'Inventory Value',
+
       value: `LKR ${stats.totalValue.toFixed(2)}`,
+
       icon: DollarSign,
       color: 'bg-green-500',
       textColor: 'text-green-600',
