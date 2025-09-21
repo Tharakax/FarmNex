@@ -2,11 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sprout, Users, Plus, List, BarChart3, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import NavigationTest from './NavigationTest';
 
 // Card Component
-const Card = ({ children, className = "" }) => {
+const Card = ({ children, className = "", onClick }) => {
+  const handleClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onClick) {
+      onClick(e);
+    }
+  };
+
   return (
-    <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+    <div 
+      className={`bg-white rounded-lg shadow-md p-6 ${className} ${onClick ? 'cursor-pointer pointer-events-auto' : ''}`}
+      onClick={handleClick}
+      style={{ pointerEvents: onClick ? 'auto' : 'initial' }}
+    >
       {children}
     </div>
   );
@@ -153,6 +166,17 @@ const CropLivestockManagement = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Crop & Livestock Management</h1>
           <p className="text-gray-600 mt-1">Manage your farm's crops and livestock in one place</p>
+        </div>
+        <div>
+          <button 
+            onClick={() => {
+              console.log('Test button clicked!');
+              toast.success('Test button works!');
+            }}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Test Click
+          </button>
         </div>
       </div>
 
@@ -332,6 +356,9 @@ const CropLivestockManagement = () => {
           </div>
         </div>
       </Card>
+
+      {/* Temporary Navigation Test */}
+      <NavigationTest />
     </div>
   );
 };
