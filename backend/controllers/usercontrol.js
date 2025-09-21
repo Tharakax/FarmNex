@@ -122,27 +122,49 @@ export const loginWithOTPStep1 = async (req, res) => {
   const { email } = req.body;
 
   try {
+    console.log(`🔍 Looking for user with email: ${email}`);
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
+      console.log(`❌ User not found: ${email}`);
       return res.status(404).json({ 
         success: false,
         message: 'User not found' 
       });
     }
+    
+    console.log(`✅ User found: ${user.email} (ID: ${user._id})`);
+    console.log(`📋 User details:`, {
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      currentOTP: user.otp,
+      currentOTPExpiry: user.otpExpiresAt
+    });
 
     // gen 6 digit otp
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min exp
+    
+    console.log(`🔑 Generated OTP: ${otp}`);
+    console.log(`⏰ OTP expires at: ${otpExpiresAt}`);
 
     user.otp = otp;
     user.otpExpiresAt = otpExpiresAt;
-    await user.save();
+    
+    console.log(`💾 Saving OTP to database...`);
+    const savedUser = await user.save();
+    
+    console.log(`✅ OTP saved successfully!`);
+    console.log(`📝 Saved user OTP: ${savedUser.otp}`);
+    console.log(`📝 Saved user OTP expiry: ${savedUser.otpExpiresAt}`);
 
     // Send OTP via email
     try {
+      console.log(`📧 Attempting to send OTP email to: ${user.email}`);
       await sendMail(user.email, 'Your Login OTP', `Your OTP for login is: ${otp}. This OTP will expire in 10 minutes.`);
+      console.log(`✅ OTP email sent successfully to: ${user.email}`);
     } catch (mailError) {
-      console.error('Email send error:', mailError);
+      console.error('❌ Email send error:', mailError);
       return res.status(500).json({ 
         success: false,
         message: "Failed to send OTP email" 
@@ -245,6 +267,9 @@ export const verifyOTP = async (req, res) => {
       { 
         id: user._id,  // Using 'id' to match the changePassword function
         userId: user._id,  // Also including 'userId' for compatibility
+        name: user.fullName,  // Include user's full name
+        fullName: user.fullName,  // Include fullName for compatibility
+        email: user.email,  // Include user's email
         role: user.role 
       },
       process.env.JWT_SECRET,

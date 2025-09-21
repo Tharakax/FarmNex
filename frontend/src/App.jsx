@@ -160,8 +160,9 @@ function App() {
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />
             
-            {/* Farmer Dashboard Route */}
+            {/* Farmer Dashboard Routes */}
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
+            <Route path="/farmerdashboard" element={<FarmerDashboard />} />
             
             {/* Fallback route */}
             <Route path="*" element={

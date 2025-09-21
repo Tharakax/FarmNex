@@ -10,14 +10,19 @@ export const getLoggedInUser = () => {
     if (token) {
       // Decode JWT token to get user info
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return {
-        name: payload.name || `${payload.firstName || ''} ${payload.lastName || ''}`.trim() || 'User',
+      console.log('🔍 JWT Payload:', payload); // Debug logging
+      
+      const userInfo = {
+        name: payload.name || payload.fullName || `${payload.firstName || ''} ${payload.lastName || ''}`.trim() || 'User',
         email: payload.email || '',
         role: payload.role || 'user',
         id: payload.id || payload._id || '',
         firstName: payload.firstName || '',
         lastName: payload.lastName || ''
       };
+      
+      console.log('👤 User Info:', userInfo); // Debug logging
+      return userInfo;
     }
   } catch (error) {
     console.error('Error parsing user token:', error);
@@ -59,6 +64,16 @@ export const isFarmer = () => {
  */
 export const getRoleDisplayName = (role) => {
   switch (role) {
+    case 'Admin':
+      return 'Administrator';
+    case 'FarmStaff':
+      return 'Farm Staff';
+    case 'Manager':
+      return 'Manager';
+    case 'DeliveryStaff':
+      return 'Delivery Staff';
+    case 'Customer':
+      return 'Customer';
     case 'admin':
       return 'Administrator';
     case 'farmer':

@@ -1,4 +1,5 @@
 import React, { useState, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getLoggedInUser, getRoleDisplayName } from '../utils/userUtils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
@@ -368,6 +369,18 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
 // Header Component
 const Header = ({ toggleSidebar }) => {
   const currentUser = getLoggedInUser();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear all localStorage items related to user session
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    
+    // Redirect to login page
+    navigate('/login', { replace: true });
+  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-4">
@@ -380,7 +393,7 @@ const Header = ({ toggleSidebar }) => {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">{currentUser.name}</h1>
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -399,7 +412,12 @@ const Header = ({ toggleSidebar }) => {
           </div>
           
           {/* Logout */}
-          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Logout">
+          <button 
+            onClick={handleLogout}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors" 
+            aria-label="Logout"
+            title="Logout"
+          >
             <LogOut className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
           </button>
         </div>
