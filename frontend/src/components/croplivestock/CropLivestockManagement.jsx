@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sprout, Cow, Plus, List, BarChart3, Calendar, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Sprout, Users, Plus, List, BarChart3, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Card Component
@@ -140,7 +140,7 @@ const CropLivestockManagement = () => {
         <StatsCard
           title="Livestock Types"
           value={livestock.length}
-          icon={Cow}
+          icon={Users}
           color="bg-blue-500"
           change={`${livestock.reduce((sum, l) => sum + l.count, 0)} total animals`}
           onClick={() => handleLivestockAction('view')}
@@ -237,7 +237,7 @@ const CropLivestockManagement = () => {
         <Card>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-              <Cow className="h-5 w-5 text-blue-600 mr-2" />
+              <Users className="h-5 w-5 text-blue-600 mr-2" />
               Livestock Overview
             </h3>
             <button 
