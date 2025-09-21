@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaHome, FaBook } from 'react-icons/fa';
+import BackButton from './common/BackButton';
 
 const Header = () => {
   return (
@@ -19,6 +20,8 @@ const Header = () => {
 
           {/* Navigation */}
           <nav className="flex items-center space-x-6">
+            <BackButton fallback="/" className="text-sm" />
+            
             <Link
               to="/"
               className="flex items-center space-x-1 text-gray-600 hover:text-farmer-green-600 transition-colors"

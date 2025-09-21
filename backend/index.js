@@ -1,19 +1,32 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import nodemon from 'nodemon';
 import mongoose from 'mongoose';
-import JWTauth from './middleware/auth.js';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import JWTauth from './middleware/auth.js';
+import path from "path";
+import { fileURLToPath } from "url";
+
 dotenv.config();
 
-import userRouter from './routers/userRouter.js';
+
+
+//import 
+
+
 import productRouter from './routers/productRouter.js';
 import orderRouter from './routers/orderRouter.js';
 import trainingRouter from './routers/trainingRoutes.js';
 import farmSupplyRouter from './routers/farmSupplyRouter.js';
 import reportRouter from './routers/reportRoutes.js';
 import paymentRouter from './routers/paymentRouter.js';
+import questionRoute from "./routers/questionRoute.js"; //umar
+import userroute from "./routers/userroute.js";//umar
+import cropRoutes from './routers/cropRoutes.js';
+import livestockRoutes from './routers/livestockRoutes.js';
+//umar
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import soilRouter from './routers/soilRouter.js';
 import chatbotRouter from './routers/chatbotRouter.js';
@@ -22,6 +35,20 @@ import stripeRouter from './routers/stripeRouter.js';
 
 
 const app = express();
+
+//umar
+// Middleware
+app.use(express.json());
+app.use(cors());
+// Routes
+app.use("/users", userroute);
+app.use("/api/questions", questionRoute);
+// Static folder for image uploads
+app.use("/imageupload", express.static(path.join(__dirname, "imageupload")));
+
+
+
+ 
 
 // Try connecting to MongoDB with fallback
 const connectDB = async () => {
@@ -45,6 +72,7 @@ const connectDB = async () => {
     } catch (error) {
       console.log(`❌ Failed to connect to: ${url.split('@')[1] || url}`);
       console.log(`   Error: ${error.message}`);
+
     }
   }
   
@@ -109,6 +137,7 @@ app.use("/api/chatbot", chatbotRouter);
 // Apply JWT auth for all other routes
 app.use(JWTauth)
 
+
 // Test route for video files
 app.get('/test-video/:filename', (req, res) => {
   const { filename } = req.params;
@@ -134,7 +163,8 @@ app.get('/test-video/:filename', (req, res) => {
   });
 });
 
-app.use("/api/user", userRouter);
+
+
 app.use("/api/product", productRouter)
 app.use("/api/order", orderRouter)
 app.use("/api/training", trainingRouter)
@@ -146,9 +176,11 @@ app.use("/api", soilRouter)
 
 app.use('/api/stripe', stripeRouter);
 
-
-
+// Crop and Livestock Routes
+app.use("/api/crop", cropRoutes);
+app.use("/api/livestock", livestockRoutes);
 
 app.listen(3000,()=>{
     console.log("Server has started , running on port 3000");
+
 })

@@ -1,6 +1,5 @@
 import Payment from '../models/payment.js';
-import User from '../models/user.js';
-
+import UserMe from '../models/usermodel.js';
 // Get all payment methods for a user
 export const getUserPaymentMethods = async (req, res) => {
   try {
