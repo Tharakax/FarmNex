@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import Order from '../models/order.js';
 
-const stripe = new Stripe('sk_test_51Ql5QiIVYLEPquIEboxMYrKcuu8fFC18QIjgoz3C81ih6QJEXa7PY1n15dNU7YjfAeggWJNtLFA6OOZIQhOkuB2T00zg5lkcCR');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Create a payment intent
 export const createPaymentIntent = async (req, res) => {
