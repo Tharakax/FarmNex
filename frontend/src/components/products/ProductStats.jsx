@@ -48,7 +48,9 @@ const ProductStats = ({ products = [] }) => {
     },
     {
       title: 'Inventory Value',
-      value: `$${stats.totalValue.toFixed(2)}`,
+
+      value: `LKR ${stats.totalValue.toFixed(2)}`,
+
       icon: DollarSign,
       color: 'bg-green-500',
       textColor: 'text-green-600',
@@ -174,7 +176,7 @@ const ProductStats = ({ products = [] }) => {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Average Price</span>
               <span className="text-sm font-medium text-gray-900">
-                ${stats.totalProducts > 0 
+                LKR {stats.totalProducts > 0 
                   ? (products.reduce((sum, p) => sum + p.price, 0) / stats.totalProducts).toFixed(2)
                   : '0.00'
                 }

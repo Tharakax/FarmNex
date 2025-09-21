@@ -1,6 +1,5 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 
-// Helper function to create FormData for file uploads
 const createFormData = (data) => {
   const formData = new FormData();
   
@@ -18,9 +17,7 @@ const createFormData = (data) => {
   return formData;
 };
 
-// Training API methods
 export const trainingAPI = {
-  // Get all training materials with filtering
   getAllMaterials: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const response = await fetch(`${API_BASE_URL}/training?${queryString}`, {
@@ -37,7 +34,6 @@ export const trainingAPI = {
     return response.json();
   },
 
-  // Get single training material by ID
   getMaterialById: async (id) => {
     const response = await fetch(`${API_BASE_URL}/training/${id}`, {
       method: 'GET',
@@ -51,10 +47,9 @@ export const trainingAPI = {
     }
     
     const data = await response.json();
-    return data; // Return material directly to match backend response
+    return data; 
   },
 
-  // Create new training material
   createMaterial: async (data) => {
     const formData = createFormData(data);
     
@@ -70,7 +65,6 @@ export const trainingAPI = {
     return response.json();
   },
 
-  // Update training material
   updateMaterial: async (id, data) => {
     const formData = createFormData(data);
     
@@ -86,7 +80,6 @@ export const trainingAPI = {
     return response.json();
   },
 
-  // Delete training material
   deleteMaterial: async (id) => {
     const response = await fetch(`${API_BASE_URL}/training/${id}`, {
       method: 'DELETE',
@@ -102,7 +95,6 @@ export const trainingAPI = {
     return response.json();
   },
 
-  // Get training statistics
   getStatistics: async () => {
     const response = await fetch(`${API_BASE_URL}/training/statistics`, {
       method: 'GET',
@@ -116,13 +108,11 @@ export const trainingAPI = {
     }
     
     const data = await response.json();
-    return { data };
+    return { success: true, statistics: data };
   },
 };
 
-// Farm Supplies API methods
 export const farmSuppliesAPI = {
-  // Get all farm supplies
   getAllSupplies: async () => {
     const response = await fetch(`${API_BASE_URL}/farmsupplies`, {
       method: 'GET',
@@ -138,7 +128,6 @@ export const farmSuppliesAPI = {
     return response.json();
   },
 
-  // Get single farm supply by ID
   getSupplyById: async (id) => {
     const response = await fetch(`${API_BASE_URL}/farmsupplies/${id}`, {
       method: 'GET',
@@ -154,24 +143,40 @@ export const farmSuppliesAPI = {
     return response.json();
   },
 
-  // Create new farm supply
   createSupply: async (data) => {
-    const response = await fetch(`${API_BASE_URL}/farmsupplies`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to create farm supply');
+    try {
+      console.log('Creating supply with data:', data); // Debug log
+      
+      const response = await fetch(`${API_BASE_URL}/farmsupplies`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        // Create detailed error with response data
+        const error = new Error(responseData.message || responseData.error || 'Failed to create farm supply');
+        error.response = { data: responseData };
+        error.status = response.status;
+        throw error;
+      }
+      
+      return responseData;
+    } catch (error) {
+      // Re-throw with better error context
+      if (error.response) {
+        throw error; // Already processed
+      } else {
+        // Network or other error
+        throw new Error(`Network error: ${error.message}`);
+      }
     }
-    
-    return response.json();
   },
 
-  // Update farm supply
   updateSupply: async (id, data) => {
     const response = await fetch(`${API_BASE_URL}/farmsupplies/${id}`, {
       method: 'PUT',
@@ -188,7 +193,6 @@ export const farmSuppliesAPI = {
     return response.json();
   },
 
-  // Delete farm supply
   deleteSupply: async (id) => {
     const response = await fetch(`${API_BASE_URL}/farmsupplies/${id}`, {
       method: 'DELETE',
@@ -205,7 +209,6 @@ export const farmSuppliesAPI = {
   },
 };
 
-// Export for other components that might need general API functionality
 export default {
   trainingAPI,
   farmSuppliesAPI,

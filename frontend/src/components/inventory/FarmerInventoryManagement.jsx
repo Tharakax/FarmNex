@@ -519,7 +519,8 @@ const FarmerInventoryManagement = () => {
         processedData,
         'Inventory Management Report',
         getInventoryColumns(),
-        filename
+        filename,
+        'inventory'
       );
       
       toast.success('Inventory exported to PDF successfully!');
@@ -588,7 +589,7 @@ const FarmerInventoryManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Inventory Value</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">${inventoryStats.totalValue.toFixed(2)}</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">LKR {inventoryStats.totalValue.toFixed(2)}</p>
             </div>
             <div className="p-3 rounded-full bg-green-100">
               <TrendingUp className="h-6 w-6 text-green-600" />
@@ -934,12 +935,12 @@ const FarmerInventoryManagement = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 font-medium">
-                        ${unitPrice.toFixed(2)}
+                        LKR {unitPrice.toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 font-medium">
-                        ${stockValue.toFixed(2)}
+                        LKR {stockValue.toFixed(2)}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -953,20 +954,13 @@ const FarmerInventoryManagement = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center">
                         <button
                           onClick={() => toast.success(`Viewing ${item.name} details`)}
                           className="text-blue-600 hover:text-blue-800 transition-colors"
                           title="View Details"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => toast.success(`Editing ${item.name}`)}
-                          className="text-green-600 hover:text-green-800 transition-colors"
-                          title={`Edit ${item.type === 'product' ? 'Product' : 'Supply'}`}
-                        >
-                          <Edit className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -1095,16 +1089,6 @@ const FarmerInventoryManagement = () => {
           <p className="text-gray-600 mt-1">
             Monitor and manage your farm inventory and stock levels
           </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => toast.success('Add product functionality available in Products menu')}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Product
-          </button>
         </div>
       </div>
 

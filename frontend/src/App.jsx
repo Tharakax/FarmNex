@@ -3,21 +3,22 @@ import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import './App.css'
 import PaymentCardsManager from './pages/client/PaymentCards.jsx'
+import MyOrders from './pages/client/MyOrders.jsx'
+import ViewOrder from './pages/client/ViewOrder.jsx'
 
 // Lazy load components to help with debugging
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
 //const LoginPage = React.lazy(() => import('./pages/loginpage'))
 const AdminDashboard = React.lazy(() => import('./pages/admindashboard'))
-const Testing = React.lazy(() => import('./pages/testing'))
 const ProductsPage = React.lazy(() => import('./pages/client/Products.jsx'))
 const OneProduct = React.lazy(() => import('./pages/client/OneProduct.jsx'))
 const Cart = React.lazy(() => import('./pages/client/cart.jsx'))
 const EnterShipping = React.lazy(() => import('./pages/client/EnterShipping.jsx'))
 const EnterPayment = React.lazy(() => import('./pages/client/EnterPayment.jsx'))
-const TrainingShowcase = React.lazy(() => import('./pages/TrainingShowcase.jsx'))
-const TrainingHomePage = React.lazy(() => import('./pages/TrainingHomePage.jsx'))
-const AddEditTraining = React.lazy(() => import('./pages/farmer/AddEditTraining.jsx'))
-const ViewTraining = React.lazy(() => import('./pages/farmer/ViewTraining.jsx'))
+const TrainingShowcase = React.lazy(() => import('./components/training/pages/TrainingShowcase.jsx'))
+const TrainingHomePage = React.lazy(() => import('./components/training/pages/TrainingHomePage.jsx'))
+const AddEditTraining = React.lazy(() => import('./components/training/pages/AddEditTraining.jsx'))
+const ViewTraining = React.lazy(() => import('./components/training/pages/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
 
@@ -36,6 +37,19 @@ const AdminDash = React.lazy(() => import('./pages/user/Home/AdminDash.jsx'))
 const CustomerDashboard = React.lazy(() => import('./pages/user/Home/Home.jsx')) //customer dashbord
 const UserQA = React.lazy(() => import('./pages/user/QAManagement/UserQA.jsx')) //QA
 const AdminQA = React.lazy(() => import('./pages/user/QAManagement/AdminQA.jsx'))//QA
+
+const PublicTrainingViewer = React.lazy(() => import('./components/training/pages/PublicTrainingViewer.jsx'))
+const TrainingTest = React.lazy(() => import('./pages/TrainingTest.jsx'))
+const ValidationDemo = React.lazy(() => import('./pages/ValidationDemo.jsx'))
+const SweetAlertTest = React.lazy(() => import('./pages/SweetAlertTest.jsx'))
+const RequiredFieldsTest = React.lazy(() => import('./pages/RequiredFieldsTest.jsx'))
+const SweetAlertDebug = React.lazy(() => import('./pages/SweetAlertDebug.jsx'))
+const SoilMoistureDashboard = React.lazy(() => import('./pages/SoilMoistureDashboard.jsx'))
+
+const PaymentSuccess = React.lazy(() => import('./pages/PaymentSuccess.jsx'))
+const PaymentUnsuccess = React.lazy(() => import('./pages/PaymentUnsuccess.jsx'))
+
+
 
 
 // Loading component
@@ -87,14 +101,13 @@ class ErrorBoundary extends React.Component {
 function App() {
   return (
     <div className="min-h-screen w-full">
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             {/*<Route path="/loginn" element={<LoginPage />} />*/}
             <Route path="/admin/*" element={<AdminDashboard />} />
-            <Route path="/testing" element={<Testing />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/oneProduct/:id" element={<OneProduct />} />
@@ -102,11 +115,17 @@ function App() {
             <Route path="/shipping/:orderId" element={<EnterShipping />} />
             <Route path="/payment/:orderId" element={<EnterPayment />} />
             <Route path="payment-methods" element={<PaymentCardsManager />} />
+            <Route path="/order-success/:orderId" element={<PaymentSuccess />} />
+            <Route path="/order-unsuccess/:orderId" element={<PaymentUnsuccess />} />
             {/* Training Management Routes */}
             <Route path="/training" element={<TrainingShowcase />} />
+            <Route path="/training/:id" element={<PublicTrainingViewer />} />
             <Route path="/training-showcase" element={<TrainingShowcase />} />
             <Route path="/training-home" element={<TrainingHomePage />} />
             <Route path="/add" element={<AddEditTraining />} />
+            <Route path="/myorders" element={<MyOrders   />} />
+            <Route path="/order-details/:orderid" element={<ViewOrder   />} />
+
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
 
@@ -128,6 +147,15 @@ function App() {
           <Route path="/userqa" element={<UserQA />} />
           <Route path="/adminqa" element={<AdminQA />} />
 
+            <Route path="/training-test" element={<TrainingTest />} />
+            <Route path="/validation-demo" element={<ValidationDemo />} />
+            <Route path="/sweetalert-test" element={<SweetAlertTest />} />
+            <Route path="/required-fields-test" element={<RequiredFieldsTest />} />
+            <Route path="/sweetalert-debug" element={<SweetAlertDebug />} />
+            
+            {/* Soil Moisture Dashboard */}
+            <Route path="/soil-dashboard" element={<SoilMoistureDashboard />} />
+            <Route path="/soil" element={<SoilMoistureDashboard />} />
             
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />

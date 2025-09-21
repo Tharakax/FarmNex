@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 
-// Create axios instance with default configuration
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -10,7 +9,6 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -24,16 +22,13 @@ api.interceptors.request.use(
   }
 );
 
-// Product API service functions
 export const productAPI = {
-  // Get all products
   getAllProducts: async () => {
     try {
       console.log('🚀 ProductAPI: Making request to /api/product');
       console.log('🚀 ProductAPI: Base URL:', API_BASE_URL);
       console.log('🚀 ProductAPI: Full URL:', `${API_BASE_URL}/api/product`);
       
-      // Check if we have a token
       const token = localStorage.getItem('token');
       console.log('🔐 ProductAPI: Auth token present:', !!token);
       
@@ -71,7 +66,6 @@ export const productAPI = {
         stack: error.stack
       });
       
-      // Check for specific error types
       if (error.code === 'ECONNREFUSED') {
         console.error('❌ ProductAPI: Connection refused - backend server may be down');
       } else if (error.code === 'NETWORK_ERROR') {
@@ -91,7 +85,6 @@ export const productAPI = {
     }
   },
 
-  // Get product by ID
   getProductById: async (id) => {
     try {
       const response = await api.get(`/api/product/${id}`);
@@ -108,22 +101,65 @@ export const productAPI = {
     }
   },
 
-  // Create new product
   createProduct: async (productData) => {
-    try {
-      const response = await api.post('/api/product', productData);
-      return {
-        success: true,
-        data: response.data,
-      };
-    } catch (error) {
-      console.error('Error creating product:', error);
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Failed to create product',
-      };
+  try {
+    console.log('📦 Sending product data:', productData);
+
+    const formData = new FormData();
+    Object.keys(productData).forEach((key) => {
+      if (productData[key] !== undefined && productData[key] !== null) {
+        if (key === 'stock' && typeof productData[key] === 'object') {
+          // Handle nested stock object by flattening it
+          Object.keys(productData[key]).forEach((stockKey) => {
+            formData.append(`stock.${stockKey}`, productData[key][stockKey]);
+          });
+        } else if (Array.isArray(productData[key])) {
+          // Handle arrays by converting to JSON string
+          formData.append(key, JSON.stringify(productData[key]));
+        } else {
+          formData.append(key, productData[key]);
+        }
+      }
+    });
+
+    // If productData has an image file, append it
+    if (productData.image) {
+      formData.append('image', productData.image);
     }
-  },
+
+    const response = await api.post('/api/product', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('✅ Product created successfully:', response.data);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    console.error('❌ Error creating product:', error);
+
+    let errorMessage = 'Failed to create product';
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Network error - check your connection or backend server';
+    } else if (error.code === 'ECONNABORTED') {
+      errorMessage = 'Request timeout - server took too long to respond';
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+      errorCode: error.code,
+      errorStatus: error.response?.status,
+    };
+  }
+},
+
 
   // Update product
   updateProduct: async (id, productData) => {

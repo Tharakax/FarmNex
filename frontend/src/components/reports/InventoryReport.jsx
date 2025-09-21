@@ -136,7 +136,7 @@ const InventoryReport = ({ dateRange }) => {
     ];
 
     if (format === 'pdf') {
-      exportToPDF(exportData, `Inventory Report - Last ${dateRange} Days`, columns, filename);
+      exportToPDF(exportData, `Inventory Report - Last ${dateRange} Days`, columns, filename, 'reports');
     } else {
       exportToExcel(exportData, 'Inventory Report', columns, filename);
     }

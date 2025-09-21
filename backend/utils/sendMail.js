@@ -15,6 +15,7 @@ const sendMail = async (to, subject, text) => {
 
     const mailOptions = {
       from: `"Smart Farm Management System" <${process.env.EMAIL_USER}>`, // sender mail
+
       to,
       subject,
       text,
@@ -29,3 +30,4 @@ const sendMail = async (to, subject, text) => {
 };
 
 export default sendMail;
+
