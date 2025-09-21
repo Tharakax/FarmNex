@@ -5,8 +5,10 @@ import './App.css'
 import PaymentCardsManager from './pages/client/PaymentCards.jsx'
 import MyOrders from './pages/client/MyOrders.jsx'
 import ViewOrder from './pages/client/ViewOrder.jsx'
+import { ToastProvider } from "./pages/croplive/ToastProvider.jsx"; // ✅ import ToastProvider
+import { GlobalBackButton } from './components/common/BackButton'
 
-// Lazy load components to help with debugging
+// Lazy loaded components ...
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
 //const LoginPage = React.lazy(() => import('./pages/loginpage'))
 const AdminDashboard = React.lazy(() => import('./pages/admindashboard'))
@@ -21,7 +23,6 @@ const AddEditTraining = React.lazy(() => import('./components/training/pages/Add
 const ViewTraining = React.lazy(() => import('./components/training/pages/ViewTraining.jsx'))
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'))
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'))
-
 
 // User Pages (Lazy Load)
 const AddUser = React.lazy(() => import('./pages/user/AddUser/AddUser.jsx'))
@@ -49,8 +50,17 @@ const SoilMoistureDashboard = React.lazy(() => import('./pages/SoilMoistureDashb
 const PaymentSuccess = React.lazy(() => import('./pages/PaymentSuccess.jsx'))
 const PaymentUnsuccess = React.lazy(() => import('./pages/PaymentUnsuccess.jsx'))
 
+// Lazy load crop components
+const AddCropPlan = React.lazy(() => import('./pages/croplive/AddCropPlan.jsx'))
+const AllCropPlans = React.lazy(() => import('./pages/croplive/AllCropPlans.jsx'))
+const UpdateCropPlan = React.lazy(() => import('./pages/croplive/UpdateCropPlan.jsx'))
+const DeleteCropPlan = React.lazy(() => import('./pages/croplive/DeleteCropPlan.jsx'))
 
-
+// Lazy load livestock components
+const AddLiveStockPlan = React.lazy(() => import('./pages/croplive/AddLiveStockPlan.jsx'))
+const AllLiveStockPlan = React.lazy(() => import('./pages/croplive/AllLiveStockPlan.jsx'))
+const UpdateLiveStockPlan = React.lazy(() => import('./pages/croplive/UpdateLiveStockPlan.jsx'))
+const DeleteLiveStockPlan = React.lazy(() => import('./pages/croplive/DeleteLiveStockPlan.jsx'))
 
 // Loading component
 const Loading = () => (
@@ -100,8 +110,9 @@ class ErrorBoundary extends React.Component {
 
 function App() {
   return (
-    <div className="min-h-screen w-full">
+    <ToastProvider> {/* ✅ Wrap everything with ToastProvider */}
       <Toaster position="top-center" />
+      <GlobalBackButton />
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -128,8 +139,6 @@ function App() {
 
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
-
-
 
             {/* User Management Routes umar*/}
            <Route path="/adduser" element={<AddUser />} />
@@ -160,25 +169,36 @@ function App() {
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />
             
-            {/* Farmer Dashboard Route */}
+            {/* Farmer Dashboard Routes */}
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
-            
+            <Route path="/farmerdashboard" element={<FarmerDashboard />} />
+
+            {/* Crop Routes */}
+            <Route path="/crops" element={<AllCropPlans />} />
+            <Route path="/crops/add" element={<AddCropPlan />} />
+            <Route path="/crops/update/:id" element={<UpdateCropPlan />} />
+            <Route path="/crops/delete/:id" element={<DeleteCropPlan />} />
+
+            {/* Livestock Routes */}
+            <Route path="/livestock" element={<AllLiveStockPlan />} />
+            <Route path="/livestock/add" element={<AddLiveStockPlan />} />
+            <Route path="/livestock/update/:id" element={<UpdateLiveStockPlan />} />
+            <Route path="/livestock/delete/:id" element={<DeleteLiveStockPlan />} />
+
             {/* Fallback route */}
             <Route path="*" element={
               <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-gray-800 mb-4">Page Not Found</h2>
                   <p className="text-gray-600 mb-4">The page you're looking for doesn't exist.</p>
-                  <a href="/" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-                    Go Home
-                  </a>
+                  <a href="/" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Go Home</a>
                 </div>
               </div>
             } />
           </Routes>
         </Suspense>
       </ErrorBoundary>
-    </div>
+    </ToastProvider>
   )
 }
 

@@ -185,109 +185,11 @@ const CustomerDashboard = () => {
   );
 
   const renderProducts = () => (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold text-gray-900">Browse Farm Products</h2>
-        <div className="flex items-center gap-3">
-          <select 
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-          >
-            <option value="all">All Categories</option>
-            <option value="vegetables">Vegetables</option>
-            <option value="fruits">Fruits</option>
-            <option value="dairy">Dairy</option>
-            <option value="poultry">Poultry</option>
-          </select>
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white shadow-sm' : ''}`}
-            >
-              <Grid className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded ${viewMode === 'list' ? 'bg-white shadow-sm' : ''}`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
-        {mockProducts.map(product => (
-          <div key={product.id} className="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition-shadow">
-            <img src={product.image} alt={product.name} className="w-full h-48 object-cover" />
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-gray-900">{product.name}</h3>
-                {product.organic && (
-                  <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Organic</span>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mb-2">{product.farm}</p>
-              <div className="flex justify-between items-center">
-                <div>
-                  <span className="text-lg font-bold text-green-600">Rs. {product.price}</span>
-                  <span className="text-sm text-gray-500">/{product.unit}</span>
-                </div>
-                <button 
-                  onClick={() => addToCart(product.id)}
-                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Add to Cart
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    navigate('/products')
   );
 
   const renderOrders = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Order History</h2>
-      <div className="space-y-4">
-        {mockOrders.map(order => (
-          <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h3 className="font-semibold text-gray-900">{order.id}</h3>
-                <p className="text-gray-600">Order Date: {order.date}</p>
-                <p className="text-sm text-gray-500">{order.items} items</p>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold text-gray-900">Rs. {order.total}</p>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                  order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                  order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {order.status}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center gap-1">
-                <Download className="w-4 h-4" />
-                Download Invoice
-              </button>
-              <button 
-                onClick={() => setActiveTab('delivery')}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
-              >
-                <Truck className="w-4 h-4" />
-                Track Order
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    navigate("/myorders")
   );
 
   const renderContent = () => {

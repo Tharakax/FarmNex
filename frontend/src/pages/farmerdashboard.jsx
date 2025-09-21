@@ -1,10 +1,12 @@
 import React, { useState, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getLoggedInUser, getRoleDisplayName } from '../utils/userUtils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import WeatherWidget from '../components/WeatherWidget';
 import WeatherDashboard from '../components/WeatherDashboard';
-import { 
+import BackButton from '../components/common/BackButton';
+import {
   Home, 
   Wheat, 
   Users, 
@@ -25,27 +27,32 @@ import {
   Calendar,
   Activity,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Sprout
 } from 'lucide-react';
 
-// Sample data
+// Current crop yield data (2024 - tons per hectare)
 const cropYieldData = [
-  { month: 'Jan', yield: 45 },
-  { month: 'Feb', yield: 52 },
-  { month: 'Mar', yield: 48 },
-  { month: 'Apr', yield: 61 },
-  { month: 'May', yield: 55 },
-  { month: 'Jun', yield: 67 },
-  { month: 'Jul', yield: 73 },
-  { month: 'Aug', yield: 69 }
+  { month: 'Jan', yield: 42 },
+  { month: 'Feb', yield: 38 },
+  { month: 'Mar', yield: 51 },
+  { month: 'Apr', yield: 65 },
+  { month: 'May', yield: 78 },
+  { month: 'Jun', yield: 85 },
+  { month: 'Jul', yield: 92 },
+  { month: 'Aug', yield: 88 },
+  { month: 'Sep', yield: 75 },
+  { month: 'Oct', yield: 62 },
+  { month: 'Nov', yield: 48 },
+  { month: 'Dec', yield: 35 }
 ];
 
 const recentActivities = [
-  { id: 1, activity: 'Watered tomato crops in Sector A', date: '2024-08-07', time: '08:30' },
-  { id: 2, activity: 'Fed livestock in Barn 2', date: '2024-08-07', time: '07:15' },
-  { id: 3, activity: 'Harvested corn from Field 3', date: '2024-08-06', time: '16:45' },
-  { id: 4, activity: 'Applied fertilizer to wheat field', date: '2024-08-06', time: '14:20' },
-  { id: 5, activity: 'Veterinary checkup for cattle', date: '2024-08-05', time: '11:00' }
+  { id: 1, activity: 'Harvested winter wheat from Field A', date: '2024-12-20', time: '14:30' },
+  { id: 2, activity: 'Applied organic fertilizer to vegetable plots', date: '2024-12-20', time: '09:15' },
+  { id: 3, activity: 'Veterinary checkup for dairy cattle', date: '2024-12-19', time: '11:45' },
+  { id: 4, activity: 'Maintenance on irrigation system', date: '2024-12-19', time: '08:20' },
+  { id: 5, activity: 'Planted cover crops in Field C', date: '2024-12-18', time: '15:30' }
 ];
 
 // Reusable Card Component
@@ -109,6 +116,14 @@ const TrainingManagementComponent = React.lazy(() =>
     })
 );
 
+const CropLivestockManagement = React.lazy(() => 
+  import('../components/croplivestock/CropLivestockManagement')
+    .catch(error => {
+      console.error('Failed to load CropLivestockManagement:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Crop & Livestock Management" /> };
+    })
+);
+
 // Weather Dashboard component
 const WeatherDashboardLazy = React.lazy(() => Promise.resolve({ default: WeatherDashboard }));
 
@@ -116,32 +131,32 @@ const WeatherDashboardLazy = React.lazy(() => Promise.resolve({ default: Weather
 const DashboardStats = () => {
   const stats = [
     {
-      title: 'Total Crop Yield',
-      value: '1,247 tons',
+      title: 'Annual Crop Yield',
+      value: '1,847 tons',
       icon: Wheat,
       color: 'bg-green-500',
-      change: '+12%'
+      change: '+18%'
     },
     {
       title: 'Livestock Count',
-      value: '342',
+      value: '428',
       icon: Users,
       color: 'bg-blue-500',
-      change: '+5%'
+      change: '+12%'
     },
     {
       title: 'Upcoming Tasks',
-      value: '23',
+      value: '15',
       icon: Calendar,
       color: 'bg-yellow-500',
-      change: '+3'
+      change: 'This Week'
     },
     {
-      title: 'Weather Alerts',
-      value: '2',
+      title: 'Active Alerts',
+      value: '1',
       icon: AlertTriangle,
-      color: 'bg-red-500',
-      change: 'Active'
+      color: 'bg-orange-500',
+      change: 'Low Risk'
     }
   ];
 
@@ -176,7 +191,7 @@ const ChartSection = () => {
         <h3 className="text-xl font-semibold text-gray-800">Crop Yield Trends</h3>
         <div className="flex items-center space-x-2">
           <Activity className="h-5 w-5 text-gray-400" />
-          <span className="text-sm text-gray-600">Last 8 months</span>
+          <span className="text-sm text-gray-600">2024 Annual Overview</span>
         </div>
       </div>
       
@@ -252,6 +267,7 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
     { name: 'Home', icon: Home },
     { name: 'Products', icon: ShoppingBag },
     { name: 'Supplies', icon: Truck },
+    { name: 'Crop & Livestock', icon: Sprout },
     { name: 'Weather', icon: Cloud },
     { name: 'Inventory', icon: Package },
     { name: 'Training', icon: BookOpen },
@@ -368,6 +384,18 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
 // Header Component
 const Header = ({ toggleSidebar }) => {
   const currentUser = getLoggedInUser();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear all localStorage items related to user session
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    
+    // Redirect to login page
+    navigate('/login', { replace: true });
+  };
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 px-4 sm:px-6 py-4">
@@ -380,7 +408,7 @@ const Header = ({ toggleSidebar }) => {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">{currentUser.name}</h1>
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -399,7 +427,12 @@ const Header = ({ toggleSidebar }) => {
           </div>
           
           {/* Logout */}
-          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Logout">
+          <button 
+            onClick={handleLogout}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors" 
+            aria-label="Logout"
+            title="Logout"
+          >
             <LogOut className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
           </button>
         </div>
@@ -437,6 +470,9 @@ const FarmerDashboard = () => {
         case 'Supplies':
           console.log('Rendering FarmerSuppliesManagement');
           return <FarmerSuppliesManagement />;
+        case 'Crop & Livestock':
+          console.log('Rendering CropLivestockManagement');
+          return <CropLivestockManagement />;
         case 'Weather':
           console.log('Rendering WeatherDashboard');
           return <WeatherDashboardLazy />;

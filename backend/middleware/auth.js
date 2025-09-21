@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/user.js';
 import dotenv from 'dotenv';
-dotenv.config();const JWTauth = async (req, res, next) => {
+dotenv.config();
+
+const JWTauth = async (req, res, next) => {
   try {
     const header = req.header("Authorization");
     
@@ -9,7 +10,7 @@ dotenv.config();const JWTauth = async (req, res, next) => {
       const token = header.replace("Bearer ", "");
       
       try {
-        const decoded = jwt.verify(token, process.env.JWT_key);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
         if (decoded != null) {
           console.log('Authenticated user:', decoded);

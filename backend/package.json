@@ -28,21 +28,13 @@
     "nodemailer": "^7.0.6",
     "nodemon": "^3.1.10",
     "pdfkit": "^0.17.2",
-
     "node-fetch": "^3.3.2",
-    "nodemon": "^3.1.10",
-    "pdfkit": "^0.17.2",
     "serialport": "^13.0.0",
     "validator": "^13.15.15",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
-
-    "nodemailer": "^7.0.6",
-    "nodemon": "^3.1.10",
-    "pdfkit": "^0.17.2",
-    "stripe": "^18.5.0",
-    "validator": "^13.15.15"
+    "stripe": "^18.5.0"
   }
 }

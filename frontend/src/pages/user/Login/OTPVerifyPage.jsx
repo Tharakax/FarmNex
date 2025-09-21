@@ -101,16 +101,18 @@ const OtpVerification = () => {
 
         console.log("Login successful, redirecting to:", user.role);
 
-        // Redirect based on role
-        const roleRoutes = {
-          Admin: "/admin",
-          FarmStaff: "/farmstaff-dashboard",
-          Manager: "/manager-dashboard",
-          DeliveryStaff: "/delivery-dashboard",
-          Customer: "/customerdash"
-        };
+        // Redirect based on role - only farmers get their specific dashboard
+        let redirectPath = "/"; // Default to home page
         
-        const redirectPath = roleRoutes[user.role] || "/";
+        if (user.role === "FarmStaff") {
+          redirectPath = "/farmerdashboard";
+        } else if (user.role === "Admin") {
+          redirectPath = "/admin";
+        } else if (user.role === "Customer") {
+          redirectPath = "/customerdash";
+        }
+        // Other roles (Manager, DeliveryStaff) go to home page
+        
         navigate(redirectPath, { replace: true });
         
       } else {

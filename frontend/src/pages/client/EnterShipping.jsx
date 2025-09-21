@@ -34,20 +34,18 @@ export default function ShippingDetails() {
     sameAsShipping: true
   });
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Load order data from localStorage on mount
-    useEffect(() => {
+  useEffect(() => {
     const loadOrderData = () => {
       try {
         const storedOrderData = localStorage.getItem("orderData");
         if (storedOrderData) {
           const orderInfo = JSON.parse(storedOrderData);
           setOrderData(orderInfo);
-          
-          // If you have orderId from params, you can use it
           console.log("Order ID from URL:", orderId);
         } else {
-          // If no order data found, redirect back to cart
           navigate('/cart');
         }
       } catch (error) {
@@ -58,6 +56,173 @@ export default function ShippingDetails() {
 
     loadOrderData();
   }, [navigate, orderId]);
+
+  // Validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePhone = (phone) => {
+    // Sri Lankan phone number validation: supports +94 or 0 prefix
+    const phoneRegex = /^(\+94|0)?[1-9]\d{8}$/;
+    const cleanPhone = phone.replace(/[\s-]/g, '');
+    return phoneRegex.test(cleanPhone);
+  };
+
+  const validateName = (name) => {
+    // At least 2 characters, letters, spaces, hyphens, and apostrophes only
+    const nameRegex = /^[a-zA-Z\s'-]{2,50}$/;
+    return nameRegex.test(name.trim());
+  };
+
+  const validateStreetAddress = (address) => {
+    // At least 5 characters, alphanumeric with common punctuation
+    return address.trim().length >= 5 && address.trim().length <= 100;
+  };
+
+  const validateCity = (city) => {
+    // Letters, spaces, hyphens only, 2-50 characters
+    const cityRegex = /^[a-zA-Z\s'-]{2,50}$/;
+    return cityRegex.test(city.trim());
+  };
+
+  const validateZipCode = (zipCode) => {
+    // Sri Lankan postal codes: 5 digits
+    const zipRegex = /^\d{5}$/;
+    return zipRegex.test(zipCode.trim());
+  };
+
+  const validateNotes = (notes) => {
+    // Optional field, max 500 characters
+    return notes.length <= 500;
+  };
+
+  // Field validation function
+  const validateField = (name, value) => {
+    let error = '';
+    
+    switch (name) {
+      case 'contactName':
+        if (!value.trim()) {
+          error = 'Contact name is required';
+        } else if (!validateName(value)) {
+          error = 'Please enter a valid name (2-50 characters, letters only)';
+        }
+        break;
+        
+      case 'contactEmail':
+        if (!value.trim()) {
+          error = 'Email address is required';
+        } else if (!validateEmail(value)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+        
+      case 'contactPhone':
+        if (!value.trim()) {
+          error = 'Phone number is required';
+        } else if (!validatePhone(value)) {
+          error = 'Please enter a valid Sri Lankan phone number';
+        }
+        break;
+        
+      case 'shippingAddress.name':
+        if (!value.trim()) {
+          error = 'Recipient name is required';
+        } else if (!validateName(value)) {
+          error = 'Please enter a valid recipient name (2-50 characters, letters only)';
+        }
+        break;
+        
+      case 'shippingAddress.street':
+        if (!value.trim()) {
+          error = 'Street address is required';
+        } else if (!validateStreetAddress(value)) {
+          error = 'Please enter a valid street address (5-100 characters)';
+        }
+        break;
+        
+      case 'shippingAddress.city':
+        if (!value.trim()) {
+          error = 'City is required';
+        } else if (!validateCity(value)) {
+          error = 'Please enter a valid city name (2-50 characters, letters only)';
+        }
+        break;
+        
+      case 'shippingAddress.state':
+        if (!value.trim()) {
+          error = 'Province is required';
+        }
+        break;
+        
+      case 'shippingAddress.zipCode':
+        if (!value.trim()) {
+          error = 'Postal code is required';
+        } else if (!validateZipCode(value)) {
+          error = 'Please enter a valid 5-digit postal code';
+        }
+        break;
+        
+      case 'shippingAddress.phone':
+        if (!value.trim()) {
+          error = 'Phone number is required';
+        } else if (!validatePhone(value)) {
+          error = 'Please enter a valid Sri Lankan phone number';
+        }
+        break;
+        
+      case 'billingAddress.name':
+        if (!formData.sameAsShipping && !value.trim()) {
+          error = 'Billing name is required';
+        } else if (!formData.sameAsShipping && !validateName(value)) {
+          error = 'Please enter a valid billing name (2-50 characters, letters only)';
+        }
+        break;
+        
+      case 'billingAddress.street':
+        if (!formData.sameAsShipping && !value.trim()) {
+          error = 'Billing street address is required';
+        } else if (!formData.sameAsShipping && !validateStreetAddress(value)) {
+          error = 'Please enter a valid billing address (5-100 characters)';
+        }
+        break;
+        
+      case 'billingAddress.city':
+        if (!formData.sameAsShipping && !value.trim()) {
+          error = 'Billing city is required';
+        } else if (!formData.sameAsShipping && !validateCity(value)) {
+          error = 'Please enter a valid billing city (2-50 characters, letters only)';
+        }
+        break;
+        
+      case 'billingAddress.state':
+        if (!formData.sameAsShipping && !value.trim()) {
+          error = 'Billing province is required';
+        }
+        break;
+        
+      case 'billingAddress.zipCode':
+        if (!formData.sameAsShipping && !value.trim()) {
+          error = 'Billing postal code is required';
+        } else if (!formData.sameAsShipping && !validateZipCode(value)) {
+          error = 'Please enter a valid 5-digit billing postal code';
+        }
+        break;
+        
+      case 'notes':
+        if (!validateNotes(value)) {
+          error = 'Notes must be less than 500 characters';
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    return error;
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -86,6 +251,15 @@ export default function ShippingDetails() {
             country: 'Sri Lanka'
           }
         }));
+        
+        // Clear billing address errors when same as shipping is checked
+        const newErrors = { ...errors };
+        Object.keys(newErrors).forEach(key => {
+          if (key.startsWith('billingAddress.')) {
+            delete newErrors[key];
+          }
+        });
+        setErrors(newErrors);
       }
     } else {
       setFormData(prev => ({
@@ -94,125 +268,183 @@ export default function ShippingDetails() {
       }));
     }
     
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
+    // Mark field as touched
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+    
+    // Validate field in real-time
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    
+    // Mark field as touched on blur
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+    
+    // Validate field on blur
+    const error = validateField(name, value);
+    setErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
   };
 
   const validateForm = () => {
     const newErrors = {};
-
-    // Contact information validation
-    if (!formData.contactName.trim()) {
-      newErrors.contactName = 'Contact name is required';
-    }
-    if (!formData.contactEmail.trim()) {
-      newErrors.contactEmail = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
-      newErrors.contactEmail = 'Please enter a valid email address';
-    }
-    if (!formData.contactPhone.trim()) {
-      newErrors.contactPhone = 'Phone number is required';
-    }
-
-    // Shipping address validation
-    if (!formData.shippingAddress.name.trim()) {
-      newErrors['shippingAddress.name'] = 'Recipient name is required';
-    }
-    if (!formData.shippingAddress.street.trim()) {
-      newErrors['shippingAddress.street'] = 'Street address is required';
-    }
-    if (!formData.shippingAddress.city.trim()) {
-      newErrors['shippingAddress.city'] = 'City is required';
-    }
-    if (!formData.shippingAddress.state.trim()) {
-      newErrors['shippingAddress.state'] = 'Province is required';
-    }
-    if (!formData.shippingAddress.zipCode.trim()) {
-      newErrors['shippingAddress.zipCode'] = 'Postal code is required';
-    }
-    if (!formData.shippingAddress.phone.trim()) {
-      newErrors['shippingAddress.phone'] = 'Phone number is required';
-    }
-
-    // Billing address validation (only if different from shipping)
+    
+    // Validate all fields
+    newErrors.contactName = validateField('contactName', formData.contactName);
+    newErrors.contactEmail = validateField('contactEmail', formData.contactEmail);
+    newErrors.contactPhone = validateField('contactPhone', formData.contactPhone);
+    
+    newErrors['shippingAddress.name'] = validateField('shippingAddress.name', formData.shippingAddress.name);
+    newErrors['shippingAddress.street'] = validateField('shippingAddress.street', formData.shippingAddress.street);
+    newErrors['shippingAddress.city'] = validateField('shippingAddress.city', formData.shippingAddress.city);
+    newErrors['shippingAddress.state'] = validateField('shippingAddress.state', formData.shippingAddress.state);
+    newErrors['shippingAddress.zipCode'] = validateField('shippingAddress.zipCode', formData.shippingAddress.zipCode);
+    newErrors['shippingAddress.phone'] = validateField('shippingAddress.phone', formData.shippingAddress.phone);
+    
+    // Only validate billing address if different from shipping
     if (!formData.sameAsShipping) {
-      if (!formData.billingAddress.name.trim()) {
-        newErrors['billingAddress.name'] = 'Billing name is required';
-      }
-      if (!formData.billingAddress.street.trim()) {
-        newErrors['billingAddress.street'] = 'Billing street address is required';
-      }
-      if (!formData.billingAddress.city.trim()) {
-        newErrors['billingAddress.city'] = 'Billing city is required';
-      }
-      if (!formData.billingAddress.state.trim()) {
-        newErrors['billingAddress.state'] = 'Billing province is required';
-      }
-      if (!formData.billingAddress.zipCode.trim()) {
-        newErrors['billingAddress.zipCode'] = 'Billing postal code is required';
-      }
+      newErrors['billingAddress.name'] = validateField('billingAddress.name', formData.billingAddress.name);
+      newErrors['billingAddress.street'] = validateField('billingAddress.street', formData.billingAddress.street);
+      newErrors['billingAddress.city'] = validateField('billingAddress.city', formData.billingAddress.city);
+      newErrors['billingAddress.state'] = validateField('billingAddress.state', formData.billingAddress.state);
+      newErrors['billingAddress.zipCode'] = validateField('billingAddress.zipCode', formData.billingAddress.zipCode);
     }
-
+    
+    newErrors.notes = validateField('notes', formData.notes);
+    
+    // Remove empty errors
+    Object.keys(newErrors).forEach(key => {
+      if (!newErrors[key]) {
+        delete newErrors[key];
+      }
+    });
+    
+    // Mark all fields as touched
+    const allFields = [
+      'contactName', 'contactEmail', 'contactPhone',
+      'shippingAddress.name', 'shippingAddress.street', 'shippingAddress.city',
+      'shippingAddress.state', 'shippingAddress.zipCode', 'shippingAddress.phone',
+      'notes'
+    ];
+    
+    if (!formData.sameAsShipping) {
+      allFields.push(
+        'billingAddress.name', 'billingAddress.street', 'billingAddress.city',
+        'billingAddress.state', 'billingAddress.zipCode'
+      );
+    }
+    
+    const newTouched = {};
+    allFields.forEach(field => {
+      newTouched[field] = true;
+    });
+    
+    setTouched(newTouched);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!validateForm()) {
-    return;
-  }
 
-  setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      // Scroll to first error
+      const firstErrorField = document.querySelector('.border-red-500');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorField.focus();
+      }
+      return;
+    }
 
-  try {
-    // Prepare shipping data
-    const shippingData = {
-      contactName: formData.contactName,
-      contactEmail: formData.contactEmail,
-      contactPhone: formData.contactPhone,
-      shippingAddress: formData.shippingAddress,
-      billingAddress: formData.sameAsShipping ? formData.shippingAddress : formData.billingAddress,
-      notes: formData.notes
-    };
+    setLoading(true);
 
-    // Save shipping information to the order
-    const response = await axios.put(
-      `${import.meta.env.VITE_BACKEND_URL}/api/order/shipping/${orderId}`,
-      shippingData
-    );
-
-    if (response.data.success) {
-      // Store updated order data
-      const updatedOrderData = {
-        ...orderData,
-        ...shippingData
+    try {
+      // Prepare shipping data
+      const shippingData = {
+        contactName: formData.contactName.trim(),
+        contactEmail: formData.contactEmail.trim().toLowerCase(),
+        contactPhone: formData.contactPhone.replace(/[\s-]/g, ''), // Clean phone number
+        shippingAddress: {
+          ...formData.shippingAddress,
+          name: formData.shippingAddress.name.trim(),
+          street: formData.shippingAddress.street.trim(),
+          city: formData.shippingAddress.city.trim(),
+          zipCode: formData.shippingAddress.zipCode.trim(),
+          phone: formData.shippingAddress.phone.replace(/[\s-]/g, '') // Clean phone number
+        },
+        billingAddress: formData.sameAsShipping ? {
+          ...formData.shippingAddress,
+          name: formData.shippingAddress.name.trim(),
+          street: formData.shippingAddress.street.trim(),
+          city: formData.shippingAddress.city.trim(),
+          zipCode: formData.shippingAddress.zipCode.trim(),
+          country: 'Sri Lanka'
+        } : {
+          ...formData.billingAddress,
+          name: formData.billingAddress.name.trim(),
+          street: formData.billingAddress.street.trim(),
+          city: formData.billingAddress.city.trim(),
+          zipCode: formData.billingAddress.zipCode.trim()
+        },
+        notes: formData.notes.trim()
       };
-      localStorage.setItem("orderData", JSON.stringify(updatedOrderData));
-      
-      // Navigate to payment page
-      navigate(`/payment/${orderId}`);
-    } else {
-      console.error('Failed to save shipping information:', response.data.message);
-      alert('Failed to save shipping information. Please try again.');
+
+      // Save shipping information to the order
+      const response = await axios.put(
+        `${import.meta.env.VITE_BACKEND_URL}/api/order/shipping/${orderId}`,
+        shippingData
+      );
+
+      if (response.data.success) {
+        // Store updated order data
+        const updatedOrderData = {
+          ...orderData,
+          ...shippingData
+        };
+        localStorage.setItem("orderData", JSON.stringify(updatedOrderData));
+        
+        // Navigate to payment page
+        navigate(`/payment/${orderId}`);
+      } else {
+        console.error('Failed to save shipping information:', response.data.message);
+        alert('Failed to save shipping information. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error saving shipping information:', error);
+      if (error.response?.data?.errors) {
+        // Show validation errors from server
+        setErrors(error.response.data.errors);
+      } else {
+        alert('An error occurred while saving. Please check your connection and try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error saving shipping information:', error);
-    if (error.response?.data?.errors) {
-      // Show validation errors from server
-      setErrors(error.response.data.errors);
-    } else {
-      alert('An error occurred. Please try again.');
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  // Helper function to get field error class
+  const getFieldClass = (fieldName) => {
+    const hasError = errors[fieldName] && touched[fieldName];
+    return `w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 transition-colors ${
+      hasError 
+        ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400'
+    }`;
+  };
 
   if (!orderData) {
     return (
@@ -226,6 +458,7 @@ const handleSubmit = async (e) => {
   }
 
   const totalItems = orderData.items.reduce((total, item) => total + item.quantity, 0);
+  const hasErrors = Object.keys(errors).some(key => errors[key] && touched[key]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -278,11 +511,36 @@ const handleSubmit = async (e) => {
         </div>
       </div>
 
+      {/* Error Summary */}
+      {hasErrors && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Please correct the following errors:
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <ul className="list-disc pl-5 space-y-1">
+                    {Object.keys(errors).map(key => {
+                      if (errors[key] && touched[key]) {
+                        return <li key={key}>{errors[key]}</li>;
+                      }
+                      return null;
+                    })}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="lg:grid lg:grid-cols-12 lg:gap-8">
           {/* Shipping Form - Left Side */}
           <div className="lg:col-span-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
               {/* Contact Information */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center space-x-2 mb-4">
@@ -293,38 +551,37 @@ const handleSubmit = async (e) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name *
+                      Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="contactName"
                       value={formData.contactName}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.contactName ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onBlur={handleBlur}
+                      className={getFieldClass('contactName')}
                       placeholder="Enter your full name"
+                      maxLength="50"
                     />
-                    {errors.contactName && (
+                    {errors.contactName && touched.contactName && (
                       <p className="text-red-500 text-sm mt-1">{errors.contactName}</p>
                     )}
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number *
+                      Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
                       name="contactPhone"
                       value={formData.contactPhone}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.contactPhone ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="+94 XX XXX XXXX"
+                      onBlur={handleBlur}
+                      className={getFieldClass('contactPhone')}
+                      placeholder="+94 XX XXX XXXX or 0XX XXX XXXX"
                     />
-                    {errors.contactPhone && (
+                    {errors.contactPhone && touched.contactPhone && (
                       <p className="text-red-500 text-sm mt-1">{errors.contactPhone}</p>
                     )}
                   </div>
@@ -332,19 +589,18 @@ const handleSubmit = async (e) => {
 
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address *
+                    Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
                     name="contactEmail"
                     value={formData.contactEmail}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.contactEmail ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    onBlur={handleBlur}
+                    className={getFieldClass('contactEmail')}
                     placeholder="your@email.com"
                   />
-                  {errors.contactEmail && (
+                  {errors.contactEmail && touched.contactEmail && (
                     <p className="text-red-500 text-sm mt-1">{errors.contactEmail}</p>
                   )}
                 </div>
@@ -360,72 +616,71 @@ const handleSubmit = async (e) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Recipient Name *
+                      Recipient Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="shippingAddress.name"
                       value={formData.shippingAddress.name}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors['shippingAddress.name'] ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onBlur={handleBlur}
+                      className={getFieldClass('shippingAddress.name')}
                       placeholder="Full name of recipient"
+                      maxLength="50"
                     />
-                    {errors['shippingAddress.name'] && (
+                    {errors['shippingAddress.name'] && touched['shippingAddress.name'] && (
                       <p className="text-red-500 text-sm mt-1">{errors['shippingAddress.name']}</p>
                     )}
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Street Address *
+                      Street Address <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="shippingAddress.street"
                       value={formData.shippingAddress.street}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors['shippingAddress.street'] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="House number, street name"
+                      onBlur={handleBlur}
+                      className={getFieldClass('shippingAddress.street')}
+                      placeholder="House number, street name, area"
+                      maxLength="100"
                     />
-                    {errors['shippingAddress.street'] && (
+                    {errors['shippingAddress.street'] && touched['shippingAddress.street'] && (
                       <p className="text-red-500 text-sm mt-1">{errors['shippingAddress.street']}</p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      City *
+                      City <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="shippingAddress.city"
                       value={formData.shippingAddress.city}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors['shippingAddress.city'] ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onBlur={handleBlur}
+                      className={getFieldClass('shippingAddress.city')}
                       placeholder="City"
+                      maxLength="50"
                     />
-                    {errors['shippingAddress.city'] && (
+                    {errors['shippingAddress.city'] && touched['shippingAddress.city'] && (
                       <p className="text-red-500 text-sm mt-1">{errors['shippingAddress.city']}</p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Province *
+                      Province <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="shippingAddress.state"
                       value={formData.shippingAddress.state}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors['shippingAddress.state'] ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onBlur={handleBlur}
+                      className={getFieldClass('shippingAddress.state')}
                     >
                       <option value="">Select Province</option>
                       <option value="Western">Western Province</option>
@@ -438,45 +693,44 @@ const handleSubmit = async (e) => {
                       <option value="Uva">Uva Province</option>
                       <option value="Sabaragamuwa">Sabaragamuwa Province</option>
                     </select>
-                    {errors['shippingAddress.state'] && (
+                    {errors['shippingAddress.state'] && touched['shippingAddress.state'] && (
                       <p className="text-red-500 text-sm mt-1">{errors['shippingAddress.state']}</p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Postal Code *
+                      Postal Code <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="shippingAddress.zipCode"
                       value={formData.shippingAddress.zipCode}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors['shippingAddress.zipCode'] ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                      onBlur={handleBlur}
+                      className={getFieldClass('shippingAddress.zipCode')}
                       placeholder="00000"
+                      maxLength="5"
                     />
-                    {errors['shippingAddress.zipCode'] && (
+                    {errors['shippingAddress.zipCode'] && touched['shippingAddress.zipCode'] && (
                       <p className="text-red-500 text-sm mt-1">{errors['shippingAddress.zipCode']}</p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number *
+                      Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
                       name="shippingAddress.phone"
                       value={formData.shippingAddress.phone}
                       onChange={handleInputChange}
-                      className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                        errors['shippingAddress.phone'] ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="+94 XX XXX XXXX"
+                      onBlur={handleBlur}
+                      className={getFieldClass('shippingAddress.phone')}
+                      placeholder="+94 XX XXX XXXX or 0XX XXX XXXX"
                     />
-                    {errors['shippingAddress.phone'] && (
+                    {errors['shippingAddress.phone'] && touched['shippingAddress.phone'] && (
                       <p className="text-red-500 text-sm mt-1">{errors['shippingAddress.phone']}</p>
                     )}
                   </div>
@@ -507,72 +761,71 @@ const handleSubmit = async (e) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Billing Name *
+                        Billing Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         name="billingAddress.name"
                         value={formData.billingAddress.name}
                         onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors['billingAddress.name'] ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        onBlur={handleBlur}
+                        className={getFieldClass('billingAddress.name')}
                         placeholder="Full name for billing"
+                        maxLength="50"
                       />
-                      {errors['billingAddress.name'] && (
+                      {errors['billingAddress.name'] && touched['billingAddress.name'] && (
                         <p className="text-red-500 text-sm mt-1">{errors['billingAddress.name']}</p>
                       )}
                     </div>
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Street Address *
+                        Street Address <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         name="billingAddress.street"
                         value={formData.billingAddress.street}
                         onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors['billingAddress.street'] ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        onBlur={handleBlur}
+                        className={getFieldClass('billingAddress.street')}
                         placeholder="Billing address"
+                        maxLength="100"
                       />
-                      {errors['billingAddress.street'] && (
+                      {errors['billingAddress.street'] && touched['billingAddress.street'] && (
                         <p className="text-red-500 text-sm mt-1">{errors['billingAddress.street']}</p>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        City *
+                        City <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         name="billingAddress.city"
                         value={formData.billingAddress.city}
                         onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors['billingAddress.city'] ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        onBlur={handleBlur}
+                        className={getFieldClass('billingAddress.city')}
                         placeholder="City"
+                        maxLength="50"
                       />
-                      {errors['billingAddress.city'] && (
+                      {errors['billingAddress.city'] && touched['billingAddress.city'] && (
                         <p className="text-red-500 text-sm mt-1">{errors['billingAddress.city']}</p>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Province *
+                        Province <span className="text-red-500">*</span>
                       </label>
                       <select
                         name="billingAddress.state"
                         value={formData.billingAddress.state}
                         onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors['billingAddress.state'] ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        onBlur={handleBlur}
+                        className={getFieldClass('billingAddress.state')}
                       >
                         <option value="">Select Province</option>
                         <option value="Western">Western Province</option>
@@ -585,26 +838,26 @@ const handleSubmit = async (e) => {
                         <option value="Uva">Uva Province</option>
                         <option value="Sabaragamuwa">Sabaragamuwa Province</option>
                       </select>
-                      {errors['billingAddress.state'] && (
+                      {errors['billingAddress.state'] && touched['billingAddress.state'] && (
                         <p className="text-red-500 text-sm mt-1">{errors['billingAddress.state']}</p>
                       )}
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Postal Code *
+                        Postal Code <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         name="billingAddress.zipCode"
                         value={formData.billingAddress.zipCode}
                         onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors['billingAddress.zipCode'] ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        onBlur={handleBlur}
+                        className={getFieldClass('billingAddress.zipCode')}
                         placeholder="00000"
+                        maxLength="5"
                       />
-                      {errors['billingAddress.zipCode'] && (
+                      {errors['billingAddress.zipCode'] && touched['billingAddress.zipCode'] && (
                         <p className="text-red-500 text-sm mt-1">{errors['billingAddress.zipCode']}</p>
                       )}
                     </div>
@@ -633,14 +886,29 @@ const handleSubmit = async (e) => {
                   <h2 className="text-lg font-semibold text-gray-900">Additional Notes</h2>
                 </div>
                 
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Any special instructions for delivery (optional)"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Delivery Instructions (Optional)
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    onBlur={handleBlur}
+                    rows={4}
+                    className={getFieldClass('notes')}
+                    placeholder="Any special instructions for delivery (maximum 500 characters)"
+                    maxLength="500"
+                  />
+                  <div className="flex justify-between mt-1">
+                    {errors.notes && touched.notes && (
+                      <p className="text-red-500 text-sm">{errors.notes}</p>
+                    )}
+                    <p className="text-gray-400 text-xs ml-auto">
+                      {formData.notes.length}/500 characters
+                    </p>
+                  </div>
+                </div>
               </div>
             </form>
           </div>
@@ -718,8 +986,12 @@ const handleSubmit = async (e) => {
                   <button
                     type="submit"
                     onClick={handleSubmit}
-                    disabled={loading}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center space-x-2"
+                    disabled={loading || hasErrors}
+                    className={`w-full py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
+                      loading || hasErrors
+                        ? 'bg-gray-400 cursor-not-allowed text-white'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
                   >
                     {loading ? (
                       <>
@@ -742,6 +1014,20 @@ const handleSubmit = async (e) => {
                     Back to Cart
                   </button>
                 </div>
+
+                {/* Form Status Indicator */}
+                {hasErrors && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">!</span>
+                      </div>
+                      <p className="text-sm text-red-800 font-medium">
+                        Please fix errors above to continue
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-4 p-4 bg-green-50 rounded-lg">
                   <div className="flex items-center space-x-2">

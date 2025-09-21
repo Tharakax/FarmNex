@@ -28,7 +28,7 @@ export const generateReceiptPDF = async (req, res) => {
     doc.pipe(res);
     
     // Header - very compact
-    doc.fontSize(14).font('Helvetica-Bold').text('AGRICONNECT', 50, 20, { align: 'center' });
+    doc.fontSize(14).font('Helvetica-Bold').text('FarmNex', 50, 20, { align: 'center' });
     doc.fontSize(8).font('Helvetica').text('Farm Supplies & Agricultural Products', 50, 40, { align: 'center' });
     doc.moveTo(50, 55).lineTo(550, 55).stroke();
     

@@ -1,13 +1,12 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-
 import mongoose from 'mongoose';
-import JWTauth from './middleware/auth.js';
 import dotenv from 'dotenv';
 import cors from 'cors';
-
+import JWTauth from './middleware/auth.js';
 import path from "path";
 import { fileURLToPath } from "url";
+
 dotenv.config();
 
 
@@ -23,6 +22,8 @@ import reportRouter from './routers/reportRoutes.js';
 import paymentRouter from './routers/paymentRouter.js';
 import questionRoute from "./routers/questionRoute.js"; //umar
 import userroute from "./routers/userroute.js";//umar
+import cropRoutes from './routers/cropRoutes.js';
+import livestockRoutes from './routers/livestockRoutes.js';
 //umar
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -175,8 +176,9 @@ app.use("/api", soilRouter)
 
 app.use('/api/stripe', stripeRouter);
 
-
-
+// Crop and Livestock Routes
+app.use("/api/crop", cropRoutes);
+app.use("/api/livestock", livestockRoutes);
 
 app.listen(3000,()=>{
     console.log("Server has started , running on port 3000");
