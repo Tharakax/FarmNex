@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Plus, Trash2, Star, StarOff, Loader, AlertCircle, Check, X } from 'lucide-react';
+import { showDeleteConfirm } from '../../utils/sweetAlert';
 
 // Mock API functions - replace with your actual API calls
 const api = {
@@ -145,7 +146,9 @@ const PaymentCardsManager = () => {
   };
 
   const handleDeleteCard = async (cardId) => {
-    if (!window.confirm('Are you sure you want to delete this payment method?')) return;
+    const result = await showDeleteConfirm('this payment method');
+    
+    if (!result.isConfirmed) return;
     
     setLoading(true);
     clearMessages();

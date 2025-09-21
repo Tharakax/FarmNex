@@ -30,6 +30,11 @@ const trainingMaterialSchema = new mongoose.Schema({
     type: Number,
     required: false
   },
+  content: {
+    type: String,
+    required: false,
+    maxlength: 10000
+  },
   tags: [{
     type: String,
     trim: true
@@ -49,19 +54,29 @@ const trainingMaterialSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  status: {
+    type: String,
+    enum: ['draft', 'published', 'archived'],
+    default: 'draft'
+  },
   isActive: {
     type: Boolean,
     default: true
   },
   createdBy: {
     type: String,
+    required: true,
     default: 'Admin'
+  },
+  createdByRole: {
+    type: String,
+    enum: ['admin', 'farmer', 'user'],
+    default: 'admin'
   }
 }, {
   timestamps: true
 });
 
-// Index for search functionality
 trainingMaterialSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 export default mongoose.model('TrainingMaterial', trainingMaterialSchema);

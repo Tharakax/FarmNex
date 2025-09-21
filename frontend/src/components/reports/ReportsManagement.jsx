@@ -24,6 +24,7 @@ import { reportAPI } from '../../services/reportAPI';
 import SalesReport from './SalesReport';
 import InventoryReport from './InventoryReport';
 import ProductPerformanceReport from './ProductPerformanceReport';
+import ProductManagementReport from './ProductManagementReport';
 import SuppliesReport from './SuppliesReport';
 
 const ReportsManagement = () => {
@@ -75,6 +76,13 @@ const ReportsManagement = () => {
       icon: Truck,
       description: 'Supply usage, costs, and reorder alerts',
       color: 'bg-orange-500'
+    },
+    {
+      id: 'product-management',
+      name: 'Product Management',
+      icon: Eye,
+      description: 'Comprehensive product analysis and insights',
+      color: 'bg-indigo-500'
     },
   ];
 
@@ -271,6 +279,8 @@ const ReportsManagement = () => {
         return <InventoryReport dateRange={dateRange} />;
       case 'products':
         return <ProductPerformanceReport dateRange={dateRange} />;
+      case 'product-management':
+        return <ProductManagementReport dateRange={dateRange} />;
       case 'supplies':
         return <SuppliesReport dateRange={dateRange} />;
       case 'overview':

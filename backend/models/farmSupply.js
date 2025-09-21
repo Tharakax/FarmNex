@@ -26,7 +26,8 @@ const farmSupplySchema = new mongoose.Schema({
         'machinery',
         'equipment',
         'soil-amendments',
-        'greenhouse-supplies'
+        'greenhouse-supplies',
+        'fuel'
       ],
       message: 'Please select correct category for farm supply'
     }
@@ -120,7 +121,6 @@ const farmSupplySchema = new mongoose.Schema({
   }
 });
 
-// Indexes for better performance
 farmSupplySchema.index({ name: 'text', description: 'text' });
 farmSupplySchema.index({ category: 1 });
 farmSupplySchema.index({ price: 1 });
