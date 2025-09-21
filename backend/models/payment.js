@@ -9,7 +9,7 @@ const PaymentSchema = new mongoose.Schema({
   paymentMethodId: {
     type: String,
     required: [true, 'Payment processor ID is required'],
-    unique: true
+    unique: false
   },
   cardBrand: {
     type: String,
@@ -125,4 +125,6 @@ PaymentSchema.pre('save', async function(next) {
   next();
 });
 
-module.exports = mongoose.model('Payment', PaymentSchema);
+const Payment = mongoose.model('Payment', PaymentSchema);
+
+export default Payment;

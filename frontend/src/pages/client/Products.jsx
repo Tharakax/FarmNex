@@ -5,7 +5,7 @@ import { FaShoppingCart } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 import { addToCart } from "../../utils/cart.js";
 import { productAPI } from "../../services/productAPI";
-import toast from "react-hot-toast";
+import toast , { Toaster } from "react-hot-toast";
 
 export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
@@ -115,6 +115,7 @@ export default function ProductsPage() {
 
         
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+                   
             <div>
                     <Navigation></Navigation>
                 </div>
@@ -416,11 +417,11 @@ export default function ProductsPage() {
                                                 </button>
                                                     </Link> 
 
-                                                <button
-                                                onClick={() => {
-                                                    addToCart(product, 1);
-                                                    toast.success(`${product.name} added to cart!`);
-                                                }}
+                                                 <button
+                                                    onClick={() => {
+                                                        addToCart(product, 1);
+                                                        toast.success(`${product.name} added to cart!`);
+                                                    }}
                                                 disabled={!product.stock || product.stock.current <= 0}
                                                 className={`font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                                                     !product.stock || product.stock.current <= 0

@@ -60,7 +60,7 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     enum: ['credit_card', 'paypal', 'bank_transfer', 'cash_on_delivery'],
-    required: true,
+    required: false,
   },
   shippingAddress: {
     name: String,
@@ -78,13 +78,17 @@ const orderSchema = new mongoose.Schema({
     zipCode: String,
     country: String,
   },
+  contactName: {
+  type: String,
+  required: false,
+},
   contactEmail: {
     type: String,
-    required: true,
+    required: false,
   },
   contactPhone: {
     type: String,
-    required: true,
+    required: false,
   },
   notes: {
     type: String,
@@ -102,6 +106,18 @@ const orderSchema = new mongoose.Schema({
     default: false,
   },
   shippinginfo: {
+    type: Boolean,
+    default: false,
+  },
+  // Add this to your order schema
+  emailSent: {
+    type: Boolean,
+    default: false,
+  },
+  emailSentAt: {
+    type: Date,
+  },
+  isHidden: {
     type: Boolean,
     default: false,
   },

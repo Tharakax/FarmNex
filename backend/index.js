@@ -13,6 +13,9 @@ import orderRouter from './routers/orderRouter.js';
 import trainingRouter from './routers/trainingRoutes.js';
 import farmSupplyRouter from './routers/farmSupplyRouter.js';
 import reportRouter from './routers/reportRoutes.js';
+import paymentRouter from './routers/paymentRouter.js';
+import stripeRouter from './routers/stripeRouter.js';
+
 const app = express();
 
 mongoose.connect(process.env.MONGO_URL).then(
@@ -36,6 +39,9 @@ app.use("/api/order", orderRouter)
 app.use("/api/training", trainingRouter)
 app.use("/api/farmsupplies", farmSupplyRouter)
 app.use("/api/reports", reportRouter)
+app.use("/api/payment", paymentRouter)
+app.use('/api/stripe', stripeRouter);
+
 
 
 app.listen(3000,()=>{
