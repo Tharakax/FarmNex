@@ -2,40 +2,114 @@ import axios from "axios";
 import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { FormValidator, ValidationRules } from '../utils/validation';
+import { showError, showSuccess, showLoading } from '../utils/sweetAlert';
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: ""
+  });
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Form submitted!"); 
-    console.log("Email:", email);
-    console.log("Password:", password);
 
+  // Handle input changes with real-time validation
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
 
-    axios.post(import.meta.env.VITE_BACKEND_URL+"/api/user/login", {
-        email: email,
-        password: password,
-        }).then((response) => {
-          console.log("Login successful:");
-          localStorage.setItem("token", response.data.token);
-          toast.success("Login successful!");
+    // Clear previous error for this field
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
 
-          
-          console.log("Response data:", response.data.user.role);
-          if(response.data.user.role === "admin") {
-            navigate("/admin/");
-          }else if(response.data.user.role === "farmer") {
-            navigate("/farmer/dashboard");
-          }else{
-            navigate("/home");
-          }
-        }).catch((error) => {
-          console.error("Login failed:", error);
-          toast.error("Login failed. Please check your credentials.");
-          // Handle login failure, e.g., show an error message
-        })
+  // Validate form
+  const validateForm = () => {
+    const validator = new FormValidator();
     
+    // Email validation
+    validator.required(formData.email, 'Email')
+             .email(formData.email, 'Email');
+    
+    // Password validation
+    validator.required(formData.password, 'Password')
+             .minLength(formData.password, 6, 'Password');
+
+    const validationErrors = validator.getAllErrors();
+    setErrors(validationErrors);
+    
+    return !validator.hasErrors();
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      await showError('Validation Error', 'Please fix the errors below and try again.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Show loading dialog
+      const loadingAlert = showLoading('Signing In', 'Please wait while we verify your credentials...');
+      
+      const response = await axios.post(import.meta.env.VITE_BACKEND_URL + "/api/user/login", {
+        email: formData.email,
+        password: formData.password,
+      });
+      
+      // Close loading dialog
+      if (loadingAlert && typeof loadingAlert.close === 'function') {
+        loadingAlert.close();
+      }
+      
+      console.log("Login successful:");
+      localStorage.setItem("token", response.data.token);
+      
+      await showSuccess('Login Successful!', 'Welcome back to FarmNex!');
+      
+      // Navigate based on user role
+      const userRole = response.data.user.role;
+      console.log("User role:", userRole);
+      
+      if (userRole === "admin") {
+        navigate("/admin/");
+      } else if (userRole === "farmer") {
+        navigate("/farmer/dashboard");
+      } else {
+        navigate("/home");
+      }
+      
+    } catch (error) {
+      console.error("Login failed:", error);
+      
+      let errorMessage = 'Login failed. Please check your credentials.';
+      
+      if (error.response && error.response.data && error.response.data.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response && error.response.status === 401) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (error.response && error.response.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later.';
+      } else if (!error.response) {
+        errorMessage = 'Unable to connect to server. Please check your internet connection.';
+      }
+      
+      await showError('Login Failed', errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
  return (
@@ -77,15 +151,23 @@ export default function LoginPage() {
                 Email Address
               </label>
               <input
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-lg"
+                disabled={isSubmitting}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-lg ${
+                  errors.Email ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                } ${isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="your@email.com"
               />
+              {errors.Email && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.Email[0]}
+                </p>
+              )}
             </div>
 
             <div>
@@ -93,15 +175,23 @@ export default function LoginPage() {
                 Password
               </label>
               <input
-                onChange ={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
                 id="password"
                 name="password"
                 type="password"
                 autoComplete="current-password"
-                required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-lg"
+                disabled={isSubmitting}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-lg ${
+                  errors.Password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                } ${isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="••••••••"
               />
+              {errors.Password && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.Password[0]}
+                </p>
+              )}
             </div>
 
             <div className="flex items-center justify-between">
@@ -123,11 +213,25 @@ export default function LoginPage() {
             </div>
 
             <button
-              
               type="submit"
-              className="mt-6 w-full inline-flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition text-lg"
+              disabled={isSubmitting}
+              className={`mt-6 w-full inline-flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition text-lg ${
+                isSubmitting 
+                  ? 'bg-gray-400 text-white cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+              }`}
             >
-              Sign In
+              {isSubmitting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing In...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
 

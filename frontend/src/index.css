@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import FarmNex Color System */
+@import "./styles/colors.css";
+
 
 /* Reset and base styles for full-screen layout */
 * {

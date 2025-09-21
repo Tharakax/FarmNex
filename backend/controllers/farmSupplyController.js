@@ -46,8 +46,12 @@ export const getFarmSupplyById = async (req, res) => {
 // Create new farm supply
 export const createFarmSupply = async (req, res) => {
   try {
+    console.log('Creating farm supply with data:', JSON.stringify(req.body, null, 2));
+    
     req.body.createdBy = req.user?.id; // If JWT auth provides user info
     const supply = await FarmSupply.create(req.body);
+    
+    console.log('Farm supply created successfully:', supply._id);
     
     res.status(201).json({
       success: true,
@@ -55,9 +59,32 @@ export const createFarmSupply = async (req, res) => {
       data: supply
     });
   } catch (error) {
+    console.error('Error creating farm supply:', error);
+    
+    // Handle specific validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error: ' + validationErrors.join(', '),
+        error: error.message,
+        details: validationErrors
+      });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate entry - a supply with similar details already exists',
+        error: error.message
+      });
+    }
+    
+    // Generic error
     res.status(400).json({
       success: false,
-      message: 'Validation Error',
+      message: 'Failed to create farm supply: ' + error.message,
       error: error.message
     });
   }

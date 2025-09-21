@@ -135,12 +135,12 @@ const ProductList = ({
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center">
                           <span className="font-semibold text-lg text-gray-900">
-                            ${product.displayprice || product.price}
+                            LKR {product.displayprice || product.price}
                           </span>
                           <span className="text-sm text-gray-500 ml-1">/{product.unit}</span>
                           {product.displayprice && product.displayprice !== product.price && (
                             <span className="text-sm text-gray-400 line-through ml-2">
-                              ${product.price}
+                              LKR {product.price}
                             </span>
                           )}
                         </div>

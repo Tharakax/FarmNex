@@ -1,8 +1,165 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard, Truck, CheckCircle, Lock, Calendar, User, Building, AlertCircle } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { ArrowLeft, CreditCard, Truck, CheckCircle, Lock, Calendar, User, Building, AlertCircle, Shield } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { FormValidator } from '../../utils/validation';
+import { showError, showSuccess, showLoading } from '../../utils/sweetAlert';
 
+// Initialize Stripe with your publishable key
+const stripePromise = loadStripe('pk_test_51Ql5QiIVYLEPquIE4nw8Hl5wXbThqOf9wq4TLcUYcp3jZ17AErbSJNN4d6R8i5IYu1jM0d2lVVpJreLHzl4pj1S600oZqhzeXA');
+
+// Stripe Payment Form Component
+const StripePaymentForm = ({ orderData, orderId, onPaymentSuccess, onPaymentError, loading, setLoading }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [cardError, setCardError] = useState('');
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setLoading(true);
+    setCardError('');
+
+    // Validate card element
+    const cardElement = elements.getElement(CardElement);
+    if (!cardElement._empty && cardElement._complete) {
+      try {
+        // Create payment intent on your server
+        const { data } = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/stripe/create-payment-intent`,
+          {
+            amount: Math.round(orderData.total * 100), // Convert to cents
+            currency: 'lkr',
+            orderId: orderId
+          }
+        );
+
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to create payment intent');
+        }
+
+        // Confirm the payment with Stripe
+        const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+          payment_method: {
+            card: elements.getElement(CardElement),
+            billing_details: {
+              name: orderData.contactName || 'Customer',
+              email: orderData.contactEmail,
+              phone: orderData.contactPhone,
+              address: {
+                line1: orderData.shippingAddress?.street || '',
+                city: orderData.shippingAddress?.city || '',
+                state: orderData.shippingAddress?.state || '',
+                postal_code: orderData.shippingAddress?.zipCode || '',
+                country: 'LK'
+              }
+            }
+          }
+        });
+
+        if (error) {
+          setCardError(error.message);
+          onPaymentError(error.message);
+        } else if (paymentIntent.status === 'succeeded') {
+          // Save payment information to your backend
+          const paymentData = {
+            paymentMethod: 'credit_card',
+            paymentCompleted: true,
+            paymentDetails: {
+              stripePaymentIntentId: paymentIntent.id,
+              cardBrand: paymentIntent.payment_method_details?.card?.brand || 'unknown',
+              last4: paymentIntent.payment_method_details?.card?.last4 || '****'
+            }
+          };
+
+          const response = await axios.put(
+            `${import.meta.env.VITE_BACKEND_URL}/api/order/payment/${orderId}`,
+            paymentData
+          );
+
+          if (response.data.success) {
+            onPaymentSuccess();
+          } else {
+            throw new Error(response.data.message || 'Failed to save payment information');
+          }
+        }
+      } catch (error) {
+        console.error('Payment error:', error);
+        onPaymentError(error.response?.data?.message || error.message || 'Payment processing failed. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setCardError('Please complete your card details');
+      setLoading(false);
+    }
+  };
+
+  // Fixed Stripe card element options (removed invalid padding property)
+  const cardElementOptions = {
+    style: {
+      base: {
+        fontSize: '16px',
+        color: '#424770',
+        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+        '::placeholder': {
+          color: '#aab7c4',
+        },
+      },
+      invalid: {
+        color: '#9e2146',
+      },
+    },
+    hidePostalCode: true,
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Card Details *
+        </label>
+        <div className={`border rounded-md p-3 ${loading ? 'bg-gray-50' : 'bg-white'}`}>
+          <CardElement options={cardElementOptions} />
+        </div>
+        {cardError && (
+          <p className="text-red-500 text-sm mt-1">{cardError}</p>
+        )}
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={!stripe || loading}
+        className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center"
+      >
+        {loading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            Processing...
+          </>
+        ) : (
+          <>
+            <Lock size={16} className="mr-2" />
+            Pay Securely - Rs. {orderData.total.toFixed(2)}
+          </>
+        )}
+      </button>
+
+      <div className="flex items-center justify-center text-xs text-gray-500 mt-2">
+        <Shield size={12} className="mr-1" />
+        Payments are secure and encrypted
+      </div>
+    </div>
+  );
+};
+
+// Main Payment Component
 export default function EnterPayment() {
   const navigate = useNavigate();
   const { orderId } = useParams();
@@ -12,32 +169,17 @@ export default function EnterPayment() {
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
 
   const [formData, setFormData] = useState({
-    // Credit Card Details
-    cardNumber: '',
-    cardName: '',
-    expiryDate: '',
-    cvv: '',
+    // Credit Card Details (handled by Stripe)
+    
+    // PayPal Details
+    paypalEmail: '',
     
     // Bank Transfer Details
     bankName: '',
     accountNumber: '',
     
-    // PayPal Details
-    paypalEmail: '',
-    
     // Cash on Delivery
     codConfirmation: false,
-    
-    // Billing Address (if different from shipping)
-    billingDifferent: false,
-    billingAddress: {
-      name: '',
-      street: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      country: 'Sri Lanka'
-    }
   });
 
   const [errors, setErrors] = useState({});
@@ -50,7 +192,6 @@ export default function EnterPayment() {
         if (storedOrderData) {
           const orderInfo = JSON.parse(storedOrderData);
           setOrderData(orderInfo);
-          console.log("Order ID from URL:", orderId);
         } else {
           navigate('/cart');
         }
@@ -66,137 +207,149 @@ export default function EnterPayment() {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    if (name.includes('.')) {
-      const [section, field] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: value
-        }
-      }));
-    } else if (type === 'checkbox') {
+    if (type === 'checkbox') {
       setFormData(prev => ({
         ...prev,
         [name]: checked
       }));
     } else {
-      // Format card number with spaces
-      if (name === 'cardNumber') {
-        const formattedValue = value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ');
-        if (formattedValue.length <= 19) { // 16 digits + 3 spaces
-          setFormData(prev => ({
-            ...prev,
-            [name]: formattedValue
-          }));
-        }
-        return;
-      }
-      
-      // Format expiry date
-      if (name === 'expiryDate') {
-        const formattedValue = value.replace(/\D/g, '').replace(/(\d{2})(?=\d)/, '$1/');
-        if (formattedValue.length <= 5) {
-          setFormData(prev => ({
-            ...prev,
-            [name]: formattedValue
-          }));
-        }
-        return;
-      }
-      
-      // Limit CVV to 4 digits
-      if (name === 'cvv') {
-        const formattedValue = value.replace(/\D/g, '');
-        if (formattedValue.length <= 4) {
-          setFormData(prev => ({
-            ...prev,
-            [name]: formattedValue
-          }));
-        }
-        return;
-      }
-      
+
       setFormData(prev => ({
         ...prev,
         [name]: value
       }));
     }
     
-    // Clear error for this field
+    // Clear error for this field and perform real-time validation
     if (errors[name]) {
+      const newErrors = { ...errors };
+      delete newErrors[name];
+      setErrors(newErrors);
+    }
+    
+    // Real-time validation for other fields
+    if (name !== 'cardNumber' && name !== 'expiryDate' && name !== 'cvv') {
+      validateField(name, type === 'checkbox' ? checked : value);
+    }
+  };
+
+  // Real-time field validation
+  const validateField = (fieldName, fieldValue) => {
+    const validator = new FormValidator();
+    
+    // Only validate if the current payment method requires this field
+    switch (fieldName) {
+      case 'cardNumber':
+        if (paymentMethod === 'credit_card') {
+          const cleanValue = fieldValue.replace(/\s/g, '');
+          validator.required(cleanValue, 'Card Number')
+                   .cardNumber(cleanValue, 'Card Number');
+        }
+        break;
+      
+      case 'cardName':
+        if (paymentMethod === 'credit_card') {
+          validator.required(fieldValue, 'Cardholder Name')
+                   .minLength(fieldValue, 2, 'Cardholder Name')
+                   .maxLength(fieldValue, 50, 'Cardholder Name')
+                   .custom(/^[a-zA-Z\s]+$/.test(fieldValue || ''), 'Cardholder Name', 'Please enter a valid name (letters and spaces only)');
+        }
+        break;
+      
+      case 'expiryDate':
+        if (paymentMethod === 'credit_card') {
+          validator.required(fieldValue, 'Expiry Date')
+                   .expiryDate(fieldValue, 'Expiry Date');
+        }
+        break;
+      
+      case 'cvv':
+        if (paymentMethod === 'credit_card') {
+          validator.required(fieldValue, 'CVV')
+                   .cvv(fieldValue, 'CVV');
+        }
+        break;
+      
+      case 'paypalEmail':
+        if (paymentMethod === 'paypal') {
+          validator.required(fieldValue, 'PayPal Email')
+                   .email(fieldValue, 'PayPal Email');
+        }
+        break;
+      
+      case 'bankName':
+        if (paymentMethod === 'bank_transfer') {
+          validator.required(fieldValue, 'Bank Name');
+        }
+        break;
+      
+      case 'accountNumber':
+        if (paymentMethod === 'bank_transfer') {
+          validator.required(fieldValue, 'Account Number')
+                   .minLength(fieldValue, 8, 'Account Number')
+                   .maxLength(fieldValue, 20, 'Account Number')
+                   .custom(/^\d+$/.test(fieldValue || ''), 'Account Number', 'Account number must contain only digits');
+        }
+        break;
+      
+      case 'codConfirmation':
+        if (paymentMethod === 'cash_on_delivery') {
+          validator.custom(fieldValue === true, 'COD Confirmation', 'Please confirm cash on delivery payment');
+        }
+        break;
+    }
+
+    const fieldErrors = validator.getFieldErrors(fieldName);
+    if (fieldErrors.length > 0) {
       setErrors(prev => ({
         ...prev,
-        [name]: ''
+        [fieldName]: fieldErrors[0]
       }));
+    } else {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
     }
   };
 
   const validateForm = () => {
+
     const newErrors = {};
 
-    if (paymentMethod === 'credit_card') {
-      const cardNumberDigits = formData.cardNumber.replace(/\s/g, '');
-      
-      if (!cardNumberDigits) {
-        newErrors.cardNumber = 'Card number is required';
-      } else if (cardNumberDigits.length !== 16) {
-        newErrors.cardNumber = 'Card number must be 16 digits';
-      }
-      
-      if (!formData.cardName.trim()) {
-        newErrors.cardName = 'Cardholder name is required';
-      }
-      
-      if (!formData.expiryDate) {
-        newErrors.expiryDate = 'Expiry date is required';
-      } else if (!/^\d{2}\/\d{2}$/.test(formData.expiryDate)) {
-        newErrors.expiryDate = 'Please enter expiry date in MM/YY format';
-      } else {
-        const [month, year] = formData.expiryDate.split('/');
-        const currentDate = new Date();
-        const currentYear = currentDate.getFullYear() % 100;
-        const currentMonth = currentDate.getMonth() + 1;
-        
-        if (parseInt(month) < 1 || parseInt(month) > 12) {
-          newErrors.expiryDate = 'Invalid month';
-        } else if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
-          newErrors.expiryDate = 'Card has expired';
-        }
-      }
-      
-      if (!formData.cvv) {
-        newErrors.cvv = 'CVV is required';
-      } else if (formData.cvv.length < 3) {
-        newErrors.cvv = 'CVV must be at least 3 digits';
-      }
-    }
 
     if (paymentMethod === 'bank_transfer') {
-      if (!formData.bankName.trim()) {
-        newErrors.bankName = 'Bank name is required';
-      }
-      if (!formData.accountNumber.trim()) {
-        newErrors.accountNumber = 'Account number is required';
-      }
+      validator.required(formData.bankName, 'Bank Name');
+      
+      validator.required(formData.accountNumber, 'Account Number')
+               .minLength(formData.accountNumber, 8, 'Account Number')
+               .maxLength(formData.accountNumber, 20, 'Account Number')
+               .custom(/^\d+$/.test(formData.accountNumber || ''), 'Account Number', 'Account number must contain only digits');
     }
 
     if (paymentMethod === 'paypal') {
-      if (!formData.paypalEmail.trim()) {
-        newErrors.paypalEmail = 'PayPal email is required';
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.paypalEmail)) {
-        newErrors.paypalEmail = 'Please enter a valid email address';
-      }
+      validator.required(formData.paypalEmail, 'PayPal Email')
+               .email(formData.paypalEmail, 'PayPal Email');
     }
 
     if (paymentMethod === 'cash_on_delivery') {
-      if (!formData.codConfirmation) {
-        newErrors.codConfirmation = 'Please confirm cash on delivery';
-      }
+      validator.custom(formData.codConfirmation === true, 'COD Confirmation', 'Please confirm cash on delivery payment');
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // Additional business validations
+    if (!orderData) {
+      validator.addError('Order', 'Order data is missing. Please refresh the page.');
+    }
+
+    if (orderData && orderData.items && orderData.items.length === 0) {
+      validator.addError('Cart', 'Your cart is empty. Please add items before proceeding.');
+    }
+
+    const validationErrors = validator.getAllErrors();
+    setErrors(validationErrors);
+    
+    return !validator.hasErrors();
   };
 
   const handlePaymentMethodChange = (method) => {
@@ -204,61 +357,107 @@ export default function EnterPayment() {
     setErrors({}); // Clear errors when switching methods
   };
 
+  const handlePaymentSuccess = () => {
+    // Clear stored order data
+    localStorage.removeItem("orderData");
+    // Navigate to order confirmation/success page
+    navigate(`/order-success/${orderId}`);
+  };
+
+  const handlePaymentError = (errorMessage) => {
+    alert(errorMessage);
+    setLoading(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+
+    if (paymentMethod === 'credit_card') {
+      // Stripe handles this separately
+      return;
+    }
+    
+
     if (!validateForm()) {
+      await showError('Payment Validation Failed', 'Please fix the errors below and try again.');
       return;
     }
 
     setLoading(true);
-
+    
     try {
+      // Show loading dialog
+      const loadingAlert = showLoading(
+        'Processing Payment',
+        `Processing your ${paymentMethod.replace('_', ' ')} payment. Please do not close this page...`
+      );
+
       // Prepare payment data based on selected method
       let paymentData = {
         paymentMethod: paymentMethod,
-        paymentCompleted: true
+
+        paymentCompleted: paymentMethod !== 'credit_card' // For non-Stripe payments
       };
 
-      // Add method-specific data (in real app, this would be handled securely)
-      if (paymentMethod === 'credit_card') {
-        paymentData.paymentDetails = {
-          cardLast4: formData.cardNumber.slice(-4),
-          cardName: formData.cardName
-        };
-      } else if (paymentMethod === 'paypal') {
+      // Add method-specific data
+      if (paymentMethod === 'paypal') {
+
         paymentData.paymentDetails = {
           paypalEmail: formData.paypalEmail
         };
       } else if (paymentMethod === 'bank_transfer') {
         paymentData.paymentDetails = {
           bankName: formData.bankName,
-          accountNumber: formData.accountNumber.slice(-4) // Only store last 4 digits
+          accountLast4: formData.accountNumber.slice(-4) // Only store last 4 digits
+        };
+      } else if (paymentMethod === 'cash_on_delivery') {
+        paymentData.paymentDetails = {
+          codFee: 50,
+          totalWithCod: orderData.total + 50
+        };
+      } else if (paymentMethod === 'cash_on_delivery') {
+        paymentData.paymentDetails = {
+          codFee: 50
         };
       }
 
       // Save payment information to the order
       const response = await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/order/${orderId}/payment`,
+
+        `${import.meta.env.VITE_BACKEND_URL}/api/order/payment/${orderId}`,
         paymentData
+
       );
 
+      // Close loading dialog
+      if (loadingAlert && typeof loadingAlert.close === 'function') {
+        loadingAlert.close();
+      }
+
       if (response.data.success) {
-        // Clear stored order data
-        localStorage.removeItem("orderData");
-        
-        // Navigate to order confirmation/success page
-        navigate(`/order-success/${orderId}`);
+
+        handlePaymentSuccess();
       } else {
-        console.error('Failed to process payment:', response.data.message);
-        alert('Payment processing failed. Please try again.');
+        throw new Error(response.data.message || 'Payment processing failed');
       }
     } catch (error) {
       console.error('Error processing payment:', error);
-      alert('An error occurred during payment processing. Please try again.');
+      alert(error.response?.data?.message || error.message || 'An error occurred during payment processing. Please try again.');
+
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Helper function to determine card type
+  const getCardType = (cardNumber) => {
+    const cleanNumber = cardNumber.replace(/\s/g, '');
+    if (/^4/.test(cleanNumber)) return 'Visa';
+    if (/^5[1-5]/.test(cleanNumber)) return 'MasterCard';
+    if (/^3[47]/.test(cleanNumber)) return 'American Express';
+    if (/^6/.test(cleanNumber)) return 'Discover';
+    return 'Unknown';
   };
 
   if (!orderData) {
@@ -273,6 +472,7 @@ export default function EnterPayment() {
   }
 
   const totalItems = orderData.items.reduce((total, item) => total + item.quantity, 0);
+  const finalTotal = paymentMethod === 'cash_on_delivery' ? orderData.total + 50 : orderData.total;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -329,6 +529,7 @@ export default function EnterPayment() {
         <div className="lg:grid lg:grid-cols-12 lg:gap-8">
           {/* Payment Form - Left Side */}
           <div className="lg:col-span-8">
+            {/* Main form for non-Stripe payments */}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Payment Method Selection */}
               <div className="bg-white rounded-lg shadow-sm p-6">
@@ -418,89 +619,18 @@ export default function EnterPayment() {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Details</h3>
 
-                {paymentMethod === 'credit_card' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Card Number *
-                      </label>
-                      <input
-                        type="text"
-                        name="cardNumber"
-                        value={formData.cardNumber}
-                        onChange={handleInputChange}
-                        placeholder="1234 5678 9012 3456"
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.cardNumber ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {errors.cardNumber && (
-                        <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Cardholder Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="cardName"
-                        value={formData.cardName}
-                        onChange={handleInputChange}
-                        placeholder="John Doe"
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.cardName ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {errors.cardName && (
-                        <p className="text-red-500 text-sm mt-1">{errors.cardName}</p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Expiry Date *
-                        </label>
-                        <input
-                          type="text"
-                          name="expiryDate"
-                          value={formData.expiryDate}
-                          onChange={handleInputChange}
-                          placeholder="MM/YY"
-                          className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                            errors.expiryDate ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors.expiryDate && (
-                          <p className="text-red-500 text-sm mt-1">{errors.expiryDate}</p>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          CVV *
-                        </label>
-                        <input
-                          type="text"
-                          name="cvv"
-                          value={formData.cvv}
-                          onChange={handleInputChange}
-                          placeholder="123"
-                          className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                            errors.cvv ? 'border-red-500' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors.cvv && (
-                          <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {paymentMethod === 'paypal' && (
+                {paymentMethod === 'credit_card' ? (
+                  <Elements stripe={stripePromise}>
+                    <StripePaymentForm
+                      orderData={orderData}
+                      orderId={orderId}
+                      onPaymentSuccess={handlePaymentSuccess}
+                      onPaymentError={handlePaymentError}
+                      loading={loading}
+                      setLoading={setLoading}
+                    />
+                  </Elements>
+                ) : paymentMethod === 'paypal' ? (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       PayPal Email *
@@ -522,9 +652,7 @@ export default function EnterPayment() {
                       You will be redirected to PayPal to complete your payment.
                     </p>
                   </div>
-                )}
-
-                {paymentMethod === 'bank_transfer' && (
+                ) : paymentMethod === 'bank_transfer' ? (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -579,9 +707,7 @@ export default function EnterPayment() {
                       </p>
                     </div>
                   </div>
-                )}
-
-                {paymentMethod === 'cash_on_delivery' && (
+                ) : (
                   <div className="space-y-4">
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-700 mb-3">
@@ -591,7 +717,7 @@ export default function EnterPayment() {
                       <div className="flex items-start space-x-2">
                         <AlertCircle size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
                         <p className="text-sm text-amber-700">
-                          Additional COD fee of Rs. 50 will be added to your total.
+                        Additional COD fee of LKR 50 will be added to your total.
                         </p>
                       </div>
                     </div>
@@ -605,7 +731,9 @@ export default function EnterPayment() {
                         className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700">
-                        I understand that I need to pay Rs. {(orderData.total + 50).toFixed(2)} in cash when my order is delivered.
+
+                        I understand that I need to pay Rs. {finalTotal.toFixed(2)} in cash when my order is delivered.
+
                       </span>
                     </label>
                     {errors.codConfirmation && (
@@ -627,6 +755,29 @@ export default function EnterPayment() {
                   </div>
                 </div>
               </div>
+
+              {/* Submit button for non-Stripe payments */}
+              {paymentMethod !== 'credit_card' && (
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={16} className="mr-2" />
+                        Complete Order - Rs. {finalTotal.toFixed(2)}
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </form>
           </div>
 
@@ -638,6 +789,17 @@ export default function EnterPayment() {
               </div>
 
               <div className="p-6">
+                {/* Shipping Address */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="text-sm font-medium text-gray-900 mb-2">Shipping to:</h3>
+                  <p className="text-sm text-gray-700">
+                    {orderData.shippingAddress?.name}<br />
+                    {orderData.shippingAddress?.street}<br />
+                    {orderData.shippingAddress?.city}, {orderData.shippingAddress?.state} {orderData.shippingAddress?.zipCode}<br />
+                    {orderData.shippingAddress?.phone}
+                  </p>
+                </div>
+
                 {/* Order Items */}
                 <div className="space-y-3 mb-4">
                   {orderData.items.map((item, index) => (
@@ -656,7 +818,7 @@ export default function EnterPayment() {
                         <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        Rs. {(item.price * item.quantity).toFixed(2)}
+                        LKR {(item.price * item.quantity).toFixed(2)}
                       </div>
                     </div>
                   ))}
@@ -665,13 +827,13 @@ export default function EnterPayment() {
                 <div className="border-t pt-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Subtotal:</span>
-                    <span className="font-medium">Rs. {orderData.subtotal.toFixed(2)}</span>
+                    <span className="font-medium">LKR {orderData.subtotal.toFixed(2)}</span>
                   </div>
                   
                   {orderData.discount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-green-600">Discount:</span>
-                      <span className="text-green-600 font-medium">-Rs. {orderData.discount.toFixed(2)}</span>
+                      <span className="text-green-600 font-medium">-LKR {orderData.discount.toFixed(2)}</span>
                     </div>
                   )}
                   
@@ -681,20 +843,20 @@ export default function EnterPayment() {
                       {orderData.shipping === 0 ? (
                         <span className="text-green-600">Free</span>
                       ) : (
-                        `Rs. ${orderData.shipping.toFixed(2)}`
+                        `LKR ${orderData.shipping.toFixed(2)}`
                       )}
                     </span>
                   </div>
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Tax:</span>
-                    <span className="font-medium">Rs. {orderData.tax.toFixed(2)}</span>
+                    <span className="font-medium">LKR {orderData.tax.toFixed(2)}</span>
                   </div>
 
                   {paymentMethod === 'cash_on_delivery' && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">COD Fee:</span>
-                      <span className="font-medium">Rs. 50.00</span>
+                      <span className="font-medium">LKR 50.00</span>
                     </div>
                   )}
                   
@@ -702,32 +864,15 @@ export default function EnterPayment() {
                     <div className="flex justify-between">
                       <span className="text-lg font-semibold text-gray-900">Total:</span>
                       <span className="text-lg font-semibold text-gray-900">
-                        Rs. {(paymentMethod === 'cash_on_delivery' ? orderData.total + 50 : orderData.total).toFixed(2)}
+
+                        Rs. {finalTotal.toFixed(2)}
+
                       </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-6 space-y-3">
-                  <button
-                    type="submit"
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center space-x-2"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Complete Order</span>
-                        <CheckCircle size={16} />
-                      </>
-                    )}
-                  </button>
-                  
                   <button
                     type="button"
                     onClick={() => navigate(`/shipping/${orderId}`)}

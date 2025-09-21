@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
+import { FaLeaf } from 'react-icons/fa';
 import Navigation from '../components/navigation';
-import SimpleChatbot from '../components/SimpleChatbot';
+import SimpleChatbot from '../components/chatbot/SimpleChatbot';
+import PublishedTrainingSection from '../components/training/components/PublishedTrainingSection';
 import { NavLink } from 'react-router-dom';
 
 
@@ -13,7 +15,7 @@ const HomePage = () => {
     {
       id: 1,
       name: "Fresh Tomatoes",
-      price: "$4.99/lb",
+      price: "LKR 499/kg",
       image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&h=300&fit=crop",
       rating: 4.8,
       badge: "Fresh"
@@ -21,7 +23,7 @@ const HomePage = () => {
     {
       id: 2,
       name: "Farm Eggs",
-      price: "$5.99/dozen",
+      price: "LKR 599/dozen",
       image: "https://images.unsplash.com/photo-1518569656558-1f25e69d93d7?w=400&h=300&fit=crop",
       rating: 4.9,
       badge: "Premium"
@@ -29,7 +31,7 @@ const HomePage = () => {
     {
       id: 3,
       name: "Bell Peppers",
-      price: "$2.99/lb",
+      price: "LKR 299/kg",
       image: "https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=400&h=300&fit=crop",
       rating: 4.7,
       badge: "Local"
@@ -195,6 +197,57 @@ const HomePage = () => {
           </div>
         </section>
 
+        {/* Brand Showcase Section with FarmNex Logo */}
+        <section className="py-12 bg-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-emerald-50/30"></div>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center">
+              {/* Large FarmNex Logo with Name */}
+              <div className="flex items-center justify-center mb-6">
+                <div className="transform hover:scale-110 transition-all duration-300">
+                  <div className="relative">
+                    <FaLeaf className="h-16 w-16 text-green-600 drop-shadow-lg" />
+                    <div className="absolute inset-0 bg-white rounded-full border-2 border-green-200 -z-10"></div>
+                  </div>
+                </div>
+                <h2 className="ml-6 text-5xl font-bold bg-gradient-to-r from-green-700 via-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  FarmNex
+                </h2>
+              </div>
+              
+              {/* Tagline */}
+              <p className="text-xl text-gray-600 mb-8 font-medium">
+                Agricultural Excellence Through Innovation
+              </p>
+              
+              {/* Brand Values */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
+                <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
+                  <div className="flex justify-center mb-4">
+                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
+                  </div>
+                  <h3 className="font-semibold text-green-700 mb-2">Fresh & Natural</h3>
+                  <p className="text-sm text-gray-600">Direct from farm to your table</p>
+                </div>
+                <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
+                  <div className="flex justify-center mb-4">
+                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
+                  </div>
+                  <h3 className="font-semibold text-green-700 mb-2">Sustainable Farming</h3>
+                  <p className="text-sm text-gray-600">Environmentally conscious practices</p>
+                </div>
+                <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
+                  <div className="flex justify-center mb-4">
+                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
+                  </div>
+                  <h3 className="font-semibold text-green-700 mb-2">Expert Training</h3>
+                  <p className="text-sm text-gray-600">Professional agricultural education</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Features Section with 3D Background Pattern */}
         <section 
           className="py-16 relative transform-gpu"
@@ -336,8 +389,12 @@ const HomePage = () => {
             </div>
           </div>
         </section>
+        
+        {/* Published Training Materials Section */}
+        <PublishedTrainingSection />
+        
         {/* Featured Products with 3D Background */}
-        <section 
+        <section
           id="products" 
           className="py-16 relative transform-gpu"
           style={{
@@ -509,7 +566,7 @@ const HomePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <Leaf className="h-8 w-8 text-green-400" />
+                  <FaLeaf className="h-8 w-8 text-green-400" />
                   <span className="text-2xl font-bold">FarmNex</span>
                 </div>
                 <p className="text-gray-300">
@@ -554,7 +611,7 @@ const HomePage = () => {
         </footer>
       </div>
       
-      {/* Chatbot Widget */}
+      {/* Chatbot Widget (Temporary fallback to SimpleChatbot) */}
       <SimpleChatbot />
     </div>
   );

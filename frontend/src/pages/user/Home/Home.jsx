@@ -340,7 +340,9 @@ const CustomerDashboard = () => {
            <MessageSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Q&A Section</h3>
           <p className="text-gray-600">Post questions and get answers from the community.</p>
-           <button className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+           <button 
+            onClick={() => navigate('/userqa')} 
+            className="mt-4 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
           Ask a Question
           </button>
           </div>
@@ -391,7 +393,7 @@ const CustomerDashboard = () => {
             {/* Logo */}
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <h1 className="text-xl font-bold text-green-600">🌾 Farm Nex</h1>
+                <h2 className="text-xl font-bold text-green-600">🌾 Farm Nex</h2>
               </div>
             </div>
 

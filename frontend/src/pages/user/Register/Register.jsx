@@ -283,306 +283,287 @@ function Register() {
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Full Name */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Full Name *
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="fullName"
-                  value={inputs.fullName}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                    errors.fullName 
-                      ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                      : inputs.fullName && !errors.fullName
-                      ? 'border-green-300 focus:border-green-500 bg-green-50'
-                      : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                  }`}
-                  placeholder="Enter your full name"
-                />
-                {inputs.fullName && !errors.fullName && (
-                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
-                )}
-              </div>
-              {errors.fullName && (
-                <div className="flex items-center text-red-600 text-sm animate-pulse">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.fullName}
-                </div>
-              )}
-            </div>
+   <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+  <form onSubmit={handleSubmit} className="space-y-6">
+    {/* Full Name */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Full Name *
+      </label>
+      <div className="relative">
+        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          name="fullName"
+          value={inputs.fullName}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+            errors.fullName
+              ? 'border-red-300 focus:border-red-500 bg-red-50'
+              : inputs.fullName && !errors.fullName
+              ? 'border-green-300 focus:border-green-500 bg-green-50'
+              : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
+          }`}
+          placeholder="Enter your full name"
+        />
+        {inputs.fullName && !errors.fullName && (
+          <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
+        )}
+      </div>
+      {errors.fullName && (
+        <div className="flex items-center text-red-600 text-sm animate-pulse">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.fullName}
+        </div>
+      )}
+    </div>
 
-            {/* Email */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Email *
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={inputs.email}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                    errors.email 
-                      ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                      : inputs.email && !errors.email
-                      ? 'border-green-300 focus:border-green-500 bg-green-50'
-                      : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                  }`}
-                  placeholder="Enter your Valid email "
-                />
-                {inputs.email && !errors.email && (
-                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
-                )}
-              </div>
-              {errors.email && (
-                <div className="flex items-center text-red-600 text-sm animate-pulse">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.email}
-                </div>
-              )}
-            </div>
+    {/* Email */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Email *
+      </label>
+      <div className="relative">
+        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="email"
+          name="email"
+          value={inputs.email}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+            errors.email
+              ? 'border-red-300 focus:border-red-500 bg-red-50'
+              : inputs.email && !errors.email
+              ? 'border-green-300 focus:border-green-500 bg-green-50'
+              : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
+          }`}
+          placeholder="Enter your Valid email "
+        />
+        {inputs.email && !errors.email && (
+          <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
+        )}
+      </div>
+      {errors.email && (
+        <div className="flex items-center text-red-600 text-sm animate-pulse">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.email}
+        </div>
+      )}
+    </div>
 
-            {/* Phone */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={inputs.phone}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                    errors.phone 
-                      ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                      : inputs.phone && !errors.phone
-                      ? 'border-green-300 focus:border-green-500 bg-green-50'
-                      : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                  }`}
-                  placeholder="Enter phone number-(eg:+94771234567)"
-                />
-                {inputs.phone && !errors.phone && (
-                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
-                )}
-              </div>
-              {errors.phone && (
-                <div className="flex items-center text-red-600 text-sm animate-pulse">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.phone}
-                </div>
-              )}
-            </div>
+    {/* Phone */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Phone Number
+      </label>
+      <div className="relative">
+        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="tel"
+          name="phone"
+          value={inputs.phone}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+            errors.phone
+              ? 'border-red-300 focus:border-red-500 bg-red-50'
+              : inputs.phone && !errors.phone
+              ? 'border-green-300 focus:border-green-500 bg-green-50'
+              : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
+          }`}
+          placeholder="Enter phone number-(eg:+94771234567)"
+        />
+        {inputs.phone && !errors.phone && (
+          <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
+        )}
+      </div>
+      {errors.phone && (
+        <div className="flex items-center text-red-600 text-sm animate-pulse">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.phone}
+        </div>
+      )}
+    </div>
 
-            {/* Age */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Age *
-              </label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="age"
-                  value={inputs.age}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                    errors.age 
-                      ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                      : inputs.age && !errors.age
-                      ? 'border-green-300 focus:border-green-500 bg-green-50'
-                      : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                  }`}
-                  placeholder="Enter your age (18+)"
-                />
-                {inputs.age && !errors.age && (
-                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
-                )}
-              </div>
-              {errors.age && (
-                <div className="flex items-center text-red-600 text-sm animate-pulse">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.age}
-                </div>
-              )}
-            </div>
+    {/* Age */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Age *
+      </label>
+      <div className="relative">
+        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          name="age"
+          value={inputs.age}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+            errors.age
+              ? 'border-red-300 focus:border-red-500 bg-red-50'
+              : inputs.age && !errors.age
+              ? 'border-green-300 focus:border-green-500 bg-green-50'
+              : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
+          }`}
+          placeholder="Enter your age (18+)"
+        />
+        {inputs.age && !errors.age && (
+          <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
+        )}
+      </div>
+      {errors.age && (
+        <div className="flex items-center text-red-600 text-sm animate-pulse">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.age}
+        </div>
+      )}
+    </div>
 
-            {/* Username */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Username *
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="username"
-                  value={inputs.username}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                    errors.username 
-                      ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                      : inputs.username && !errors.username
-                      ? 'border-green-300 focus:border-green-500 bg-green-50'
-                      : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                  }`}
-                  placeholder="Choose a username"
-                />
-                {inputs.username && !errors.username && (
-                  <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
-                )}
-              </div>
-              {errors.username && (
-                <div className="flex items-center text-red-600 text-sm animate-pulse">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.username}
-                </div>
-              )}
-            </div>
+    {/* Username */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Username *
+      </label>
+      <div className="relative">
+        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          name="username"
+          value={inputs.username}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+            errors.username
+              ? 'border-red-300 focus:border-red-500 bg-red-50'
+              : inputs.username && !errors.username
+              ? 'border-green-300 focus:border-green-500 bg-green-50'
+              : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
+          }`}
+          placeholder="Choose a username"
+        />
+        {inputs.username && !errors.username && (
+          <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
+        )}
+      </div>
+      {errors.username && (
+        <div className="flex items-center text-red-600 text-sm animate-pulse">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.username}
+        </div>
+      )}
+    </div>
 
-            {/* Password */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Password *
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={inputs.password}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full pl-11 pr-12 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                    errors.password 
-                      ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                      : inputs.password && !errors.password
-                      ? 'border-green-300 focus:border-green-500 bg-green-50'
-                      : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                  }`}
-                  placeholder="Create a strong password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              
-              {/* Password Strength Indicator */}
-              {inputs.password && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-600">Password strength:</span>
-                    <span className={`font-medium ${passwordStrength.strength >= 4 ? 'text-green-600' : passwordStrength.strength >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {passwordStrength.label}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
-                      style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )}
-              
-              {errors.password && (
-                <div className="flex items-center text-red-600 text-sm animate-pulse">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.password}
-                </div>
-              )}
-            </div>
+    {/* Password */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Password *
+      </label>
+      <div className="relative">
+        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type={showPassword ? 'text' : 'password'}
+          name="password"
+          value={inputs.password}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`w-full pl-11 pr-12 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+            errors.password
+              ? 'border-red-300 focus:border-red-500 bg-red-50'
+              : inputs.password && !errors.password
+              ? 'border-green-300 focus:border-green-500 bg-green-50'
+              : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
+          }`}
+          placeholder="Create a strong password"
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+        </button>
+      </div>
+      {errors.password && (
+        <div className="flex items-center text-red-600 text-sm animate-pulse">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.password}
+        </div>
+      )}
+    </div>
 
-            {/* Confirm Password */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Confirm Password *
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  value={inputs.confirmPassword}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={`w-full pl-11 pr-12 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                    errors.confirmPassword 
-                      ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                      : inputs.confirmPassword && !errors.confirmPassword && inputs.password
-                      ? 'border-green-300 focus:border-green-500 bg-green-50'
-                      : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                  }`}
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <div className="flex items-center text-red-600 text-sm animate-pulse">
-                  <AlertCircle className="w-4 h-4 mr-1" />
-                  {errors.confirmPassword}
-                </div>
-              )}
-            </div>
+    {/* Confirm Password */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Confirm Password *
+      </label>
+      <div className="relative">
+        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          type={showConfirmPassword ? 'text' : 'password'}
+          name="confirmPassword"
+          value={inputs.confirmPassword}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          className={`w-full pl-11 pr-12 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+            errors.confirmPassword
+              ? 'border-red-300 focus:border-red-500 bg-red-50'
+              : inputs.confirmPassword && !errors.confirmPassword && inputs.password
+              ? 'border-green-300 focus:border-green-500 bg-green-50'
+              : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
+          }`}
+          placeholder="Confirm your password"
+        />
+        <button
+          type="button"
+          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+        </button>
+      </div>
+      {errors.confirmPassword && (
+        <div className="flex items-center text-red-600 text-sm animate-pulse">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors.confirmPassword}
+        </div>
+      )}
+    </div>
 
-            {/* Role */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Role *
-              </label>
-              <div className="relative">
-                <UserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select
-                  name="role"
-                  value={inputs.role}
-                  onChange={handleChange}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 hover:border-gray-300 transition-all duration-300 bg-white appearance-none"
-                >
-                  <option value="Customer">Customer</option>
-                  <option value="DeliveryStaff">Delivery Staff</option>
-                </select>
-              </div>
-            </div>
+    {/* Role */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Role *
+      </label>
+      <div className="relative">
+        <UserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <select
+          name="role"
+          value={inputs.role}
+          onChange={handleChange}
+          className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 hover:border-gray-300 transition-all duration-300 bg-white appearance-none"
+        >
+          <option value="Customer">Customer</option>
+          <option value="DeliveryStaff">Delivery Staff</option>
+        </select>
+      </div>
+    </div>
 
-            {/* Address */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">
-                Address
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <textarea
-                  name="address"
-                  rows="3"
-                  value={inputs.address}
-                  onChange={handleChange}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 hover:border-gray-300 transition-all duration-300 resize-none"
-                  placeholder="Enter your address (optional)"
+    {/* Address */}
+    <div className="space-y-2">
+      <label className="block text-left text-sm font-semibold text-gray-700">
+        Address
+      </label>
+      <div className="relative">
+        <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+        <textarea
+          name="address"
+          rows="3"
+          value={inputs.address}
+           onChange={handleChange}
+            className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 hover:border-gray-300 transition-all duration-300 resize-none"
+              placeholder="Enter your address (optional)"
                 />
               </div>
             </div>
