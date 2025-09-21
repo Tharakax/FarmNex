@@ -24,6 +24,7 @@ import {
   Calendar,
   Download
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { parseAndCleanTags } from '../../../utils/tagUtils';
 import TrainingViewer from '../components/TrainingViewer';
 import AddEditTrainingForm from '../components/AddEditTrainingForm';
@@ -173,11 +174,49 @@ const TrainingManagement = () => {
   };
 
   const deleteMaterial = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this training material?')) {
-      return;
-    }
-
     try {
+      const result = await Swal.fire({
+        title: '🗑️ Delete Training Material?',
+        text: 'This action cannot be undone. Are you sure you want to delete this training material?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: '🗑️ Yes, Delete it!',
+        cancelButtonText: '❌ Cancel',
+        reverseButtons: true,
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          title: 'text-xl font-bold text-gray-900',
+          content: 'text-gray-700',
+          confirmButton: 'rounded-lg px-6 py-2 font-semibold transition-all duration-200 hover:shadow-lg',
+          cancelButton: 'rounded-lg px-6 py-2 font-semibold transition-all duration-200 hover:shadow-lg'
+        },
+        showClass: {
+          popup: 'animate__animated animate__fadeIn animate__faster'
+        },
+        hideClass: {
+          popup: 'animate__animated animate__fadeOut animate__faster'
+        }
+      });
+
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      // Show loading alert
+      Swal.fire({
+        title: '🔄 Deleting...',
+        text: 'Please wait while we delete the training material.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/training/${id}`, {
         method: 'DELETE',
@@ -188,6 +227,24 @@ const TrainingManagement = () => {
       });
 
       if (response.ok) {
+        // Show success alert
+        await Swal.fire({
+          title: '✅ Deleted Successfully!',
+          text: 'The training material has been deleted successfully.',
+          icon: 'success',
+          confirmButtonColor: '#059669',
+          confirmButtonText: '👍 Great!',
+          background: '#ffffff',
+          customClass: {
+            popup: 'rounded-lg shadow-xl',
+            title: 'text-xl font-bold text-green-700',
+            content: 'text-gray-700',
+            confirmButton: 'rounded-lg px-6 py-2 font-semibold transition-all duration-200 hover:shadow-lg'
+          },
+          timer: 3000,
+          timerProgressBar: true
+        });
+        
         setSuccessMessage('Training material deleted successfully');
         fetchMaterials();
         fetchStatistics();
@@ -195,6 +252,24 @@ const TrainingManagement = () => {
         throw new Error('Failed to delete training material');
       }
     } catch (error) {
+      console.error('Delete error:', error);
+      
+      // Show error alert
+      await Swal.fire({
+        title: '❌ Delete Failed!',
+        text: `Error: ${error.message || 'Failed to delete training material'}`,
+        icon: 'error',
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: '🔄 Try Again',
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-lg shadow-xl',
+          title: 'text-xl font-bold text-red-700',
+          content: 'text-gray-700',
+          confirmButton: 'rounded-lg px-6 py-2 font-semibold transition-all duration-200 hover:shadow-lg'
+        }
+      });
+      
       setErrorMessage('Error deleting training material: ' + error.message);
     }
   };

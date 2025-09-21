@@ -31,7 +31,7 @@ import {
   SortAsc,
   SortDesc
 } from 'lucide-react';
-import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
+import { exportToPDF, exportToExcel, exportProductsToPDFWithImages } from '../../utils/exportUtils';
 import { reportAPI } from '../../services/reportAPI';
 import { productAPI } from '../../services/productAPI';
 import toast from 'react-hot-toast';
@@ -473,36 +473,32 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       const fileName = `product_management_report_${dateRange}days_${new Date().toISOString().split('T')[0]}`;
       
       if (format === 'pdf') {
-        // Use simple PDF export with optimized columns for Status visibility
-        const columns = [
-          { header: 'ID', key: 'id' },
-          { header: 'Product Name', key: 'name' },
-          { header: 'Category', key: 'category' },
-          { header: 'Price', key: 'price' },
-          { header: 'Stock Qty', key: 'stockQuantity' },
-          { header: 'Unit', key: 'unit' },
-          { header: 'Stock Status', key: 'status' }, // Changed header to be more descriptive
-          { header: 'Revenue', key: 'revenue' },
-          { header: 'Rating', key: 'rating' }
-        ];
+        // Use enhanced PDF export with embedded images
+        console.log('🖼️ Starting PDF export with images...');
         
-        // Format data for simple PDF export
-        const pdfData = exportData.map(product => ({
+        // Prepare data for image PDF export
+        const imageExportData = exportData.map(product => ({
           id: product.id,
           name: product.name,
           category: product.category,
+          description: product.description,
           price: product.price,
           stockQuantity: product.stockQuantity,
           unit: product.unit,
           status: product.status,
-          revenue: `LKR ${(product.revenue || 0).toLocaleString()}`,
-          rating: `${(product.rating || 0).toFixed(1)}/5.0 (${product.reviews || 0} reviews)`
+          revenue: product.revenue, // Keep as number for calculations
+          rating: product.rating, // Keep as number for calculations
+          reviews: product.reviews,
+          image: product.image // Include image URL for embedding
         }));
         
-        exportToPDF(
-          pdfData,
-          'Product Management Report',
-          columns,
+        console.log('📊 Image export data prepared:', imageExportData.length, 'products');
+        console.log('📷 Sample product with image:', imageExportData.find(p => p.image));
+        
+        await exportProductsToPDFWithImages(
+          imageExportData,
+          'Product Management Report with Images',
+          [], // Columns not needed for image layout
           fileName,
           'products'
         );
@@ -742,7 +738,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
                 className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg text-sm hover:from-red-700 hover:to-red-800 transition-all duration-200 flex items-center shadow-md hover:shadow-lg transform hover:scale-105"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                📄 Export Compact PDF Table
+                📄 Export PDF with Images
               </button>
               <button
                 onClick={() => handleExport('excel')}
@@ -1340,8 +1336,8 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
             onChange={(e) => setExportFormat(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
           >
-            <option value="pdf">PDF Format</option>
-            <option value="excel">Excel Format</option>
+            <option value="pdf">📄 PDF with Images</option>
+            <option value="excel">📊 Excel Spreadsheet</option>
           </select>
           
           <button
