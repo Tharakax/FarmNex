@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Export with Images Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            color: #22c55e;
+            margin-bottom: 30px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .feature-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 20px;
+            background-color: #fafafa;
+        }
+        .feature-title {
+            color: #059669;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .checkmark {
+            color: #22c55e;
+            font-size: 20px;
+        }
+        .test-button {
+            background-color: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: block;
+            margin: 0 auto;
+            transition: background-color 0.2s;
+        }
+        .test-button:hover {
+            background-color: #16a34a;
+        }
+        .note {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin-top: 20px;
+            border-radius: 0 6px 6px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌱 FarmNex Product Report</h1>
+            <h2>PDF Export with Images - Enhanced!</h2>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-title">
+                    <span class="checkmark">✅</span>
+                    Web Interface with Images
+                </div>
+                <p>Product images are displayed in both mobile card view and desktop table view with proper fallback handling for missing images.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-title">
+                    <span class="checkmark">✅</span>
+                    PDF Export with Embedded Images
+                </div>
+                <p>PDF reports now include product images embedded directly in the document, with landscape layout for optimal viewing.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-title">
+                    <span class="checkmark">✅</span>
+                    Excel Export with Image URLs
+                </div>
+                <p>Excel exports include image URLs in a dedicated column, making it easy to reference product images.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-title">
+                    <span class="checkmark">✅</span>
+                    Enhanced Visual Layout
+                </div>
+                <p>Professional layout with product information, pricing, stock levels, and ratings displayed alongside images.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-title">
+                    <span class="checkmark">✅</span>
+                    Error Handling
+                </div>
+                <p>Graceful fallback for missing or broken images, with placeholder graphics and proper error handling.</p>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-title">
+                    <span class="checkmark">✅</span>
+                    Performance Optimized
+                </div>
+                <p>Images are converted to base64 and embedded efficiently, with loading indicators and progress tracking.</p>
+            </div>
+        </div>
+
+        <button class="test-button" onclick="showTestInfo()">
+            🚀 Test PDF Export Functionality
+        </button>
+
+        <div class="note">
+            <strong>📝 How to Test:</strong>
+            <ol>
+                <li>Open your FarmNex application</li>
+                <li>Navigate to Reports → Product Management Report</li>
+                <li>Ensure you have products with images in your database</li>
+                <li>Select "📄 PDF with Images" from the export dropdown</li>
+                <li>Click "Export Report" to generate the PDF with embedded images</li>
+                <li>The PDF will be downloaded with all product images embedded</li>
+            </ol>
+        </div>
+
+        <div id="testInfo" style="display: none; margin-top: 20px; padding: 20px; background-color: #e8f5e8; border-radius: 6px;">
+            <h3>🔍 Technical Details:</h3>
+            <ul>
+                <li><strong>Function Used:</strong> <code>exportProductsToPDFWithImages()</code></li>
+                <li><strong>Image Handling:</strong> Cross-origin images converted to base64</li>
+                <li><strong>Layout:</strong> Landscape orientation for optimal image display</li>
+                <li><strong>Fallback:</strong> Placeholder graphics for missing images</li>
+                <li><strong>File Format:</strong> Professional PDF with embedded JPEG images</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function showTestInfo() {
+            const testInfo = document.getElementById('testInfo');
+            if (testInfo.style.display === 'none') {
+                testInfo.style.display = 'block';
+                event.target.textContent = '🔼 Hide Technical Details';
+            } else {
+                testInfo.style.display = 'none';
+                event.target.textContent = '🚀 Test PDF Export Functionality';
+            }
+        }
+    </script>
+</body>
+</html>
