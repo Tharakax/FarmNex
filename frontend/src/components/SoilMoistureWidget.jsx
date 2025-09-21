@@ -144,33 +144,44 @@ const SoilMoistureWidget = ({
     };
   }, [deviceId, refreshInterval]);
 
-  // Get status styling
+  // Get status styling with better contrast
   const getStatusStyle = (moisture) => {
-    if (!moisture && moisture !== 0) return { color: '#666', bg: '#f5f5f5' };
+    if (!moisture && moisture !== 0) return { 
+      color: '#666', 
+      bg: '#f8f9fa', 
+      textColor: '#2c3e50',
+      headingColor: '#2c3e50'
+    };
     
     if (moisture < 30) {
       return { 
-        color: '#dc3545', 
-        bg: '#ffe6e6', 
+        color: '#dc2626', 
+        bg: '#fef2f2', 
         icon: '🔴',
         status: 'DRY',
-        message: 'Needs watering soon'
+        message: 'Needs watering soon',
+        textColor: '#991b1b',
+        headingColor: '#1f2937'
       };
     } else if (moisture > 70) {
       return { 
-        color: '#007bff', 
-        bg: '#e6f3ff', 
+        color: '#1d4ed8', 
+        bg: '#eff6ff', 
         icon: '🔵',
         status: 'WET',
-        message: 'Well watered'
+        message: 'Well watered',
+        textColor: '#1e40af',
+        headingColor: '#1f2937'
       };
     }
     return { 
-      color: '#28a745', 
-      bg: '#e6ffe6', 
+      color: '#16a34a', 
+      bg: '#f0fdf4', 
       icon: '🟢',
       status: 'OPTIMAL',
-      message: 'Perfect moisture level'
+      message: 'Perfect moisture level',
+      textColor: '#166534',
+      headingColor: '#1f2937'
     };
   };
 
@@ -266,8 +277,8 @@ const SoilMoistureWidget = ({
     <div className={`soil-moisture-widget ${className}`} style={{ backgroundColor: statusInfo.bg }}>
       <div className="widget-header">
         <div className="title-section">
-          <h3>{title}</h3>
-          <span className="device-id">{deviceId}</span>
+          <h3 style={{ color: statusInfo.headingColor || '#2c3e50' }}>{title}</h3>
+          <span className="device-id" style={{ color: statusInfo.textColor || '#7f8c8d' }}>{deviceId}</span>
         </div>
         <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
           <span className="status-dot" style={{ animation: isRefreshing ? 'pulse 1s infinite' : 'none' }}></span>
@@ -284,7 +295,7 @@ const SoilMoistureWidget = ({
             <span className="status-text" style={{ color: statusInfo.color }}>
               {statusInfo.status}
             </span>
-            <span className="status-message">
+            <span className="status-message" style={{ color: statusInfo.textColor || '#666' }}>
               {statusInfo.message}
             </span>
           </div>
@@ -293,7 +304,7 @@ const SoilMoistureWidget = ({
         {history.length > 1 && (
           <div className="moisture-trend" style={{ color: statusInfo.color }}>
             {generateSparkline(history)}
-            <span className="trend-label">24h trend</span>
+            <span className="trend-label" style={{ color: statusInfo.textColor || statusInfo.color }}>24H TREND</span>
           </div>
         )}
       </div>
@@ -301,8 +312,8 @@ const SoilMoistureWidget = ({
       <div className="widget-details">
         <div className="detail-row">
           <div className="detail-item">
-            <span className="detail-label">Last Reading:</span>
-            <span className="detail-value">
+            <span className="detail-label" style={{ color: statusInfo.textColor || '#666' }}>Last Reading:</span>
+            <span className="detail-value" style={{ color: statusInfo.headingColor || '#2c3e50' }}>
               {current?.createdAt 
                 ? (() => {
                     const age = Math.round((new Date() - new Date(current.createdAt)) / 1000);
@@ -316,8 +327,8 @@ const SoilMoistureWidget = ({
           </div>
           {current?.raw && (
             <div className="detail-item">
-              <span className="detail-label">Raw Value:</span>
-              <span className="detail-value">{current.raw}</span>
+              <span className="detail-label" style={{ color: statusInfo.textColor || '#666' }}>Raw Value:</span>
+              <span className="detail-value" style={{ color: statusInfo.headingColor || '#2c3e50' }}>{current.raw}</span>
             </div>
           )}
         </div>
@@ -325,12 +336,12 @@ const SoilMoistureWidget = ({
         {stats && (
           <div className="detail-row">
             <div className="detail-item">
-              <span className="detail-label">24h Average:</span>
-              <span className="detail-value">{stats.moisture?.average}%</span>
+              <span className="detail-label" style={{ color: statusInfo.textColor || '#666' }}>24h Average:</span>
+              <span className="detail-value" style={{ color: statusInfo.headingColor || '#2c3e50' }}>{stats.moisture?.average}%</span>
             </div>
             <div className="detail-item">
-              <span className="detail-label">Readings:</span>
-              <span className="detail-value">{stats.totalReadings}</span>
+              <span className="detail-label" style={{ color: statusInfo.textColor || '#666' }}>Readings:</span>
+              <span className="detail-value" style={{ color: statusInfo.headingColor || '#2c3e50' }}>{stats.totalReadings}</span>
             </div>
           </div>
         )}
@@ -338,8 +349,8 @@ const SoilMoistureWidget = ({
         {current?.temperature && (
           <div className="detail-row">
             <div className="detail-item">
-              <span className="detail-label">Temperature:</span>
-              <span className="detail-value">{current.temperature}°C</span>
+              <span className="detail-label" style={{ color: statusInfo.textColor || '#666' }}>Temperature:</span>
+              <span className="detail-value" style={{ color: statusInfo.headingColor || '#2c3e50' }}>{current.temperature}°C</span>
             </div>
           </div>
         )}

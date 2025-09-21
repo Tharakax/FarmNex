@@ -26,10 +26,10 @@ import {
 } from 'lucide-react';
 import { parseAndCleanTags } from '../../../utils/tagUtils';
 import TrainingViewer from '../components/TrainingViewer';
+import AddEditTrainingForm from '../components/AddEditTrainingForm';
 
 /**
- * Consolidated Training Management Component
- * Combines TrainingManagementFull and TrainingManagementFixed functionality
+ * Training Management Component
  * Provides comprehensive admin interface for training content management
  */
 const TrainingManagement = () => {
@@ -285,7 +285,6 @@ const TrainingManagement = () => {
       category: material.category || 'General',
       status: material.status || 'published'
     });
-    setCurrentView('form');
     setShowForm(true);
   };
 
@@ -301,8 +300,80 @@ const TrainingManagement = () => {
       category: 'General',
       status: 'published'
     });
-    setCurrentView('form');
+    setSelectedFile(null);
     setShowForm(true);
+  };
+
+  const handleSaveMaterial = async (materialData, file) => {
+    setIsFormLoading(true);
+    try {
+      const formData = new FormData();
+      
+      // Append all text fields
+      Object.keys(materialData).forEach(key => {
+        if (materialData[key] !== undefined && materialData[key] !== null) {
+          // Handle arrays (like tags) properly
+          if (Array.isArray(materialData[key])) {
+            formData.append(key, materialData[key].join(','));
+          } else {
+            formData.append(key, materialData[key]);
+          }
+        }
+      });
+
+      // Append file if provided
+      if (file) {
+        formData.append('file', file);
+      }
+
+      const token = localStorage.getItem('token');
+      const url = editingMaterial 
+        ? `http://localhost:3000/api/training/${editingMaterial._id}`
+        : 'http://localhost:3000/api/training';
+      const method = editingMaterial ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save material');
+      }
+
+      const result = await response.json();
+      
+      setSuccessMessage(
+        editingMaterial 
+          ? 'Training material updated successfully!' 
+          : 'Training material created successfully!'
+      );
+      
+      setShowForm(false);
+      setEditingMaterial(null);
+      
+      // Reload data
+      if (currentView === 'materials') {
+        fetchMaterials();
+      }
+      fetchStatistics();
+      
+    } catch (error) {
+      console.error('Save error:', error);
+      setErrorMessage('Failed to save material: ' + error.message);
+    } finally {
+      setIsFormLoading(false);
+    }
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingMaterial(null);
+    setSelectedFile(null);
   };
 
   // Render functions
@@ -386,14 +457,14 @@ const TrainingManagement = () => {
         </div>
       </div>
 
-      {/* Recent Activity (Mock data for now) */}
+      {/* Recent Activity */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="space-y-4">
-          <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-            <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
-            <span className="text-gray-700">System initialized successfully</span>
-            <span className="text-gray-500 text-sm ml-auto">Today</span>
+        <div className="text-center py-8">
+          <div className="text-gray-500">
+            <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No recent activity to display</p>
+            <p className="text-sm text-gray-500 mt-2">Activity will appear here as you create and manage training materials</p>
           </div>
         </div>
       </div>
@@ -599,6 +670,15 @@ const TrainingManagement = () => {
           }}
         />
       )}
+
+      {/* Add/Edit Training Form Modal */}
+      <AddEditTrainingForm
+        isOpen={showForm}
+        onClose={handleCloseForm}
+        onSave={handleSaveMaterial}
+        editingMaterial={editingMaterial}
+        isLoading={isFormLoading}
+      />
     </div>
   );
 };
