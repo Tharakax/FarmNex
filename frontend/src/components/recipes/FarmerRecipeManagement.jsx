@@ -185,8 +185,8 @@ function FarmerRecipeManagement() {
           <Link
             to="/recipes/add"
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-                       bg-green-600 text-white shadow-sm
-                       hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500
+                       bg-green-500 text-white shadow-sm
+                       hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500
                        transition-colors duration-200"
           >
             <Plus className="h-4 w-4" />
@@ -198,8 +198,8 @@ function FarmerRecipeManagement() {
             onClick={handleDownloadAllPDF}
             disabled={filteredRecipes.length === 0}
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
-                       bg-blue-600 text-white shadow-sm
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500
+                       bg-orange-500 text-white shadow-sm
+                       hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500
                        disabled:bg-gray-400 disabled:cursor-not-allowed
                        transition-colors duration-200"
           >
@@ -212,7 +212,7 @@ function FarmerRecipeManagement() {
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             className="md:hidden inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
                        bg-white text-gray-700 border border-gray-300 shadow-sm
-                       hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                       hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <Filter className="h-4 w-4" />
             Filters
@@ -235,7 +235,7 @@ function FarmerRecipeManagement() {
           placeholder="Search recipes by title, description, or ingredients..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400"
         />
       </div>
 
