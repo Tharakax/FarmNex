@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import Navigation from "../navigation";
+// import Navigation from "../navigation"; // Removed for admin dashboard integration
 
 const AUDIENCE_OPTIONS = ["FARMER", "USER", "BOTH"];
 const TYPE_OPTIONS = ["ALERT", "OFFER", "UPDATE"];
@@ -111,7 +111,7 @@ export default function UpdateNotification() {
         headers: { "Content-Type": "application/json" },
       });
 
-      nav("/notifications");
+      window.location.href = '/admin';
     } catch (err) {
       console.error(err);
       let errorMessage = "Failed to update notification.";
@@ -129,9 +129,8 @@ export default function UpdateNotification() {
   };
 
   return (
-    <div>
-      <Navigation />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 p-8">
+      <div className="max-w-full mx-auto">
         <h1 className="text-3xl font-extrabold tracking-tight mb-6">
           <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
             Update Notification
@@ -149,7 +148,7 @@ export default function UpdateNotification() {
             </p>
             <button
               type="button"
-              onClick={() => nav("/notifications")}
+              onClick={() => window.location.href = '/admin'}
               className="text-emerald-700 text-sm hover:underline"
             >
               Back to list
@@ -213,52 +212,79 @@ export default function UpdateNotification() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Audience *
                   </label>
-                  <select
-                    name="audience"
-                    value={inputs.audience}
-                    onChange={onChange}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  >
+                  <div className="flex flex-col gap-2">
                     {AUDIENCE_OPTIONS.map((a) => (
-                      <option key={a} value={a}>{a}</option>
+                      <label
+                        key={a}
+                        className="inline-flex items-center gap-2 text-sm cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="audience"
+                          value={a}
+                          checked={inputs.audience === a}
+                          onChange={onChange}
+                          className="h-4 w-4 accent-emerald-600"
+                        />
+                        <span>{a}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
+               
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Type *
                   </label>
-                  <select
-                    name="type"
-                    value={inputs.type}
-                    onChange={onChange}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  >
+                  <div className="flex flex-col gap-2">
                     {TYPE_OPTIONS.map((t) => (
-                      <option key={t} value={t}>{t}</option>
+                      <label
+                        key={t}
+                        className="inline-flex items-center gap-2 text-sm cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="type"
+                          value={t}
+                          checked={inputs.type === t}
+                          onChange={onChange}
+                          className="h-4 w-4 accent-emerald-600"
+                        />
+                        <span>{t}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
+              
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Priority *
                   </label>
-                  <select
-                    name="priority"
-                    value={inputs.priority}
-                    onChange={onChange}
-                    className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  >
+                  <div className="flex flex-col gap-2">
                     {PRIORITY_OPTIONS.map((p) => (
-                      <option key={p} value={p}>{p}</option>
+                      <label
+                        key={p}
+                        className="inline-flex items-center gap-2 text-sm cursor-pointer"
+                      >
+                        <input
+                          type="radio"
+                          name="priority"
+                          value={p}
+                          checked={inputs.priority === p}
+                          onChange={onChange}
+                          className="h-4 w-4 accent-emerald-600"
+                        />
+                        <span>{p}</span>
+                      </label>
                     ))}
-                  </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -267,7 +293,7 @@ export default function UpdateNotification() {
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={() => nav("/notifications")}
+              onClick={() => window.location.href = '/admin'}
               className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
             >
               Cancel

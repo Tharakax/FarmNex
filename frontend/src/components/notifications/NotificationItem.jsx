@@ -60,12 +60,12 @@ export default function NotificationItem({ notification, onDelete }) {
         </div>
 
         <div className="flex items-center justify-between pt-4">
-          <Link
-            to={`/notifications/edit/${notification._id}`}
+          <button
+            onClick={() => window.location.href = `/notifications/edit/${notification._id}`}
             className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
           >
             Edit
-          </Link>
+          </button>
           <button
             onClick={handleDelete}
             className="text-sm font-medium text-red-600 hover:text-red-700"

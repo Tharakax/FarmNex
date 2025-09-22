@@ -22,6 +22,9 @@ import {
   MessageSquare 
 } from 'lucide-react';
  import axios from 'axios';
+import NotificationList from '../../../components/notifications/NotificationList.jsx';
+import AddNotification from '../../../components/notifications/AddNotification.jsx';
+import UpdateNotification from '../../../components/notifications/UpdateNotification.jsx';
 
 
 function AdminDashboard() {
@@ -294,6 +297,26 @@ function AdminDashboard() {
     );
   };
 
+  // Notifications Tab
+  const renderNotifications = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-3xl font-bold text-gray-900">Notification Management</h2>
+          <div className="flex items-center space-x-3">
+            <Bell className="h-6 w-6 text-gray-500 cursor-pointer hover:text-green-600" />
+            <div className="h-8 w-px bg-gray-300"></div>
+            <span className="text-sm text-gray-600">Manage System Notifications</span>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <NotificationList />
+        </div>
+      </div>
+    );
+  };
+
   
   const renderContent = () => {
     switch (activeTab) {
@@ -301,6 +324,8 @@ function AdminDashboard() {
         return renderDashboard();
       case 'users':
         return renderUserManagement();
+      case 'notifications':
+        return renderNotifications();
       default:
         return renderDashboard();
     }
@@ -365,6 +390,13 @@ function AdminDashboard() {
                   <BarChart className="mr-3 h-5 w-5" />
               Analytics
           </button>
+
+            <button onClick={() => setActiveTab('notifications')} className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              activeTab === 'notifications' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}>
+              <Bell className="mr-3 h-5 w-5" />
+              Notifications
+            </button>
 
 
           </nav>

@@ -2,6 +2,9 @@ import React from 'react';
 import { Link, Routes, Route, Outlet } from 'react-router-dom';
 import ProductManagement from '../components/products/ProductManagement.jsx';
 import ReportsManagement from '../components/reports/ReportsManagement.jsx';
+import NotificationList from '../components/notifications/NotificationList.jsx';
+import AddNotification from '../components/notifications/AddNotification.jsx';
+import UpdateNotification from '../components/notifications/UpdateNotification.jsx';
 
 const Dashboard = () => {
   return (
@@ -65,6 +68,16 @@ const Dashboard = () => {
                   </svg>
                 </div>
                 <span className="font-medium">Reports</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/admin/notifications" className="flex items-center p-3 rounded-lg hover:bg-green-700/50 transition-all duration-200 group">
+                <div className="bg-green-600/30 p-2 rounded-lg mr-3 group-hover:bg-green-600/50 transition-all duration-200">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <span className="font-medium">Notifications</span>
               </Link>
             </li>
             <li>
@@ -163,6 +176,9 @@ const Dashboard = () => {
                 <p className="text-gray-600">Configure your farm preferences and system settings.</p>
               </div>
             } />
+            <Route path="/notifications" element={<NotificationList />} />
+            <Route path="/notifications/add" element={<AddNotification />} />
+            <Route path="/notifications/edit/:id" element={<UpdateNotification />} />
 
 
       

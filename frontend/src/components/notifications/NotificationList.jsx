@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import NotificationItem from "./NotificationItem";
-import Navigation from "../navigation";
+// import Navigation from "../navigation"; // Removed for admin dashboard integration
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const API_URL = "http://localhost:3000/api/notifications";
 
@@ -127,10 +129,56 @@ function NotificationList() {
   const hasActiveFilters = searchTerm || selectedAudiences.length > 0 || 
                           selectedTypes.length > 0 || selectedPriorities.length > 0;
 
+  const handleDownloadPDF = () => {
+    if (!filteredNotifications || filteredNotifications.length === 0) {
+      alert("No notifications available to download.");
+      return;
+    }
+
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Notification Report", 14, 20);
+    
+    let filtersInfo = "All notifications";
+    if (hasActiveFilters) {
+      filtersInfo = "Filtered notifications: ";
+      const filters = [];
+      
+      if (searchTerm) filters.push(`Search: "${searchTerm}"`);
+      if (selectedAudiences.length > 0) filters.push(`Audience: ${selectedAudiences.join(", ")}`);
+      if (selectedTypes.length > 0) filters.push(`Type: ${selectedTypes.join(", ")}`);
+      if (selectedPriorities.length > 0) filters.push(`Priority: ${selectedPriorities.join(", ")}`);
+      
+      filtersInfo += filters.join("; ");
+    }
+    
+    doc.setFontSize(10);
+    doc.text(filtersInfo, 14, 30);
+
+    const rows = filteredNotifications.map((notification, index) => [
+      index + 1,
+      notification.title || "Untitled",
+      notification.body || "No content",
+      notification.audience || "N/A",
+      notification.type || "N/A",
+      notification.priority || "N/A",
+      notification.createdAt ? new Date(notification.createdAt).toLocaleDateString() : "N/A",
+    ]);
+
+    autoTable(doc, {
+      head: [["#", "Title", "Content", "Audience", "Type", "Priority", "Created"]],
+      body: rows,
+      startY: 40,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [16, 185, 129] },
+    });
+
+    doc.save("notifications_report.pdf");
+  };
+
   return (
-    <div>
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-4 pt-30 sm:px-6 lg:px-8 py-10">
+    <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg border border-green-100 p-8">
+      <div className="max-w-full mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
@@ -166,19 +214,33 @@ function NotificationList() {
                          shadow-sm w-full md:w-60"
             />
 
-            <Link to="/notifications/add">
+            {filteredNotifications.length > 0 && (
               <button
+                onClick={handleDownloadPDF}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
-                           bg-emerald-600 text-white shadow-sm shadow-emerald-200
-                           hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                           active:scale-[0.98] transition"
+                         bg-blue-600 text-white shadow-sm shadow-blue-200
+                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500
+                         active:scale-[0.98] transition"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="CurrentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
-                Add Notification
+                Download PDF
               </button>
-            </Link>
+            )}
+
+            <button 
+              onClick={() => window.location.href = '/notifications/add'}
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+                         bg-emerald-600 text-white shadow-sm shadow-emerald-200
+                         hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                         active:scale-[0.98] transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="CurrentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              Add Notification
+            </button>
           </div>
         </div>
         
@@ -279,7 +341,7 @@ function NotificationList() {
                   ) : (
                     <div className="col-span-full rounded-2xl border border-dashed border-gray-300 p-10 text-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 极 0 11-6 0v-1m6 0H9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 极 0 11-6 0v-1m6 极H9" />
                       </svg>
                       <p className="mt-4 text-gray-500">No notifications found. Try adjusting your filters.</p>
                       {hasActiveFilters && (
