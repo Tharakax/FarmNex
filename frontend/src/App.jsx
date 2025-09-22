@@ -2,12 +2,22 @@ import React, { Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import './App.css'
-import PaymentCardsManager from './pages/client/PaymentCards.jsx'
-import MyOrders from './pages/client/MyOrders.jsx'
-import ViewOrder from './pages/client/ViewOrder.jsx'
+import PaymentCardsManager from './pages/client/PaymentCards.jsx';
+import MyOrders from './pages/client/MyOrders.jsx';
+import ViewOrder from './pages/client/ViewOrder.jsx';
 import { ToastProvider } from "./pages/croplive/ToastProvider.jsx"; // ✅ import ToastProvider
-import { GlobalBackButton } from './components/common/BackButton'
+import { GlobalBackButton } from './components/common/BackButton';
+// Note: Feedback functionality is integrated into customer dashboard
 
+//Recipe
+import RecipeList from "./components/recipes/RecipeList.jsx";
+import AddRecipe from "./components/recipes/AddRecipe.jsx";
+import UpdateRecipe from "./components/recipes/UpdateRecipe.jsx";
+
+//Notification
+import NotificationList from "./components/notifications/NotificationList.jsx";
+import AddNotification from "./components/notifications/AddNotification.jsx";
+import UpdateNotification from "./components/notifications/UpdateNotification.jsx";
 // Lazy loaded components ...
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'))
 //const LoginPage = React.lazy(() => import('./pages/loginpage'))
@@ -139,8 +149,18 @@ function App() {
 
             <Route path="/edit/:id" element={<AddEditTraining />} />
             <Route path="/view/:id" element={<ViewTraining />} />
+            
+            {/* Recipe Routes */}
+            <Route path="/recipes" element={<RecipeList />} />
+            <Route path="/recipes/add" element={<AddRecipe />} />
+            <Route path="/recipes/edit/:id" element={<UpdateRecipe />} />
 
-            {/* User Management Routes umar*/}
+            {/* Notification Routes */}
+            <Route path="/notifications" element={<NotificationList />} />
+            <Route path="/notifications/add" element={<AddNotification />} />
+            <Route path="/notifications/edit/:id" element={<UpdateNotification />} />
+
+            {/* User Management Routes */}
            <Route path="/adduser" element={<AddUser />} />
            <Route path="/userdetails" element={<UserDetails />} />
            <Route path="/userdetails/:id" element={<UpdateUser />} />

@@ -20,6 +20,9 @@ import trainingRouter from './routers/trainingRoutes.js';
 import farmSupplyRouter from './routers/farmSupplyRouter.js';
 import reportRouter from './routers/reportRoutes.js';
 import paymentRouter from './routers/paymentRouter.js';
+import feedbackRouter from './routers/feedbackRoutes.js';
+import notificationRouter from './routers/NotificationRoute.js';
+import recipeRouter from './routers/RecipeRoute.js';
 import questionRoute from "./routers/questionRoute.js"; //umar
 import userroute from "./routers/userroute.js";//umar
 import cropRoutes from './routers/cropRoutes.js';
@@ -171,6 +174,9 @@ app.use("/api/training", trainingRouter)
 app.use("/api/farmsupplies", farmSupplyRouter)
 app.use("/api/reports", reportRouter)
 app.use("/api/payment", paymentRouter)
+app.use("/api/feedback", feedbackRouter)
+app.use("/api/notifications", notificationRouter)
+app.use("/api/recipes", recipeRouter)
 
 app.use("/api", soilRouter)
 
