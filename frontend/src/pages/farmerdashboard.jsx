@@ -28,7 +28,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Sprout
+  Sprout,
+  ChefHat
 } from 'lucide-react';
 
 // Current crop yield data (2024 - tons per hectare)
@@ -121,6 +122,14 @@ const CropLivestockManagement = React.lazy(() =>
     .catch(error => {
       console.error('Failed to load CropLivestockManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Crop & Livestock Management" /> };
+    })
+);
+
+const RecipeManagement = React.lazy(() => 
+  import('../components/recipes/FarmerRecipeManagement')
+    .catch(error => {
+      console.error('Failed to load RecipeManagement:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Recipe Management" /> };
     })
 );
 
@@ -268,6 +277,7 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
     { name: 'Products', icon: ShoppingBag },
     { name: 'Supplies', icon: Truck },
     { name: 'Crop & Livestock', icon: Sprout },
+    { name: 'Recipes', icon: ChefHat },
     { name: 'Weather', icon: Cloud },
     { name: 'Inventory', icon: Package },
     { name: 'Training', icon: BookOpen },
@@ -473,6 +483,9 @@ const FarmerDashboard = () => {
         case 'Crop & Livestock':
           console.log('Rendering CropLivestockManagement');
           return <CropLivestockManagement />;
+        case 'Recipes':
+          console.log('Rendering RecipeManagement');
+          return <RecipeManagement />;
         case 'Weather':
           console.log('Rendering WeatherDashboard');
           return <WeatherDashboardLazy />;
