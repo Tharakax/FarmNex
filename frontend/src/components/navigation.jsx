@@ -203,23 +203,7 @@ const Navigation = () => {
                 </button>
                 
                 {/* Enhanced Icon Buttons */}
-                <button className="group p-3 rounded-full text-gray-600 hover:text-green-600 hover:bg-green-50/80 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 transition-all duration-300 transform hover:scale-110 relative overflow-hidden">
-                  <FiHeart className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-pink-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-full"></div>
-                </button>
-                
                 <button
-                  onClick={() => Navigate('/cart')}
-                  className="group p-2 rounded-full text-gray-600 hover:text-green-600 hover:bg-green-50/80 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 transition-all duration-300 transform hover:scale-110 relative overflow-hidden"
-                >
-                  <FiShoppingCart className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="absolute -top-0 -right-0 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg animate-pulse">
-                    3
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-blue-400 opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-full"></div>
-                </button>
-                
-                <button 
                   onClick={() => Navigate('/login')}
                   className="group p-3 rounded-full text-gray-600 hover:text-green-600 hover:bg-green-50/80 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-1 transition-all duration-300 transform hover:scale-110 relative overflow-hidden"
                   title="Login / Sign Up"
@@ -358,34 +342,16 @@ const Navigation = () => {
             
             {/* Enhanced Mobile Action Buttons */}
             <div className="border-t border-green-200 pt-4 mt-4">
-              <div className="flex items-center justify-around px-4 space-x-2">
+              <div className="flex items-center justify-center px-4">
                 <button 
                   onClick={() => {
                     Navigate('/login');
                     setIsMobileMenuOpen(false);
                   }}
-                  className="group flex flex-col items-center justify-center p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-100/80 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 transform hover:scale-110 min-w-0 flex-1"
+                  className="group flex flex-col items-center justify-center p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-100/80 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 transform hover:scale-110"
                 >
                   <FiUser className="h-6 w-6 mb-1 transition-transform duration-300 group-hover:scale-110" />
                   <span className="text-xs font-medium">Login</span>
-                </button>
-                
-                <button className="group flex flex-col items-center justify-center p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-100/80 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 transform hover:scale-110 min-w-0 flex-1">
-                  <FiHeart className="h-6 w-6 mb-1 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="text-xs font-medium">Wishlist</span>
-                </button>
-                
-                <button 
-                  onClick={() => Navigate('/cart')}
-                  className="group flex flex-col items-center justify-center p-3 rounded-xl text-gray-600 hover:text-green-600 hover:bg-green-100/80 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all duration-300 transform hover:scale-110 relative min-w-0 flex-1"
-                >
-                  <div className="relative">
-                    <FiShoppingCart className="h-6 w-6 mb-1 transition-transform duration-300 group-hover:scale-110" />
-                    <span className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg animate-pulse">
-                      3
-                    </span>
-                  </div>
-                  <span className="text-xs font-medium">Cart</span>
                 </button>
               </div>
             </div>

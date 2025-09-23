@@ -74,37 +74,69 @@ export const trainingAPIReal = {
 
   // Create a new training material
   async createTrainingMaterial(materialData, file = null) {
+    console.log('🚀 API: createTrainingMaterial called');
+    console.log('📝 API: Material data received:', JSON.stringify(materialData, null, 2));
+    console.log('📎 API: File received:', !!file);
+    
     try {
       const formData = new FormData();
+      
+      // Debug: Log what we're about to send
+      console.log('📤 API: Preparing FormData...');
       
       // Append all text fields
       Object.keys(materialData).forEach(key => {
         if (materialData[key] !== undefined && materialData[key] !== null) {
           // Handle arrays (like tags) properly
           if (Array.isArray(materialData[key])) {
-            formData.append(key, materialData[key].join(','));
+            const tagString = materialData[key].join(',');
+            formData.append(key, tagString);
+            console.log(`📝 API: Added ${key} as array: ${tagString}`);
           } else {
             formData.append(key, materialData[key]);
+            console.log(`📝 API: Added ${key}: ${materialData[key]}`);
           }
+        } else {
+          console.log(`⚠️  API: Skipping ${key} (undefined/null)`);
         }
       });
 
       // Append file if provided
       if (file) {
         formData.append('file', file);
+        console.log('📎 API: Added file:', { 
+          name: file.name, 
+          size: file.size, 
+          type: file.type,
+          lastModified: file.lastModified 
+        });
+      } else {
+        console.log('⚠️  API: No file provided');
       }
 
-      // Debug logging
-      console.log('API: Creating material with data:', materialData);
-      console.log('API: File provided:', !!file);
-      if (file) {
-        console.log('API: File details:', { name: file.name, size: file.size, type: file.type });
+      // Debug: Log FormData contents
+      console.log('📋 API: FormData contents:');
+      for (let pair of formData.entries()) {
+        if (pair[1] instanceof File) {
+          console.log(`  ${pair[0]}: [File] ${pair[1].name} (${pair[1].size} bytes)`);
+        } else {
+          console.log(`  ${pair[0]}: ${pair[1]}`);
+        }
       }
 
+      console.log('🌐 API: Sending POST request to:', `${API_ENDPOINT}/`);
+      console.log('🔑 API: Auth token present:', !!localStorage.getItem('token'));
+      
       const response = await api.post('/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+      });
+
+      console.log('✅ API: Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data
       });
 
       return {
@@ -113,7 +145,22 @@ export const trainingAPIReal = {
         message: 'Training material created successfully'
       };
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create training material');
+      console.error('❌ API: Create training material failed');
+      console.error('❌ API: Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          headers: error.config?.headers
+        }
+      });
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create training material';
+      console.error('❌ API: Throwing error:', errorMessage);
+      throw new Error(errorMessage);
     }
   },
 

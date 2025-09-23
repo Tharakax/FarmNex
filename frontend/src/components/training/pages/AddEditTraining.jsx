@@ -331,26 +331,35 @@ const AddEditTraining = ({ materialToEdit, onSaveSuccess, onCancel }) => {
         if (onSaveSuccess) {
           onSaveSuccess('Training material updated successfully!');
         } else {
-          await showSuccess(
+          const result = await showSuccess(
             'Your training material has been updated successfully and is now available to farmers!',
             'Material Updated!'
           );
+          // Navigate after user dismisses success alert
+          if (result && result.isConfirmed !== false) {
+            navigate('/');
+          }
         }
       } else {
         await trainingAPIReal.createTrainingMaterial(submitData, selectedFile);
         if (onSaveSuccess) {
           onSaveSuccess('Training material created successfully!');
         } else {
-          await showSuccess(
+          const result = await showSuccess(
             'Your training material has been created successfully and is now available to farmers!',
             'Material Created!'
           );
+          // Navigate after user dismisses success alert
+          if (result && result.isConfirmed !== false) {
+            navigate('/');
+          }
         }
       }
       
-      if (!onSaveSuccess) {
-        navigate('/');
-      }
+      // Remove the duplicate navigation since it's now handled above
+      // if (!onSaveSuccess) {
+      //   navigate('/');
+      // }
     } catch (error) {
       console.error('Error saving material:', error);
       console.error('Error details:', {

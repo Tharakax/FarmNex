@@ -1,5 +1,5 @@
 import Feedback from '../models/Feedback.js';
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 import moment from 'moment';
 
 // @desc    Get all feedback with search, filtering, and pagination

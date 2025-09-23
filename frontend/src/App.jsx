@@ -2,9 +2,9 @@ import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
-import PaymentCardsManager from './pages/client/PaymentCards.jsx';
-import MyOrders from './pages/client/MyOrders.jsx';
-import ViewOrder from './pages/client/ViewOrder.jsx';
+import PaymentCardsManager from './pages/payment/PaymentCards.jsx';
+import MyOrders from './pages/payment/MyOrders.jsx';
+import ViewOrder from './pages/payment/ViewOrder.jsx';
 import { ToastProvider } from "./pages/croplive/ToastProvider.jsx"; // ✅ import ToastProvider
 import { GlobalBackButton } from './components/common/BackButton';
 // Note: Feedback functionality is integrated into customer dashboard
@@ -16,8 +16,8 @@ const AdminDashboard = React.lazy(() => import('./pages/admindashboard'));
 const ProductsPage = React.lazy(() => import('./pages/client/Products.jsx'));
 const OneProduct = React.lazy(() => import('./pages/client/OneProduct.jsx'));
 const Cart = React.lazy(() => import('./pages/client/cart.jsx'));
-const EnterShipping = React.lazy(() => import('./pages/client/EnterShipping.jsx'));
-const EnterPayment = React.lazy(() => import('./pages/client/EnterPayment.jsx'));
+const EnterShipping = React.lazy(() => import('./pages/payment/EnterShipping.jsx'));
+const EnterPayment = React.lazy(() => import('./pages/payment/EnterPayment.jsx'));
 const TrainingShowcase = React.lazy(() => import('./components/training/pages/TrainingShowcase.jsx'));
 const TrainingHomePage = React.lazy(() => import('./components/training/pages/TrainingHomePage.jsx'));
 const AddEditTraining = React.lazy(() => import('./components/training/pages/AddEditTraining.jsx'));
@@ -25,14 +25,10 @@ const ViewTraining = React.lazy(() => import('./components/training/pages/ViewTr
 const AboutPage = React.lazy(() => import('./pages/AboutPage.jsx'));
 const FarmerDashboard = React.lazy(() => import('./pages/farmerdashboard.jsx'));
 const PublicTrainingViewer = React.lazy(() => import('./components/training/pages/PublicTrainingViewer.jsx'));
-const TrainingTest = React.lazy(() => import('./pages/TrainingTest.jsx'));
-const ValidationDemo = React.lazy(() => import('./pages/ValidationDemo.jsx'));
-const SweetAlertTest = React.lazy(() => import('./pages/SweetAlertTest.jsx'));
-const RequiredFieldsTest = React.lazy(() => import('./pages/RequiredFieldsTest.jsx'));
-const SweetAlertDebug = React.lazy(() => import('./pages/SweetAlertDebug.jsx'));
 const SoilMoistureDashboard = React.lazy(() => import('./pages/SoilMoistureDashboard.jsx'));
-const PaymentSuccess = React.lazy(() => import('./pages/PaymentSuccess.jsx'));
-const PaymentUnsuccess = React.lazy(() => import('./pages/PaymentUnsuccess.jsx'));
+const PaymentSuccess = React.lazy(() => import('./pages/payment/PaymentSuccess.jsx'));
+const PaymentUnsuccess = React.lazy(() => import('./pages/payment/PaymentUnsuccess.jsx'));
+const Recipes = React.lazy(() => import('./pages/Recipes.jsx'));
 
 // User Pages (Lazy Load)
 const AddUser = React.lazy(() => import('./pages/user/AddUser/AddUser.jsx'));
@@ -156,17 +152,15 @@ function App() {
             <Route path="/userqa" element={<UserQA />} />
             <Route path="/adminqa" element={<AdminQA />} />
 
-            <Route path="/training-test" element={<TrainingTest />} />
-            <Route path="/validation-demo" element={<ValidationDemo />} />
-            <Route path="/sweetalert-test" element={<SweetAlertTest />} />
-            <Route path="/required-fields-test" element={<RequiredFieldsTest />} />
-            <Route path="/sweetalert-debug" element={<SweetAlertDebug />} />
             
             {/* Soil Moisture Dashboard */}
             <Route path="/soil-dashboard" element={<SoilMoistureDashboard />} />
             <Route path="/soil" element={<SoilMoistureDashboard />} />
             {/* About Page Route */}
             <Route path="/about" element={<AboutPage />} />
+            
+            {/* Recipes Route */}
+            <Route path="/recipes" element={<Recipes />} />
             
             {/* Farmer Dashboard Routes */}
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />

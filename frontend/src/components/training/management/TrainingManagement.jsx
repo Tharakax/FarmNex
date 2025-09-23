@@ -29,6 +29,7 @@ import { parseAndCleanTags } from '../../../utils/tagUtils';
 import TrainingViewer from '../components/TrainingViewer';
 import AddEditTrainingForm from '../components/AddEditTrainingForm';
 import { getFileUrl } from '../../../config/env';
+import { trainingAPIReal } from '../../../services/trainingAPIReal';
 
 /**
  * Training Management Component
@@ -386,47 +387,24 @@ const TrainingManagement = () => {
   };
 
   const handleSaveMaterial = async (materialData, file) => {
+    console.log('🚀 TrainingManagement: handleSaveMaterial called');
+    console.log('📝 TrainingManagement: Material data:', materialData);
+    console.log('📎 TrainingManagement: File present:', !!file);
+    console.log('🔄 TrainingManagement: Editing material?', !!editingMaterial);
+    
     setIsFormLoading(true);
     try {
-      const formData = new FormData();
+      let result;
       
-      // Append all text fields
-      Object.keys(materialData).forEach(key => {
-        if (materialData[key] !== undefined && materialData[key] !== null) {
-          // Handle arrays (like tags) properly
-          if (Array.isArray(materialData[key])) {
-            formData.append(key, materialData[key].join(','));
-          } else {
-            formData.append(key, materialData[key]);
-          }
-        }
-      });
-
-      // Append file if provided
-      if (file) {
-        formData.append('file', file);
+      if (editingMaterial) {
+        console.log('🔄 TrainingManagement: Updating existing material...');
+        result = await trainingAPIReal.updateTrainingMaterial(editingMaterial._id, materialData, file);
+      } else {
+        console.log('➕ TrainingManagement: Creating new material...');
+        result = await trainingAPIReal.createTrainingMaterial(materialData, file);
       }
-
-      const token = localStorage.getItem('token');
-      const url = editingMaterial 
-        ? `http://localhost:3000/api/training/${editingMaterial._id}`
-        : 'http://localhost:3000/api/training';
-      const method = editingMaterial ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save material');
-      }
-
-      const result = await response.json();
+      
+      console.log('✅ TrainingManagement: API call successful:', result);
       
       setSuccessMessage(
         editingMaterial 
@@ -438,13 +416,18 @@ const TrainingManagement = () => {
       setEditingMaterial(null);
       
       // Reload data
+      console.log('🔄 TrainingManagement: Reloading data...');
       if (currentView === 'materials') {
-        fetchMaterials();
+        await fetchMaterials();
       }
-      fetchStatistics();
+      await fetchStatistics();
       
     } catch (error) {
-      console.error('Save error:', error);
+      console.error('❌ TrainingManagement: Save error:', error);
+      console.error('❌ TrainingManagement: Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
       setErrorMessage('Failed to save material: ' + error.message);
     } finally {
       setIsFormLoading(false);

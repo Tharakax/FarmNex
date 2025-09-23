@@ -30,7 +30,12 @@ import {
 } from 'lucide-react';
 import DashboardFeedbackForm from '../../../components/dashboard/DashboardFeedbackForm';
 import DashboardFeedbackList from '../../../components/dashboard/DashboardFeedbackList';
+import DashboardBrowseProducts from '../../../components/dashboard/DashboardBrowseProducts';
+import DashboardShoppingCart from '../../../components/dashboard/DashboardShoppingCart';
 import { getLoggedInUser } from '../../../utils/userUtils';
+import { getCart } from '../../../utils/cart';
+import { orderAPI } from '../../../services/orderAPI';
+import toast from 'react-hot-toast';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate(); 
@@ -38,11 +43,17 @@ const CustomerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [cartItems, setCartItems] = useState(3);
+  const [cartItemCount, setCartItemCount] = useState(0);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalOrders: 0,
+    thisMonthSpending: 0,
+    recentOrders: []
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const [user, setUser] = useState({
     name: 'Loading...',
@@ -75,18 +86,51 @@ const CustomerDashboard = () => {
     }
   }, [navigate]);
 
-  const mockProducts = [
-    { id: 1, name: 'Organic Tomatoes', price: 450, unit: 'kg', farm: 'Green Valley Farm', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=200&h=200&fit=crop', category: 'vegetables', organic: true },
-    { id: 2, name: 'Fresh Milk', price: 200, unit: 'liter', farm: 'Dairy Dreams', image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=200&h=200&fit=crop', category: 'dairy', organic: false },
-    { id: 3, name: 'Farm Eggs', price: 350, unit: 'dozen', farm: 'Happy Hens Farm', image: 'https://images.unsplash.com/photo-1518569656558-1f25e69d93d7?w=200&h=200&fit=crop', category: 'poultry', organic: true },
-    { id: 4, name: 'Organic Carrots', price: 300, unit: 'kg', farm: 'Root Paradise', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=200&h=200&fit=crop', category: 'vegetables', organic: true },
-  ];
+  // Load cart count from localStorage and set up periodic updates
+  useEffect(() => {
+    const updateCartCount = () => {
+      const cart = getCart();
+      const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+      setCartItemCount(totalItems);
+    };
 
-  const mockOrders = [
-    { id: 'ORD-001', date: '2025-07-20', total: 1250, status: 'Delivered', items: 3 },
-    { id: 'ORD-002', date: '2025-07-18', total: 850, status: 'Shipped', items: 2 },
-    { id: 'ORD-003', date: '2025-07-15', total: 650, status: 'Processing', items: 1 },
-  ];
+    // Initial load
+    updateCartCount();
+
+    // Set up interval to check for cart changes every 500ms
+    const interval = setInterval(updateCartCount, 500);
+
+    // Cleanup interval on component unmount
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load dashboard statistics from API
+  useEffect(() => {
+    const loadDashboardStats = async () => {
+      try {
+        setStatsLoading(true);
+        const result = await orderAPI.getDashboardStats();
+        
+        if (result.success) {
+          setDashboardStats(result.stats);
+        } else {
+          console.error('Failed to load dashboard stats:', result.error);
+          // Don't show error toast for stats as it's not critical
+        }
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    // Only load stats if user is authenticated
+    if (!isLoading && user.name !== 'Loading...') {
+      loadDashboardStats();
+    }
+  }, [isLoading, user.name]);
+
+  // Removed mock data - now using real data from APIs
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
@@ -103,8 +147,8 @@ const CustomerDashboard = () => {
   };
 
   const addToCart = (productId) => {
-    setCartItems(prev => prev + 1);
-    alert('Product added to cart!');
+    // This function is now handled by the DashboardBrowseProducts component
+    // Cart count will be automatically updated by the useEffect hook
   };
 
   // Handle feedback form submission success
@@ -117,7 +161,7 @@ const CustomerDashboard = () => {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Home },
     { id: 'products', label: 'Browse Products', icon: Apple },
-    { id: 'cart', label: 'Shopping Cart', icon: ShoppingCart, badge: cartItems },
+    { id: 'cart', label: 'Shopping Cart', icon: ShoppingCart, badge: cartItemCount > 0 ? cartItemCount : null },
     { id: 'orders', label: 'Order History', icon: Package },
     { id: 'delivery', label: 'Track Delivery', icon: Truck },
     { id: 'payments', label: 'Payments', icon: CreditCard },
@@ -140,7 +184,11 @@ const CustomerDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold text-gray-900">12</p>
+              {statsLoading ? (
+                <div className="animate-pulse bg-gray-200 h-8 w-16 rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">{dashboardStats.totalOrders}</p>
+              )}
             </div>
             <Package className="w-8 h-8 text-green-500" />
           </div>
@@ -150,7 +198,7 @@ const CustomerDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600">Cart Items</p>
-              <p className="text-2xl font-bold text-gray-900">{cartItems}</p>
+              <p className="text-2xl font-bold text-gray-900">{cartItemCount}</p>
             </div>
             <ShoppingCart className="w-8 h-8 text-blue-500" />
           </div>
@@ -160,7 +208,11 @@ const CustomerDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600">This Month</p>
-              <p className="text-2xl font-bold text-gray-900">Rs. 4,250</p>
+              {statsLoading ? (
+                <div className="animate-pulse bg-gray-200 h-8 w-20 rounded mt-1"></div>
+              ) : (
+                <p className="text-2xl font-bold text-gray-900">Rs. {dashboardStats.thisMonthSpending.toFixed(2)}</p>
+              )}
             </div>
             <DollarSign className="w-8 h-8 text-emerald-500" />
           </div>
@@ -171,24 +223,47 @@ const CustomerDashboard = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border">
           <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
           <div className="space-y-3">
-            {mockOrders.slice(0, 3).map(order => (
-              <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">{order.id}</p>
-                  <p className="text-sm text-gray-600">{order.date}</p>
+            {statsLoading ? (
+              // Loading skeleton
+              [...Array(3)].map((_, index) => (
+                <div key={index} className="animate-pulse flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <div className="bg-gray-200 h-4 w-20 rounded mb-2"></div>
+                    <div className="bg-gray-200 h-3 w-16 rounded"></div>
+                  </div>
+                  <div className="text-right">
+                    <div className="bg-gray-200 h-4 w-16 rounded mb-2"></div>
+                    <div className="bg-gray-200 h-3 w-12 rounded"></div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium">Rs. {order.total}</p>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    order.status === 'Delivered' ? 'bg-green-100 text-green-800' :
-                    order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {order.status}
-                  </span>
+              ))
+            ) : dashboardStats.recentOrders.length > 0 ? (
+              dashboardStats.recentOrders.slice(0, 3).map(order => (
+                <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">{order.id}</p>
+                    <p className="text-sm text-gray-600">{order.date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">Rs. {order.total.toFixed(2)}</p>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      order.status === 'Delivered' || order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                      order.status === 'Shipped' || order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
+                      order.status === 'Processing' || order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {order.status}
+                    </span>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>No orders yet</p>
+                <p className="text-sm">Start shopping to see your orders here</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -230,7 +305,7 @@ const CustomerDashboard = () => {
   );
 
   const renderProducts = () => (
-    navigate('/products')
+    <DashboardBrowseProducts />
   );
 
   const renderOrders = () => (
@@ -241,16 +316,7 @@ const CustomerDashboard = () => {
     switch(activeTab) {
       case 'overview': return renderOverview();
       case 'products': return renderProducts();
-      case 'cart': return (
-        <div className="text-center py-12">
-          <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Shopping Cart</h3>
-          <p className="text-gray-600">You have {cartItems} items in your cart</p>
-          <button className="mt-4 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg">
-            Proceed to Checkout
-          </button>
-        </div>
-      );
+      case 'cart': return (<DashboardShoppingCart onBrowseProducts={() => setActiveTab('products')} />);
       case 'orders': return renderOrders();
       case 'delivery': return (
         <div className="text-center py-12">
