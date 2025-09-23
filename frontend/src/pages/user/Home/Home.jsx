@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom'; // 
-import { 
+import {
   ShoppingCart, 
   Package, 
   Truck, 
@@ -28,6 +28,9 @@ import {
   Mail,
   Clock
 } from 'lucide-react';
+import DashboardFeedbackForm from '../../../components/dashboard/DashboardFeedbackForm';
+import DashboardFeedbackList from '../../../components/dashboard/DashboardFeedbackList';
+import { getLoggedInUser } from '../../../utils/userUtils';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate(); 
@@ -38,14 +41,39 @@ const CustomerDashboard = () => {
   const [cartItems, setCartItems] = useState(3);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [user] = useState({
-    name: 'Umar Ahmed',
-    email: 'umar.ahmed@email.com',
-    phone: '+94 77 123 4567',
-    address: 'No 123, Main Street, Colombo 03',
+  const [user, setUser] = useState({
+    name: 'Loading...',
+    email: '',
+    phone: '+94 77 123 4567', // Default placeholder
+    address: 'No 123, Main Street, Colombo 03', // Default placeholder
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
   });
+
+  // Load real user data from authentication
+  useEffect(() => {
+    const loggedInUser = getLoggedInUser();
+    console.log('Logged in user data:', loggedInUser); // Debug log
+    
+    if (loggedInUser && loggedInUser.name !== 'Anonymous User') {
+      setUser(prevUser => ({
+        ...prevUser,
+        name: loggedInUser.name,
+        email: loggedInUser.email,
+        id: loggedInUser.id,
+        role: loggedInUser.role
+      }));
+      setIsLoading(false);
+    } else {
+      // If no valid user found, redirect to login
+      console.warn('No valid user found, redirecting to login');
+      setTimeout(() => {
+        navigate('/login');
+      }, 1000); // Small delay to show loading state
+    }
+  }, [navigate]);
 
   const mockProducts = [
     { id: 1, name: 'Organic Tomatoes', price: 450, unit: 'kg', farm: 'Green Valley Farm', image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=200&h=200&fit=crop', category: 'vegetables', organic: true },
@@ -62,6 +90,14 @@ const CustomerDashboard = () => {
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
+      // Clear authentication data
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('pendingUserEmail');
+      localStorage.removeItem('pendingUserId');
+      localStorage.removeItem('pendingUserRole');
+      
+      // Navigate to home page
       navigate('/'); 
     }
   };
@@ -69,6 +105,13 @@ const CustomerDashboard = () => {
   const addToCart = (productId) => {
     setCartItems(prev => prev + 1);
     alert('Product added to cart!');
+  };
+
+  // Handle feedback form submission success
+  const handleFeedbackSubmitSuccess = () => {
+    // Force refresh of feedback list by triggering a re-render
+    // In a real app, you might use a context or state management library
+    window.location.reload(); // Simple approach for demo
   };
 
   const navItems = [
@@ -86,7 +129,9 @@ const CustomerDashboard = () => {
   const renderOverview = () => (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6 rounded-xl">
-        <h2 className="text-2xl font-bold mb-2">Welcome back, {user.name}! 🌾</h2>
+        <h2 className="text-2xl font-bold mb-2">
+          Welcome back, {user.name === 'Loading...' ? 'User' : user.name}! 🌾
+        </h2>
         <p className="opacity-90">Discover fresh farm products delivered straight to your door</p>
       </div>
       
@@ -222,11 +267,10 @@ const CustomerDashboard = () => {
         </div>
       );
       case 'feedback': return (
-        <div className="text-center py-12">
-          <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Feedback & Ratings</h3>
-          <p className="text-gray-600">Rate your purchases and share feedback</p>
-        </div>
+        <DashboardFeedbackList 
+          user={user} 
+          onNewFeedback={() => setShowFeedbackForm(true)}
+        />
       );
       case 'qna': return (
          <div className="text-center py-12">
@@ -276,6 +320,18 @@ const CustomerDashboard = () => {
       default: return renderOverview();
     }
   };
+
+  // Show loading spinner while authenticating user
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -441,6 +497,14 @@ const CustomerDashboard = () => {
           </div>
         </div>
       </div>
+      
+      {/* Feedback Form Modal */}
+      <DashboardFeedbackForm 
+        isOpen={showFeedbackForm}
+        onClose={() => setShowFeedbackForm(false)}
+        onSubmitSuccess={handleFeedbackSubmitSuccess}
+        user={user}
+      />
     </div>
   );
 };

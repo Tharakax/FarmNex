@@ -20,6 +20,7 @@ import trainingRouter from './routers/trainingRoutes.js';
 import farmSupplyRouter from './routers/farmSupplyRouter.js';
 import reportRouter from './routers/reportRoutes.js';
 import paymentRouter from './routers/paymentRouter.js';
+import feedbackRouter from './routers/feedbackRoutes.js';
 import questionRoute from "./routers/questionRoute.js"; //umar
 import userroute from "./routers/userroute.js";//umar
 import cropRoutes from './routers/cropRoutes.js';
@@ -30,9 +31,7 @@ const __dirname = path.dirname(__filename);
 
 import soilRouter from './routers/soilRouter.js';
 import chatbotRouter from './routers/chatbotRouter.js';
-
 import stripeRouter from './routers/stripeRouter.js';
-
 
 const app = express();
 
@@ -171,6 +170,7 @@ app.use("/api/training", trainingRouter)
 app.use("/api/farmsupplies", farmSupplyRouter)
 app.use("/api/reports", reportRouter)
 app.use("/api/payment", paymentRouter)
+app.use("/api/feedback", feedbackRouter)
 
 app.use("/api", soilRouter)
 
