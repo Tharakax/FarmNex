@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import NotificationBell from '../../../components/notifications/NotificationBell';
 
 import {
   User,
@@ -19,7 +19,8 @@ import {
   Eye,
   UserPlus,
   Activity,
-  MessageSquare 
+  MessageSquare,
+  Megaphone 
 } from 'lucide-react';
  import axios from 'axios';
 
@@ -114,7 +115,7 @@ function AdminDashboard() {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
         <div className="flex items-center space-x-3">
-          <Bell className="h-6 w-6 text-gray-500 cursor-pointer hover:text-green-600" />
+          <NotificationBell />
           <div className="h-8 w-px bg-gray-300"></div>
           <span className="text-sm text-gray-600">Welcome back, {adminData.name}</span>
         </div>
@@ -356,6 +357,13 @@ function AdminDashboard() {
             className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 transition-colors">
             <MessageSquare  className="mr-3 h-5 w-5" />
                  Q&A Inbox
+              </button>
+            
+            <button
+             onClick={() => navigate('/notifications')}
+            className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 transition-colors">
+            <Megaphone className="mr-3 h-5 w-5" />
+                 Notifications
               </button>
             
             <button

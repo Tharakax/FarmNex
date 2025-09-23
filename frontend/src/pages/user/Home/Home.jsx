@@ -32,6 +32,7 @@ import DashboardFeedbackForm from '../../../components/dashboard/DashboardFeedba
 import DashboardFeedbackList from '../../../components/dashboard/DashboardFeedbackList';
 import DashboardBrowseProducts from '../../../components/dashboard/DashboardBrowseProducts';
 import DashboardShoppingCart from '../../../components/dashboard/DashboardShoppingCart';
+import NotificationBell from '../../../components/notifications/NotificationBell';
 import { getLoggedInUser } from '../../../utils/userUtils';
 import { getCart } from '../../../utils/cart';
 import { orderAPI } from '../../../services/orderAPI';
@@ -426,12 +427,7 @@ const CustomerDashboard = () => {
 
             {/* Right Navigation */}
             <div className="flex items-center gap-4">
-              <button className="relative p-2 text-gray-600 hover:text-gray-900">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  3
-                </span>
-              </button>
+              <NotificationBell />
 
               {/* User Profile Dropdown */}
               <div className="relative">

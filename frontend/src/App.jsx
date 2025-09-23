@@ -30,6 +30,11 @@ const PaymentSuccess = React.lazy(() => import('./pages/payment/PaymentSuccess.j
 const PaymentUnsuccess = React.lazy(() => import('./pages/payment/PaymentUnsuccess.jsx'));
 const Recipes = React.lazy(() => import('./pages/Recipes.jsx'));
 
+// Notification Pages (Lazy Load)
+const NotificationList = React.lazy(() => import('./pages/notifications/NotificationList.jsx'));
+const AddNotification = React.lazy(() => import('./pages/notifications/AddNotification.jsx'));
+const UpdateNotification = React.lazy(() => import('./pages/notifications/UpdateNotification.jsx'));
+
 // User Pages (Lazy Load)
 const AddUser = React.lazy(() => import('./pages/user/AddUser/AddUser.jsx'));
 const UpdateUser = React.lazy(() => import('./pages/user/UpdateUser/UpdateUser.jsx'));
@@ -161,6 +166,11 @@ function App() {
             
             {/* Recipes Route */}
             <Route path="/recipes" element={<Recipes />} />
+            
+            {/* Notification Management Routes */}
+            <Route path="/notifications" element={<NotificationList />} />
+            <Route path="/notifications/add" element={<AddNotification />} />
+            <Route path="/notifications/edit/:id" element={<UpdateNotification />} />
             
             {/* Farmer Dashboard Routes */}
             <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
