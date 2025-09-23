@@ -32,6 +32,7 @@ import DashboardFeedbackForm from '../../../components/dashboard/DashboardFeedba
 import DashboardFeedbackList from '../../../components/dashboard/DashboardFeedbackList';
 import DashboardBrowseProducts from '../../../components/dashboard/DashboardBrowseProducts';
 import DashboardShoppingCart from '../../../components/dashboard/DashboardShoppingCart';
+import PaymentHistory from '../../../components/dashboard/PaymentHistory';
 import NotificationBell from '../../../components/notifications/NotificationBell';
 import { getLoggedInUser } from '../../../utils/userUtils';
 import { getCart } from '../../../utils/cart';
@@ -326,13 +327,7 @@ const CustomerDashboard = () => {
           <p className="text-gray-600">Real-time delivery tracking coming soon</p>
         </div>
       );
-      case 'payments': return (
-        <div className="text-center py-12">
-          <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Payment History</h3>
-          <p className="text-gray-600">View your payment history and receipts</p>
-        </div>
-      );
+      case 'payments': return <PaymentHistory />;
       case 'feedback': return (
         <DashboardFeedbackList 
           user={user} 

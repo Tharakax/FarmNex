@@ -29,6 +29,9 @@ const SoilMoistureDashboard = React.lazy(() => import('./pages/SoilMoistureDashb
 const PaymentSuccess = React.lazy(() => import('./pages/payment/PaymentSuccess.jsx'));
 const PaymentUnsuccess = React.lazy(() => import('./pages/payment/PaymentUnsuccess.jsx'));
 const Recipes = React.lazy(() => import('./pages/Recipes.jsx'));
+const RecipeList = React.lazy(() => import('./components/recipes/RecipeList.jsx'));
+const AddRecipe = React.lazy(() => import('./components/recipes/AddRecipe.jsx'));
+const UpdateRecipe = React.lazy(() => import('./components/recipes/UpdateRecipe.jsx'));
 
 // Notification Pages (Lazy Load)
 const NotificationList = React.lazy(() => import('./pages/notifications/NotificationList.jsx'));
@@ -166,6 +169,10 @@ function App() {
             
             {/* Recipes Route */}
             <Route path="/recipes" element={<Recipes />} />
+            {/* Recipe Management Routes */}
+            <Route path="/recipes/manage" element={<RecipeList />} />
+            <Route path="/recipes/add" element={<AddRecipe />} />
+            <Route path="/recipes/edit/:id" element={<UpdateRecipe />} />
             
             {/* Notification Management Routes */}
             <Route path="/notifications" element={<NotificationList />} />

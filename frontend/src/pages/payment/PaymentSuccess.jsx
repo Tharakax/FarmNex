@@ -90,13 +90,14 @@ export default function PaymentSuccess() {
                 <div className="mt-6">
                   <h3 className="text-sm font-medium text-gray-900 mb-2">Items Ordered</h3>
                   <div className="space-y-3">
-                    {order.items.map((item, index) => (
+{order.items.map((item, index) => (
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex items-center">
                           <img
-                            src={item.image}
+                            src={(item.image && (item.image.startsWith('http') ? item.image : `${(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000')}${item.image.startsWith('/') ? '' : '/uploads/'}${item.image.startsWith('/') ? item.image : item.image}`)) || 'https://via.placeholder.com/40x40?text=No+Image'}
                             alt={item.name}
                             className="w-10 h-10 object-cover rounded"
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/40x40?text=No+Image'; }}
                           />
                           <div className="ml-4">
                             <p className="text-sm font-medium text-gray-900">{item.name}</p>

@@ -23,6 +23,7 @@ import {
   ShoppingBag,
   Truck,
   BookOpen,
+  ChefHat,
   X,
   AlertTriangle,
   Calendar,
@@ -114,6 +115,14 @@ const TrainingManagementComponent = React.lazy(() =>
     .catch(error => {
       console.error('Failed to load TrainingManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Training Management" /> };
+    })
+);
+
+const RecipesPanel = React.lazy(() =>
+  import('../components/recipes/RecipesPanel')
+    .catch(error => {
+      console.error('Failed to load RecipesPanel:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Recipes" /> };
     })
 );
 
@@ -272,6 +281,7 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
     { name: 'Weather', icon: Cloud },
     { name: 'Inventory', icon: Package },
     { name: 'Training', icon: BookOpen },
+    { name: 'Recipes', icon: ChefHat },
     { name: 'Reports', icon: FileText },
     { name: 'Settings', icon: Settings }
   ];
@@ -444,6 +454,7 @@ const FarmerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeItem, setActiveItem] = useState('Home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -480,6 +491,9 @@ const FarmerDashboard = () => {
         case 'Reports':
           console.log('Rendering ProductManagementReport');
           return <ProductManagementReport />;
+        case 'Recipes':
+          console.log('Rendering RecipesPanel');
+          return <RecipesPanel />;
         case 'Settings':
           console.log('Rendering Settings');
           return <div className="p-6 bg-white rounded-lg shadow"><h2 className="text-xl font-semibold mb-4">Settings</h2><p>Settings panel is under development.</p></div>;

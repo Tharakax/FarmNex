@@ -7,8 +7,8 @@ import axios from 'axios';
 import { FormValidator } from '../../utils/validation';
 import { showError, showSuccess, showLoading } from '../../utils/sweetAlert';
 
-// Initialize Stripe with your publishable key
-const stripePromise = loadStripe('pk_test_51Ql5QiIVYLEPquIE4nw8Hl5wXbThqOf9wq4TLcUYcp3jZ17AErbSJNN4d6R8i5IYu1jM0d2lVVpJreLHzl4pj1S600oZqhzeXA');
+// Initialize Stripe with your publishable key from environment
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 // Stripe Payment Form Component
 const StripePaymentForm = ({ orderData, orderId, onPaymentSuccess, onPaymentError, loading, setLoading }) => {
@@ -34,14 +34,17 @@ const StripePaymentForm = ({ orderData, orderId, onPaymentSuccess, onPaymentErro
         const { data } = await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/stripe/create-payment-intent`,
           {
-            amount: Math.round(orderData.total * 100), // Convert to cents
+            amount: Math.round(orderData.total * 100), // Convert LKR to paisa (1 LKR = 100 paisa)
             currency: 'lkr',
-            orderId: orderId
+            orderId: orderId,
+            contactEmail: orderData.contactEmail
           }
         );
 
         if (!data.success) {
-          throw new Error(data.message || 'Failed to create payment intent');
+          const errorMessage = data.message || 'Failed to create payment intent';
+          console.error('Payment intent creation failed:', errorMessage);
+          throw new Error(errorMessage);
         }
 
         // Confirm the payment with Stripe
@@ -91,7 +94,22 @@ const StripePaymentForm = ({ orderData, orderId, onPaymentSuccess, onPaymentErro
         }
       } catch (error) {
         console.error('Payment error:', error);
-        onPaymentError(error.response?.data?.message || error.message || 'Payment processing failed. Please try again.');
+        let errorMessage = 'Payment processing failed. Please try again.';
+        
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        // Handle specific Stripe errors
+        if (error.message?.includes('minimum')) {
+          errorMessage = 'The order amount is below the minimum required for card payments. Please try a different payment method.';
+        } else if (error.message?.includes('configuration')) {
+          errorMessage = 'Payment service is temporarily unavailable. Please try again later or use a different payment method.';
+        }
+        
+        onPaymentError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -685,10 +703,11 @@ export default function EnterPayment() {
                   {orderData.items.map((item, index) => (
                     <div key={index} className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
-                        <img
-                          src={item.image}
+<img
+                          src={(item.image && (item.image.startsWith('http') ? item.image : `${(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000')}${item.image.startsWith('/') ? '' : '/uploads/'}${item.image.startsWith('/') ? item.image : item.image}`)) || 'https://via.placeholder.com/48x48?text=No+Image'}
                           alt={item.name}
                           className="w-12 h-12 object-cover rounded bg-gray-100"
+                          onError={(e) => { e.target.src = 'https://via.placeholder.com/48x48?text=No+Image'; }}
                         />
                       </div>
                       <div className="flex-1 min-w-0">

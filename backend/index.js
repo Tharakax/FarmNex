@@ -172,6 +172,10 @@ app.use("/api/reports", reportRouter)
 app.use("/api/payment", paymentRouter)
 app.use("/api/feedback", feedbackRouter)
 
+// Recipes API
+import recipeRouter from './routers/recipeRouter.js';
+app.use('/api/recipes', recipeRouter)
+
 app.use("/api", soilRouter)
 
 app.use('/api/stripe', stripeRouter);

@@ -18,9 +18,13 @@ export const orderAPI = {
   // Get current user's orders
   getMyOrders: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/order/my-orders`, {
+      // TODO: Replace with proper authentication - this is for testing only
+      const testEmail = 'test@farmnex.com';
+      const response = await fetch(`${API_BASE_URL}/order/test-orders/${testEmail}`, {
         method: 'GET',
-        headers: createHeaders(),
+        headers: {
+          'Content-Type': 'application/json'
+        },
       });
 
       if (!response.ok) {
@@ -28,9 +32,14 @@ export const orderAPI = {
       }
 
       const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch orders');
+      }
+      
       return {
         success: true,
-        data: data.orders || data
+        data: data.orders || []
       };
     } catch (error) {
       console.error('Error fetching orders:', error);

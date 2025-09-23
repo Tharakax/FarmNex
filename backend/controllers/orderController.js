@@ -279,10 +279,12 @@ export const getMyOrders = async (req, res) => {
       });
     }
 
-    // Since your order schema doesn't have customerId field (it's commented out),
-    // we'll need to match by contact email or you'll need to add customerId back
+    // Find orders by customerId (preferred method) or fallback to contactEmail
     const orders = await Order.find({ 
-      contactEmail: req.user.email 
+      $or: [
+        { customerId: req.user._id },
+        { contactEmail: req.user.email }
+      ]
     }).sort({ createdAt: -1 });
 
     res.status(200).json({

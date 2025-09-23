@@ -10,19 +10,29 @@ export function getCart(){
     return cart;
 }
 
+// Ensure image URLs are absolute (backend base) for reliability
+const resolveImageURL = (src) => {
+  if (!src) return src;
+  if (typeof src === 'string' && src.startsWith('http')) return src;
+  const base = (import.meta?.env?.VITE_BACKEND_URL) || 'http://localhost:3000';
+  if (typeof src === 'string' && src.startsWith('/')) return `${base}${src}`;
+  return `${base}/uploads/${src}`;
+};
+
 export function addToCart(product, qty = 1){
     let cart = getCart();
 
     const productIndex = cart.findIndex(prdct => prdct.productId === product._id);
 
     if(productIndex == -1){
+        const rawImage = (product.images && product.images.length > 0) ? product.images[0] : product.image;
         cart.push(
             {
                 productId: product._id,
                 name: product.name,
                 price: product.price,
                 quantity: qty,
-                image: product.images[0]
+                image: resolveImageURL(rawImage)
             }
         )
     }else{

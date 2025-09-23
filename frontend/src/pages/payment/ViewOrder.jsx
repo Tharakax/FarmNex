@@ -279,14 +279,14 @@ const ViewOrder = ({ orderId }) => {
             <div className="bg-white rounded-lg shadow-sm border border-green-200 p-6">
               <h3 className="text-lg font-semibold text-green-900 mb-4">Order Items</h3>
               <div className="space-y-4">
-                {order.items.map((item, index) => (
+{order.items.map((item, index) => (
                   <div key={index} className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
                     <img 
-                      src={item.image} 
+                      src={(item.image && (item.image.startsWith('http') ? item.image : `${(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000')}${item.image.startsWith('/') ? '' : '/uploads/'}${item.image.startsWith('/') ? item.image : item.image}`)) || 'https://via.placeholder.com/64x64?text=No+Image'} 
                       alt={item.name}
                       className="w-16 h-16 rounded-lg object-cover bg-green-200"
                       onError={(e) => {
-                        e.target.src = '/placeholder-image.png';
+                        e.target.src = 'https://via.placeholder.com/64x64?text=No+Image';
                       }}
                     />
                     <div className="flex-1">

@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Package, Eye, CreditCard, ShoppingBag, Clock, Truck, CheckCircle, XCircle, Download } from 'lucide-react';
+import { orderAPI } from '../../services/orderAPI';
+
+// Resolve image URL to absolute path if needed
+const resolveImage = (src) => {
+  if (!src) return 'https://via.placeholder.com/64x64?text=No+Image';
+  if (src.startsWith('http')) return src;
+  const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+  if (src.startsWith('/')) return `${base}${src}`;
+  // assume it’s an uploads-relative path
+  return `${base}/uploads/${src}`;
+};
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -18,38 +29,18 @@ const MyOrders = () => {
     cancelled: { label: 'Cancelled', icon: XCircle, color: 'text-red-600' }
   };
 
-  // Get token from localStorage
-  const getAuthToken = () => {
-    return localStorage.getItem('token');
-  };
-
-  // Fetch orders from API
+  // Fetch orders from API (testing endpoint for demo without auth)
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         setLoading(true);
-        const token = getAuthToken();
-        
-        if (!token) {
-          setError('Please log in to view your orders');
-          setLoading(false);
-          return;
-        }
+        setError('');
 
-        const response = await fetch('http://localhost:3000/api/order/my-orders', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          setOrders(data.orders || []);
+        const result = await orderAPI.getMyOrders();
+        if (result.success) {
+          setOrders(result.data || []);
         } else {
-          setError(data.message || 'Failed to fetch orders');
+          setError(result.error || 'Failed to fetch orders');
         }
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -436,14 +427,14 @@ const MyOrders = () => {
                     {order.items.map((item, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
                         {item.image ? (
-                          <img 
-                            src={item.image} 
-                            alt={item.name}
-                            className="w-12 h-12 rounded-lg object-cover bg-green-200"
-                            onError={(e) => {
-                              e.target.src = '/placeholder-image.png';
-                            }}
-                          />
+<img 
+                          src={resolveImage(item.image)} 
+                          alt={item.name}
+                          className="w-12 h-12 rounded-lg object-cover bg-green-200"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/64x64?text=No+Image';
+                          }}
+                        />
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-green-200 flex items-center justify-center">
                             <div className="text-green-500 text-center">

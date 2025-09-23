@@ -6,6 +6,15 @@ import { useEffect } from 'react';
 import axios from 'axios';
 import { Navigate, useNavigate } from 'react-router-dom';
 
+// Resolve image URL to absolute path if needed
+const resolveImage = (src) => {
+  if (!src) return 'https://via.placeholder.com/96x96?text=No+Image';
+  if (src.startsWith('http')) return src;
+  const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+  if (src.startsWith('/')) return `${base}${src}`;
+  return `${base}/uploads/${src}`;
+};
+
 export default function Cart() {
   const [cart, setCart] = useState([]);
   const [savedItems, setSavedItems] = useState([]);
@@ -230,10 +239,11 @@ const Navigate = useNavigate();
                     <div key={item.productId} className="p-6">
                       <div className="flex items-start space-x-4">
                         <div className="flex-shrink-0">
-                          <img
-                            src={item.image}
+<img
+                            src={resolveImage(item.image)}
                             alt={item.name}
                             className="w-24 h-24 object-cover rounded-lg bg-gray-100"
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/96x96?text=No+Image'; }}
                           />
                         </div>
 
@@ -315,10 +325,11 @@ const Navigate = useNavigate();
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {savedItems.map((item) => (
                         <div key={item.productId} className="border rounded-lg p-4">
-                          <img
-                            src={item.image}
+<img
+                            src={resolveImage(item.image)}
                             alt={item.name}
                             className="w-full h-32 object-cover rounded-md mb-3"
+                            onError={(e) => { e.target.src = 'https://via.placeholder.com/200x128?text=No+Image'; }}
                           />
                           <h4 className="font-medium text-gray-900 mb-1">{item.name}</h4>
                           <p className="text-sm text-gray-500 mb-2">LKR {item.price.toFixed(2)}</p>
