@@ -359,7 +359,7 @@ const DashboardBrowseProducts = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm text-gray-600">4.8</span>
+                        <span className="text-sm text-gray-600">{product.ratings ? Number(product.ratings).toFixed(1) : '0.0'}</span>
                       </div>
                     </div>
 

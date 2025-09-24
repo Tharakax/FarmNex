@@ -109,6 +109,26 @@ const productSchema = new mongoose.Schema({
       }
     }
   ],
+  // Simple per-user star ratings (no comments)
+  userRatings: [
+    {
+      user: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+        required: true
+      },
+      updatedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now

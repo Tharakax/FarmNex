@@ -7,7 +7,8 @@
     "start": "nodemon index.js",
     "arduino-bridge": "node serialBridge_Arduino.js",
     "dev": "concurrently \"npm start\" \"npm run arduino-bridge\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate:recipes": "node scripts/migrateRecipes.js"
   },
   "keywords": [],
   "author": "",

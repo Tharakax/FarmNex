@@ -213,6 +213,8 @@ const FeedbackForm = ({ isUpdate = false }) => {
                 })}
                 className="input-field"
                 placeholder="Enter your full name"
+                  readOnly
+
               />
               {errors.customerName && (
                 <p className="form-error">{errors.customerName.message}</p>
@@ -231,10 +233,14 @@ const FeedbackForm = ({ isUpdate = false }) => {
                   pattern: {
                     value: /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
                     message: 'Please enter a valid email address'
+                    
                   }
+                  
                 })}
                 className="input-field"
                 placeholder="Enter your email address"
+                  readOnly
+
               />
               {errors.email && (
                 <p className="form-error">{errors.email.message}</p>

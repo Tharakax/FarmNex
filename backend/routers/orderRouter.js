@@ -7,7 +7,8 @@ import {
   updateOrderStatus,
   getAllOrders,
   getMyOrders,
-  deleteOrder
+  deleteOrder,
+  claimOrder
 } from '../controllers/orderController.js';
 import { generateReceiptPDF } from '../controllers/receiptController.js';
 
@@ -24,6 +25,7 @@ router.delete("/:id", deleteOrder);
 router.put('/shipping/:id', saveShipping);
 router.put('/payment/:id', savePayment);
 router.put('/status/:id', updateOrderStatus);
+router.put('/claim/:id', claimOrder); // Link guest order to authenticated user
 
 // Receipt generation
 router.get('/receipt/:orderId/pdf', generateReceiptPDF);

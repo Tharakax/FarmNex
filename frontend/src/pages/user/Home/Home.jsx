@@ -5,7 +5,6 @@ import { useNavigate } from 'react-router-dom'; //
 import {
   ShoppingCart, 
   Package, 
-  Truck, 
   CreditCard, 
   Star, 
   Settings, 
@@ -33,11 +32,13 @@ import DashboardFeedbackList from '../../../components/dashboard/DashboardFeedba
 import DashboardBrowseProducts from '../../../components/dashboard/DashboardBrowseProducts';
 import DashboardShoppingCart from '../../../components/dashboard/DashboardShoppingCart';
 import PaymentHistory from '../../../components/dashboard/PaymentHistory';
+import ProductStarRatings from '../../../components/dashboard/ProductStarRatings.jsx';
 import NotificationBell from '../../../components/notifications/NotificationBell';
 import { getLoggedInUser } from '../../../utils/userUtils';
 import { getCart } from '../../../utils/cart';
 import { orderAPI } from '../../../services/orderAPI';
 import toast from 'react-hot-toast';
+import { FaLeaf } from 'react-icons/fa';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate(); 
@@ -165,7 +166,6 @@ const CustomerDashboard = () => {
     { id: 'products', label: 'Browse Products', icon: Apple },
     { id: 'cart', label: 'Shopping Cart', icon: ShoppingCart, badge: cartItemCount > 0 ? cartItemCount : null },
     { id: 'orders', label: 'Order History', icon: Package },
-    { id: 'delivery', label: 'Track Delivery', icon: Truck },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'feedback', label: 'Feedback & Ratings', icon: Star },
     { id: 'qna', label: 'Q&A Section', icon: MessageSquare },
@@ -320,19 +320,15 @@ const CustomerDashboard = () => {
       case 'products': return renderProducts();
       case 'cart': return (<DashboardShoppingCart onBrowseProducts={() => setActiveTab('products')} />);
       case 'orders': return renderOrders();
-      case 'delivery': return (
-        <div className="text-center py-12">
-          <Truck className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Track Delivery</h3>
-          <p className="text-gray-600">Real-time delivery tracking coming soon</p>
-        </div>
-      );
       case 'payments': return <PaymentHistory />;
       case 'feedback': return (
-        <DashboardFeedbackList 
-          user={user} 
-          onNewFeedback={() => setShowFeedbackForm(true)}
-        />
+        <div>
+          <ProductStarRatings />
+          <DashboardFeedbackList 
+            user={user} 
+            onNewFeedback={() => setShowFeedbackForm(true)}
+          />
+        </div>
       );
       case 'qna': return (
          <div className="text-center py-12">
@@ -404,7 +400,10 @@ const CustomerDashboard = () => {
             {/* Logo */}
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <h2 className="text-xl font-bold text-green-600">🌾 Farm Nex</h2>
+                <div className="flex items-center gap-2">
+                  <FaLeaf className="text-green-600" size={20} />
+                  <h2 className="text-xl font-bold text-green-600">Farm Nex</h2>
+                </div>
               </div>
             </div>
 

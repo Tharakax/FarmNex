@@ -23,14 +23,14 @@ export const createRecipe = async (req, res) => {
   try {
     const payload = req.body || {};
     const recipe = await Recipe.create({
-      recipeId: String(payload.recipeId),
       title: String(payload.title),
       description: String(payload.description),
       image: String(payload.image || ''),
       ingredients: Array.isArray(payload.ingredients) ? payload.ingredients : String(payload.ingredients || '').split(',').map(s=>s.trim()).filter(Boolean),
       type: payload.type || 'Vegetarian',
       meal: Array.isArray(payload.meal) ? payload.meal : String(payload.meal || '').split(',').map(s=>s.trim()).filter(Boolean),
-      rating: Number(payload.rating) || 0,
+      time: String(payload.time || ''),
+      rating: payload.rating != null ? Number(payload.rating) : 0,
     });
     res.status(201).json({ success: true, recipe });
   } catch (error) {
@@ -43,12 +43,11 @@ export const updateRecipe = async (req, res) => {
   try {
     const payload = req.body || {};
     const update = {
-      recipeId: payload.recipeId,
       title: payload.title,
       description: payload.description,
       image: payload.image,
       type: payload.type,
-      rating: payload.rating,
+      time: payload.time,
     };
     if (payload.ingredients !== undefined) {
       update.ingredients = Array.isArray(payload.ingredients) ? payload.ingredients : String(payload.ingredients).split(',').map(s=>s.trim()).filter(Boolean);

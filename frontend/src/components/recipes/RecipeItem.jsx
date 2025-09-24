@@ -1,8 +1,25 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import StarRating from "./StarRating";
+import { Clock } from "lucide-react";
 
-export default function RecipeItem({ recipe, onDelete }) {
+const BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+const resolveImageUrl = (img) => {
+  if (!img) return null;
+  let s = String(img).trim();
+  // Normalize Windows backslashes to forward slashes
+  s = s.replace(/\\/g, '/');
+  // Already absolute
+  if (/^https?:\/\//i.test(s)) return s;
+  // Leading slash => backend + path
+  if (s.startsWith('/')) return `${BASE}${s}`;
+  // Common relative forms
+  if (s.startsWith('uploads/')) return `${BASE}/${s}`;
+  // Fallback: assume file under uploads
+  return `${BASE}/uploads/${s}`;
+};
+
+export default function RecipeItem({ recipe, onDelete, readOnly = false }) {
   const handleDelete = () => {
     if (window.confirm("Delete this recipe?")) onDelete?.(recipe._id);
   };
@@ -25,13 +42,12 @@ export default function RecipeItem({ recipe, onDelete }) {
       {recipe.image && (
         <div className="mb-4 overflow-hidden rounded-xl">
           <img
-            src={recipe.image}
+            src={resolveImageUrl(recipe.image)}
             alt={recipe.title}
             className="h-44 w-full object-cover transition hover:scale-105"
-            onError={(e) =>
-              (e.currentTarget.src =
-                "https://via.placeholder.com/600x400?text=No+Image")
-            }
+            onError={(e) => {
+              e.currentTarget.src = 'https://via.placeholder.com/600x400?text=No+Image';
+            }}
           />
         </div>
       )}
@@ -51,7 +67,10 @@ export default function RecipeItem({ recipe, onDelete }) {
         </p>
 
         <div className="flex items-center justify-between">
-          <StarRating value={Number(recipe.rating) || 0} readOnly size="sm" />
+          <div className="flex items-center gap-1 text-sm text-gray-700">
+            <Clock className="w-4 h-4 text-gray-500" />
+            <span>{recipe.time || '—'}</span>
+          </div>
           {meals.length > 0 && (
             <div className="flex flex-wrap gap-1 justify-end">
               {meals.slice(0, 3).map((m) => (
@@ -80,20 +99,22 @@ export default function RecipeItem({ recipe, onDelete }) {
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-4">
-          <Link
-            to={`/recipes/edit/${recipe._id}`}
-            className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
-          >
-            Edit
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="text-sm font-medium text-red-600 hover:text-red-700"
-          >
-            Delete
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center justify-between pt-4">
+            <Link
+              to={`/recipes/edit/${recipe._id}`}
+              className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+            >
+              Edit
+            </Link>
+            <button
+              onClick={handleDelete}
+              className="text-sm font-medium text-red-600 hover:text-red-700"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

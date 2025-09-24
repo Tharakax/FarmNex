@@ -7,7 +7,7 @@ import Navigation from "../navigation";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-const API_URL = "http://localhost:3000/api/recipes";
+const API_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/recipes`;
 
 const TYPE_OPTIONS = [
   { value: "vegetarian", label: "Vegetarian" },
@@ -22,7 +22,7 @@ const MEAL_OPTIONS = [
   { value: "dessert", label: "Dessert" },
 ];
 
-function RecipeList() {
+function RecipeList({ showHeader = true, publicView = false }) {
   const [recipes, setRecipes] = useState([]);
   const [filteredRecipes, setFilteredRecipes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,47 +135,154 @@ function RecipeList() {
     selectedMeals.length > 0 ||
     minRating > 0;
 
-  // 📥 Download all recipes as PDF
-  const handleDownloadAllPDF = () => {
+  // Helper: convert inline SVG string to PNG data URL for jsPDF headers
+  const svgToPngDataUrl = (svgString, width = 64, height = 64) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const blob = new Blob([svgString], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL('image/png');
+            URL.revokeObjectURL(url);
+            resolve(dataUrl);
+          } catch (err) {
+            URL.revokeObjectURL(url);
+            reject(err);
+          }
+        };
+        img.onerror = (e) => {
+          URL.revokeObjectURL(url);
+          reject(new Error('Failed to load SVG into image'));
+        };
+        img.src = url;
+      } catch (err) {
+        reject(err);
+      }
+    });
+  };
+
+  // Helper: draw a simple left-to-right linear gradient bar
+  const drawGradientBar = (doc, y, height, startRGB, endRGB, width) => {
+    const steps = Math.max(1, Math.floor(width));
+    for (let i = 0; i < steps; i++) {
+      const t = i / (steps - 1);
+      const r = Math.round(startRGB[0] + (endRGB[0] - startRGB[0]) * t);
+      const g = Math.round(startRGB[1] + (endRGB[1] - startRGB[1]) * t);
+      const b = Math.round(startRGB[2] + (endRGB[2] - startRGB[2]) * t);
+      doc.setFillColor(r, g, b);
+      doc.rect(i, y, 1, height, 'F');
+    }
+  };
+
+  // 📥 Download all recipes as PDF (FarmNex theme)
+  const handleDownloadAllPDF = async () => {
     if (!filteredRecipes || filteredRecipes.length === 0) {
       alert("No recipes available to download.");
       return;
     }
 
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text("Recipe Catalog", 14, 20);
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const headerHeight = 34; // themed header bar (taller for two-line title)
+    const footerHeight = 16; // themed footer bar
+    const greenDark = [30, 126, 52]; // #1e7e34
+    const green = [40, 167, 69]; // #28a745
 
-    const rows = filteredRecipes.map((recipe, index) => [
-      index + 1,
-      recipe.title || "Untitled",
-      recipe.type || "N/A",
-      recipe.description || "N/A",
-      Array.isArray(recipe.ingredients)
-        ? recipe.ingredients.join(", ")
-        : recipe.ingredients || "N/A",
-      Array.isArray(recipe.meal)
-        ? recipe.meal.join(", ")
-        : recipe.meal || "N/A",
-      recipe.rating || 0,
-    ]);
+    // Build a lightweight leaf SVG (embedded) and convert to PNG for consistent PDF rendering
+    const leafSvg = `<?xml version="1.0" encoding="UTF-8"?>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+        <path d="M8 40 C 8 20, 28 8, 48 8 C 48 28, 36 48, 16 48 Z" fill="#28a745"/>
+        <path d="M16 48 C 22 38, 28 32, 40 20" stroke="#166534" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </svg>`;
+    let leafPng;
+    try {
+      leafPng = await svgToPngDataUrl(leafSvg, 96, 96);
+    } catch (e) {
+      leafPng = undefined; // proceed without icon if conversion fails
+    }
 
-    autoTable(doc, {
-      head: [
-        ["#", "Title", "Type", "Description", "Ingredients", "Meals", "Rating"],
-      ],
-      body: rows,
-      startY: 30,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [16, 185, 129] }, // emerald green header
+    const generatedAt = new Date();
+    const dateText = generatedAt.toLocaleString();
+    const reportId = `FNX-${generatedAt.getFullYear()}-${String(generatedAt.getMonth()+1).padStart(2,'0')}${String(generatedAt.getDate()).padStart(2,'0')}-${String(generatedAt.getHours()).padStart(2,'0')}${String(generatedAt.getMinutes()).padStart(2,'0')}`;
+
+    const rows = filteredRecipes.map((recipe, index) => {
+      const meals = Array.isArray(recipe.meal)
+        ? recipe.meal.join(', ')
+        : recipe.meal || '—';
+      return [
+        index + 1,
+        recipe.title || 'Untitled',
+        recipe.type || 'N/A',
+        meals,
+        recipe.time || 'N/A',
+      ];
     });
 
-    doc.save("all_recipes.pdf");
+    autoTable(doc, {
+      head: [["#", "Title", "Type", "Meals", "Time"]],
+      body: rows,
+      startY: headerHeight + 8,
+      styles: { fontSize: 9, cellPadding: 2.5 },
+      headStyles: { fillColor: greenDark, textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 249, 250] },
+      bodyStyles: { valign: 'middle' },
+      columnStyles: {
+        0: { halign: 'right', cellWidth: 10 },
+        1: { cellWidth: 78 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 54 },
+        4: { cellWidth: 22 },
+      },
+      margin: { top: headerHeight + 6, bottom: footerHeight + 8, left: 10, right: 10 },
+      didDrawPage: (data) => {
+        // Header gradient bar with subtle overlay circle
+        drawGradientBar(doc, 0, headerHeight, greenDark, green, pageWidth);
+        // Decorative circle top-right
+        doc.setFillColor(46, 204, 113); // lighter green
+        doc.circle(pageWidth - 6, 6, 18, 'F');
+
+        // Company and title + icon
+        if (leafPng) {
+          // draw leaf icon on the header (approx 9x9 mm)
+          doc.addImage(leafPng, 'PNG', 8, 9, 9, 9);
+        }
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(18);
+        doc.text('FARMNEX', 20, 14);
+        doc.setFontSize(12);
+        doc.text('Agricultural Analytics Report', 20, 22);
+
+        // Right-aligned date and report id (two lines, like reference)
+        doc.setFontSize(9.5);
+        doc.text(`Generated: ${dateText}`, pageWidth - 10, 10, { align: 'right' });
+        doc.text(`Report ID: ${reportId}`, pageWidth - 10, 16, { align: 'right' });
+
+        // Footer bar
+        const str = `Page ${doc.getCurrentPageInfo().pageNumber} of ${doc.internal.getNumberOfPages()}`;
+        doc.setFillColor(...greenDark);
+        doc.rect(0, pageHeight - footerHeight, pageWidth, footerHeight, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8.5);
+        doc.text('www.farmnex.com | support@farmnex.com', 10, pageHeight - 5);
+        doc.text(str, pageWidth - 10, pageHeight - 5, { align: 'right' });
+      }
+    });
+
+    doc.save('recipes.pdf');
   };
 
   return (
     <div>
-      <Navigation />
+      {showHeader && <Navigation />}
       <div className="max-w-7xl mx-auto px-4 pt-30 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
@@ -214,8 +321,8 @@ function RecipeList() {
                          shadow-sm w-full md:w-60"
             />
 
-            {/* Download All (PDF) button */}
-            {filteredRecipes.length > 0 && (
+            {/* Download All (PDF) button (hidden in public view) */}
+            {!publicView && filteredRecipes.length > 0 && (
               <button
                 onClick={handleDownloadAllPDF}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
@@ -239,29 +346,31 @@ function RecipeList() {
               </button>
             )}
 
-            {/* Add Recipe button */}
-            <Link to="/recipes/add">
-              <button
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
-                           bg-emerald-600 text-white shadow-sm shadow-emerald-200
-                           hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                           active:scale-[0.98] transition"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="CurrentColor"
+            {/* Add Recipe button (hidden in public view) */}
+            {!publicView && (
+              <Link to="/recipes/add">
+                <button
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
+                             bg-emerald-600 text-white shadow-sm shadow-emerald-200
+                             hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                             active:scale-[0.98] transition"
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Add Recipe
-              </button>
-            </Link>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="CurrentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Add Recipe
+                </button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -406,7 +515,8 @@ function RecipeList() {
                       <RecipeItem
                         key={recipe._id}
                         recipe={recipe}
-                        onDelete={handleDelete}
+                        onDelete={publicView ? undefined : handleDelete}
+                        readOnly={publicView}
                       />
                     ))
                   ) : (

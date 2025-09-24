@@ -181,6 +181,22 @@ export async function getProductById(req, res) {
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
+
+    // Ensure ratings summary is consistent
+    const reviewCount = Array.isArray(product.reviews) ? product.reviews.length : 0;
+    const userRatingCount = Array.isArray(product.userRatings) ? product.userRatings.length : 0;
+    const totalRatings = reviewCount + userRatingCount;
+
+    if (totalRatings > 0) {
+      const reviewSum = (product.reviews || []).reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+      const userRatingSum = (product.userRatings || []).reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+      product.ratings = (reviewSum + userRatingSum) / totalRatings;
+      product.numOfReviews = totalRatings;
+    } else {
+      product.ratings = 0;
+      product.numOfReviews = 0;
+    }
+
     res.status(200).json(product);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching product', error: error.message });
@@ -274,3 +290,66 @@ export async function editProduct(req, res) {
     });
   }
 };
+
+// @desc    Rate a product (star-only)
+// @route   POST /api/product/:id/rating
+// @access  Private
+export async function rateProduct(req, res) {
+  try {
+    // Enforce authentication
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+    let { rating } = req.body;
+
+    rating = Number(rating);
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Rating must be a number between 1 and 5' });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found' });
+    }
+
+    // Upsert user's rating
+    const existingIdx = (product.userRatings || []).findIndex(r => String(r.user) === String(req.user.id));
+    if (existingIdx >= 0) {
+      product.userRatings[existingIdx].rating = rating;
+      product.userRatings[existingIdx].updatedAt = new Date();
+    } else {
+      product.userRatings.push({ user: req.user.id, rating, updatedAt: new Date() });
+    }
+
+    // Recompute average rating and count across reviews and userRatings
+    const reviewCount = Array.isArray(product.reviews) ? product.reviews.length : 0;
+    const userRatingCount = Array.isArray(product.userRatings) ? product.userRatings.length : 0;
+    const totalRatings = reviewCount + userRatingCount;
+
+    if (totalRatings > 0) {
+      const reviewSum = (product.reviews || []).reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+      const userRatingSum = (product.userRatings || []).reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
+      product.ratings = (reviewSum + userRatingSum) / totalRatings;
+      product.numOfReviews = totalRatings;
+    } else {
+      product.ratings = 0;
+      product.numOfReviews = 0;
+    }
+
+    await product.save();
+
+    return res.json({
+      success: true,
+      message: 'Rating saved',
+      productId: product._id,
+      rating: product.ratings,
+      ratingsCount: product.numOfReviews
+    });
+  } catch (error) {
+    console.error('Error rating product:', error);
+    return res.status(500).json({ success: false, message: 'Failed to save rating', error: error.message });
+  }
+}

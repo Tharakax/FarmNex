@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, Package, Truck, Calendar, ArrowLeft, Home, Mail, Download } from 'lucide-react';
+import { CheckCircle, Package, Truck, Calendar, ArrowLeft, Home, Mail, Download, Link as LinkIcon } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const { orderId } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [linking, setLinking] = useState(false);
+  const [autoClaimTried, setAutoClaimTried] = useState(false);
 
   useEffect(() => {
     const fetchOrderDetails = async () => {
@@ -30,6 +33,42 @@ export default function PaymentSuccess() {
 
     fetchOrderDetails();
   }, [orderId]);
+
+  const isLoggedIn = !!localStorage.getItem('token');
+  const userEmail = localStorage.getItem('userEmail') || '';
+  const shouldShowClaim = isLoggedIn && order && !order.customerId;
+
+  const handleClaim = async () => {
+    if (!shouldShowClaim) return;
+    try {
+      setLinking(true);
+      const token = localStorage.getItem('token');
+      const resp = await axios.put(
+        `${import.meta.env.VITE_BACKEND_URL}/api/order/claim/${orderId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (resp.data?.success) {
+        setOrder(resp.data.order);
+        toast.success('Order linked to your account');
+        setTimeout(() => navigate('/myorders'), 800);
+      } else {
+        throw new Error(resp.data?.message || 'Failed to link order');
+      }
+    } catch (e) {
+      alert(e.message || 'Failed to link order');
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  // Auto-claim if logged in and order is unlinked
+  useEffect(() => {
+    if (shouldShowClaim && !autoClaimTried && !linking) {
+      setAutoClaimTried(true);
+      handleClaim();
+    }
+  }, [shouldShowClaim, autoClaimTried, linking]);
 
   if (loading) {
     return (
@@ -58,6 +97,25 @@ export default function PaymentSuccess() {
             Order ID: {orderId}
           </p>
         </div>
+
+        {/* Claim banner for guest orders */}
+        {shouldShowClaim && autoClaimTried && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <LinkIcon className="h-5 w-5 text-amber-600 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-amber-800">
+                This order isn’t linked to your account yet. Link it now so it shows in your order history.
+              </p>
+              <button
+                onClick={handleClaim}
+                disabled={linking}
+                className="mt-2 inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60"
+              >
+                {linking ? 'Linking...' : 'Link this order to my account'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Order Summary */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
@@ -195,7 +253,7 @@ export default function PaymentSuccess() {
             Continue Shopping
           </Link>
           <button
-            onClick={() => navigate('/customerdash')}
+            onClick={() => navigate('/myorders')}
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             View Order History

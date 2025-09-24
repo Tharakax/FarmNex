@@ -61,6 +61,21 @@ export default function RecipesPanel() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
 
+  // Quick add section state
+  const [showAdd, setShowAdd] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addForm, setAddForm] = useState({
+    recipeId: '',
+    title: '',
+    description: '',
+    image: '',
+    type: 'Vegetarian',
+    meal: '', // comma separated
+    rating: 0,
+  });
+  const [addError, setAddError] = useState('');
+  const [addSuccess, setAddSuccess] = useState('');
+
   const recipes = useMemo(() => {
     return sampleRecipes.filter((r) => {
       const matchesQuery =
@@ -70,6 +85,45 @@ export default function RecipesPanel() {
       return matchesQuery && matchesCategory;
     });
   }, [query, category]);
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    setAddError('');
+    setAddSuccess('');
+
+    if (!addForm.recipeId || !addForm.title || !addForm.description) {
+      setAddError('Please fill recipeId, title and description');
+      return;
+    }
+
+    try {
+      setAdding(true);
+      const resp = await fetch('http://localhost:3000/api/recipes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          recipeId: addForm.recipeId,
+          title: addForm.title,
+          description: addForm.description,
+          image: addForm.image,
+          type: addForm.type,
+          meal: addForm.meal,
+          rating: Number(addForm.rating) || 0,
+          ingredients: '',
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok || !data.success) {
+        throw new Error(data.message || 'Failed to add recipe');
+      }
+      setAddSuccess('Recipe added successfully. Open Recipe Manager to see it.');
+      setAddForm({ recipeId: '', title: '', description: '', image: '', type: 'Vegetarian', meal: '', rating: 0 });
+    } catch (err) {
+      setAddError(err.message);
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -81,7 +135,40 @@ export default function RecipesPanel() {
           </h2>
           <p className="text-sm text-gray-600">Quick ideas using your farm-fresh products</p>
         </div>
+        <div className="flex items-center gap-2">
+          <a href="/recipes/manage" className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">Open Manager</a>
+          <button onClick={() => setShowAdd((s)=>!s)} className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700">
+            {showAdd ? 'Close Add' : 'Add Recipe'}
+          </button>
+        </div>
       </div>
+
+      {showAdd && (
+        <div className="bg-white border rounded-xl shadow-sm p-4">
+          <h3 className="font-semibold text-gray-900 mb-3">Quick Add Recipe</h3>
+          {addError && <div className="text-red-600 text-sm mb-2">{addError}</div>}
+          {addSuccess && <div className="text-green-600 text-sm mb-2">{addSuccess}</div>}
+          <form onSubmit={handleAddSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input className="border rounded-lg px-3 py-2" placeholder="Recipe ID *" value={addForm.recipeId} onChange={(e)=>setAddForm({...addForm, recipeId:e.target.value})} />
+            <input className="border rounded-lg px-3 py-2" placeholder="Title *" value={addForm.title} onChange={(e)=>setAddForm({...addForm, title:e.target.value})} />
+            <input className="border rounded-lg px-3 py-2 md:col-span-2" placeholder="Description *" value={addForm.description} onChange={(e)=>setAddForm({...addForm, description:e.target.value})} />
+            <input className="border rounded-lg px-3 py-2 md:col-span-2" placeholder="Image URL (optional)" value={addForm.image} onChange={(e)=>setAddForm({...addForm, image:e.target.value})} />
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700">Type</label>
+              <select className="border rounded-lg px-2 py-2" value={addForm.type} onChange={(e)=>setAddForm({...addForm, type:e.target.value})}>
+                <option>Vegetarian</option>
+                <option>Non-Vegetarian</option>
+              </select>
+            </div>
+            <input className="border rounded-lg px-3 py-2" placeholder="Meals (comma separated)" value={addForm.meal} onChange={(e)=>setAddForm({...addForm, meal:e.target.value})} />
+            <input className="border rounded-lg px-3 py-2" type="number" min="0" max="5" step="0.1" placeholder="Rating" value={addForm.rating} onChange={(e)=>setAddForm({...addForm, rating:e.target.value})} />
+            <div className="md:col-span-2 flex justify-end gap-2 mt-1">
+              <button type="button" onClick={()=>{setAddForm({ recipeId:'', title:'', description:'', image:'', type:'Vegetarian', meal:'', rating:0}); setAddError(''); setAddSuccess('');}} className="px-3 py-2 border rounded-lg">Reset</button>
+              <button type="submit" disabled={adding} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60">{adding? 'Adding...' : 'Add Recipe'}</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">

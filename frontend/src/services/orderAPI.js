@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3000/api');
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -18,13 +18,37 @@ export const orderAPI = {
   // Get current user's orders
   getMyOrders: async () => {
     try {
-      // TODO: Replace with proper authentication - this is for testing only
-      const testEmail = 'test@farmnex.com';
-      const response = await fetch(`${API_BASE_URL}/order/test-orders/${testEmail}`, {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Authenticated: use protected endpoint
+        const resp = await fetch(`${API_BASE_URL}/order/my-orders`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (!resp.ok) throw new Error('Failed to fetch orders');
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.message || 'Failed to fetch orders');
+        return { success: true, data: data.orders || [] };
+      }
+
+      // Guest checkout: fall back to contactEmail saved during shipping
+      let guestEmail = null;
+      try {
+        const saved = JSON.parse(localStorage.getItem('orderData') || 'null');
+        guestEmail = saved?.contactEmail || null;
+      } catch {}
+
+      if (!guestEmail) {
+        // Final fallback: nothing we can fetch
+        return { success: true, data: [] };
+      }
+
+      const response = await fetch(`${API_BASE_URL}/order/test-payment-history/${encodeURIComponent(guestEmail)}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
@@ -137,19 +161,25 @@ export const orderAPI = {
           return orderDate.getMonth() === currentMonth && 
                  orderDate.getFullYear() === currentYear;
         })
-        .reduce((total, order) => total + (parseFloat(order.totalAmount) || 0), 0);
+        .reduce((total, order) => {
+          const amount = Number(order.total ?? order.totalAmount ?? order.amount ?? 0);
+          return total + (isNaN(amount) ? 0 : amount);
+        }, 0);
 
       // Get recent orders (last 5, sorted by date)
       const recentOrders = orders
         .sort((a, b) => new Date(b.createdAt || b.orderDate) - new Date(a.createdAt || a.orderDate))
         .slice(0, 5)
-        .map(order => ({
-          id: order._id || order.orderId,
-          date: new Date(order.createdAt || order.orderDate).toISOString().split('T')[0],
-          total: parseFloat(order.totalAmount) || 0,
-          status: order.status || 'Processing',
-          items: order.items?.length || 0
-        }));
+        .map(order => {
+          const amount = Number(order.total ?? order.totalAmount ?? order.amount ?? 0);
+          return {
+            id: order._id || order.orderId,
+            date: new Date(order.createdAt || order.orderDate).toISOString().split('T')[0],
+            total: isNaN(amount) ? 0 : amount,
+            status: order.status || 'Processing',
+            items: order.items?.length || 0
+          };
+        });
 
       return {
         success: true,

@@ -337,3 +337,41 @@ export const deleteOrder = async (req, res) => {
     });
   }
 };
+
+// Claim a guest order and link it to the current authenticated user
+export const claimOrder = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    // If already linked to this user, return OK
+    if (order.customerId && String(order.customerId) === String(req.user._id)) {
+      return res.status(200).json({ success: true, order, message: 'Order already linked to your account' });
+    }
+
+    // If linked to another user, do not allow claiming
+    if (order.customerId && String(order.customerId) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: 'Order is already linked to another account' });
+    }
+
+    // Link the order to the current user
+    order.customerId = req.user._id;
+    if (!order.contactEmail && req.user.email) {
+      order.contactEmail = req.user.email;
+    }
+    order.updatedAt = new Date();
+
+    const updated = await order.save();
+    return res.status(200).json({ success: true, order: updated, message: 'Order linked to your account' });
+  } catch (error) {
+    console.error('Error claiming order:', error);
+    return res.status(500).json({ success: false, message: 'Failed to claim order', error: error.message });
+  }
+};

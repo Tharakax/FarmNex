@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // 
 import { getLoggedInUser, getRoleDisplayName } from '../utils/userUtils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
@@ -123,6 +123,15 @@ const RecipesPanel = React.lazy(() =>
     .catch(error => {
       console.error('Failed to load RecipesPanel:', error);
       return { default: () => <ErrorFallback error={error} componentName="Recipes" /> };
+    })
+);
+
+// Use the existing RecipeList component directly in dashboard
+const RecipeListEmbedded = React.lazy(() =>
+  import('../components/recipes/RecipeList.jsx')
+    .catch(error => {
+      console.error('Failed to load RecipeList:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Recipe List" /> };
     })
 );
 
@@ -452,13 +461,40 @@ const Header = ({ toggleSidebar }) => {
 // Main Dashboard Component
 const FarmerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState('Home');
+  const location = useLocation();
+  const resolveTab = () => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const t = (params.get('tab') || '').toLowerCase();
+      const map = {
+        home: 'Home',
+        products: 'Products',
+        supplies: 'Supplies',
+        inventory: 'Inventory',
+        weather: 'Weather',
+        training: 'Training',
+        recipes: 'Recipes',
+        reports: 'Reports',
+        crop: 'Crop & Livestock',
+        livestock: 'Crop & Livestock',
+        'crop & livestock': 'Crop & Livestock',
+      };
+      return map[t] || 'Home';
+    } catch { return 'Home'; }
+  };
+  const [activeItem, setActiveItem] = useState(resolveTab());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  // Update tab if query param changes
+  React.useEffect(() => {
+    const next = resolveTab();
+    setActiveItem(next);
+  }, [location.search]);
 
   const toggleSidebarCollapse = () => {
     setSidebarCollapsed(!sidebarCollapsed);
@@ -492,8 +528,8 @@ const FarmerDashboard = () => {
           console.log('Rendering ProductManagementReport');
           return <ProductManagementReport />;
         case 'Recipes':
-          console.log('Rendering RecipesPanel');
-          return <RecipesPanel />;
+          console.log('Rendering RecipeList in dashboard');
+          return <RecipeListEmbedded showHeader={false} />;
         case 'Settings':
           console.log('Rendering Settings');
           return <div className="p-6 bg-white rounded-lg shadow"><h2 className="text-xl font-semibold mb-4">Settings</h2><p>Settings panel is under development.</p></div>;

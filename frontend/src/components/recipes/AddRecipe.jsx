@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navigation from "../navigation";
 import MediaUpload from "../../utils/medialUpload";
-import StarRating from "./StarRating";
+import { Clock, ChevronLeft } from 'lucide-react';
 
 const MEAL_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Snacks", "Dessert"];
 const TYPE_OPTIONS = ["Vegetarian", "Non-Vegetarian"];
@@ -11,13 +11,12 @@ const TYPE_OPTIONS = ["Vegetarian", "Non-Vegetarian"];
 export default function AddRecipe() {
   const nav = useNavigate();
   const [inputs, setInputs] = useState({
-    recipeId: "",
     title: "",
     description: "",
     ingredients: "",
     type: "Vegetarian",
     meal: [],
-    rating: 0,
+    time: "",
     image: "",
   });
 
@@ -29,12 +28,6 @@ export default function AddRecipe() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!inputs.recipeId.trim()) {
-      newErrors.recipeId = "Recipe ID is required";
-    } else if (!/^[A-Za-z0-9-]+$/.test(inputs.recipeId)) {
-      newErrors.recipeId =
-        "Recipe ID can only contain letters, numbers, and hyphens";
-    }
 
     if (!inputs.title.trim()) {
       newErrors.title = "Title is required";
@@ -59,6 +52,10 @@ export default function AddRecipe() {
 
     if (inputs.meal.length === 0) {
       newErrors.meal = "Please select at least one meal type";
+    }
+
+    if (!inputs.time.trim()) {
+      newErrors.time = "Please provide the time (e.g., 30 mins)";
     }
 
     if (!imageFile && !inputs.image) {
@@ -145,7 +142,6 @@ export default function AddRecipe() {
       }
 
       const payload = {
-        recipeId: inputs.recipeId,
         image: imageUrl,
         title: inputs.title,
         description: inputs.description,
@@ -154,7 +150,7 @@ export default function AddRecipe() {
         meal: Array.isArray(inputs.meal)
           ? inputs.meal
           : String(inputs.meal).split(","),
-        rating: Number(inputs.rating) || 0,
+        time: inputs.time,
       };
 
       await axios.post("http://localhost:3000/api/recipes", payload, {
@@ -182,11 +178,31 @@ export default function AddRecipe() {
     <div>
       <Navigation />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-36 md:pt-32">
-        <h1 className="text-3xl font-extrabold tracking-tight mb-6">
-          <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
-            Create Recipe
-          </span>
-        </h1>
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            type="button"
+            aria-label="Go back"
+            onClick={() => {
+              try {
+                if (window.history.length > 1) {
+                  nav(-1);
+                } else {
+                  nav('/farmerdashboard?tab=recipes', { replace: true });
+                }
+              } catch (err) {
+                nav('/farmerdashboard?tab=recipes', { replace: true });
+              }
+            }}
+            className="inline-flex items-center justify-center p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 active:scale-[0.98] transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
+              Create Recipe
+            </span>
+          </h1>
+        </div>
 
         <form
           onSubmit={onSubmit}
@@ -201,13 +217,12 @@ export default function AddRecipe() {
               type="button"
               onClick={() => {
                 setInputs({
-                  recipeId: "",
                   title: "",
                   description: "",
                   ingredients: "",
                   type: "Vegetarian",
                   meal: [],
-                  rating: 0,
+                  time: "",
                   image: "",
                 });
                 setErrors({});
@@ -222,23 +237,6 @@ export default function AddRecipe() {
 
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Recipe ID *
-                </label>
-                <input
-                  name="recipeId"
-                  value={inputs.recipeId}
-                  onChange={onChange}
-                  className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
-                    errors.recipeId ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="e.g. RCP-1001"
-                />
-                {errors.recipeId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.recipeId}</p>
-                )}
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -392,15 +390,39 @@ export default function AddRecipe() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-gray-200 p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rating (optional)
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Time *
                 </label>
-                <StarRating
-                  value={inputs.rating}
-                  onChange={(n) => setInputs((s) => ({ ...s, rating: n }))}
-                />
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    name="time"
+                    value={inputs.time}
+                    onChange={onChange}
+                    className={`w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
+                      errors.time ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="e.g. 30 mins"
+                  />
+                </div>
+                <div className="mt-2 flex gap-2 flex-wrap">
+                  {['10 mins','20 mins','30 mins','45 mins','60 mins'].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setInputs((s) => ({ ...s, time: t }))}
+                      className={`px-3 py-1 rounded-full text-xs border ${inputs.time===t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                {errors.time && (
+                  <p className="mt-1 text-sm text-red-600">{errors.time}</p>
+                )}
               </div>
+
             </div>
           </div>
 
