@@ -39,6 +39,7 @@ import { getCart } from '../../../utils/cart';
 import { orderAPI } from '../../../services/orderAPI';
 import toast from 'react-hot-toast';
 import { FaLeaf } from 'react-icons/fa';
+import { handleImageError, getUserAvatarPlaceholder } from '../../../utils/imageUtils';
 
 const CustomerDashboard = () => {
   const navigate = useNavigate(); 
@@ -63,7 +64,7 @@ const CustomerDashboard = () => {
     email: '',
     phone: '+94 77 123 4567', // Default placeholder
     address: 'No 123, Main Street, Colombo 03', // Default placeholder
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+    avatar: getUserAvatarPlaceholder('User')
   });
 
   // Load real user data from authentication
@@ -433,6 +434,7 @@ const CustomerDashboard = () => {
                     src={user.avatar}
                     alt={user.name}
                     className="w-8 h-8 rounded-full"
+                    onError={(e) => handleImageError(e, 32, 32, user.name)}
                   />
                   <span className="hidden md:block font-medium text-gray-700">{user.name}</span>
                 </button>

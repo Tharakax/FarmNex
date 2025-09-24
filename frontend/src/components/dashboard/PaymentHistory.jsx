@@ -13,6 +13,7 @@ import {
   Search
 } from 'lucide-react';
 import paymentAPI from '../../services/paymentAPI';
+import { handleImageError, getProductPlaceholder } from '../../utils/imageUtils';
 
 const PaymentHistory = () => {
   const [payments, setPayments] = useState([]);
@@ -413,9 +414,10 @@ Thank you for your business!
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-3">
                         <img 
-                          src={item.image || 'https://via.placeholder.com/40x40/gray/white?text=Item'} 
+                          src={item.image || getProductPlaceholder(item.name || 'Item')} 
                           alt={item.name}
                           className="w-10 h-10 rounded object-cover"
+                          onError={(e) => handleImageError(e, 40, 40, item.name || 'Item')}
                         />
                         <div>
                           <p className="font-medium text-sm">{item.name}</p>

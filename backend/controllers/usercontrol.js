@@ -4,9 +4,31 @@ import jwt from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";
 import crypto from "crypto";
 
-// Get all users 
+// Helper function for role checking (case-insensitive)
+const isAdmin = (userRole) => {
+  const role = userRole?.toLowerCase();
+  return role === 'admin' || role === 'superadmin';
+};
+
+// Get all users - SECURED: Admin only
 export const getAllUsers = async (req, res, next) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access
+    if (!isAdmin(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. Admin privileges required.' 
+      });
+    }
+
     const users = await User.find(); //fetch all user collection from DB
     //await → waits until DB finishes fetching
     if (!users || users.length === 0) {
@@ -301,10 +323,29 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
-// Get user by id
+// Get user by id - SECURED: Own profile or admin only
 export const getById = async (req, res, next) => {
   const id = req.params.id;
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Users can only view their own profile or admin can view any
+    const isOwner = String(req.user._id) === String(id) || String(req.user.id) === String(id);
+    const userIsAdmin = isAdmin(req.user.role);
+    
+    if (!isOwner && !userIsAdmin) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. You can only view your own profile.' 
+      });
+    }
+
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
     return res.status(200).json({ user });
@@ -312,14 +353,33 @@ export const getById = async (req, res, next) => {
     console.log(err);
     return res.status(500).json({ message: "Error retrieving user" });
   }
-};           
+};
 
-// Update user by id
+// Update user by id - SECURED: Own profile or admin only
 export const updateUser = async (req, res, next) => {
   const id = req.params.id;
   const { fullName, phone, age, username, address } = req.body;
 
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Users can only update their own profile or admin can update any
+    const isOwner = String(req.user._id) === String(id) || String(req.user.id) === String(id);
+    const userIsAdmin = isAdmin(req.user.role);
+    
+    if (!isOwner && !userIsAdmin) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. You can only update your own profile.' 
+      });
+    }
+
     const user = await User.findByIdAndUpdate(
       id,
       { fullName, phone, age, username, address },
@@ -333,10 +393,34 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-// Delete user by ID
+// Delete user by ID - SECURED: Admin only (users cannot delete themselves for data integrity)
 export const deleteUser = async (req, res, next) => {
   const id = req.params.id;
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only for user deletion
+    if (!isAdmin(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. Admin privileges required for user deletion.' 
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (String(req.user._id) === String(id) || String(req.user.id) === String(id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Cannot delete your own account.' 
+      });
+    }
+
     const user = await User.findByIdAndDelete(id);
     if (!user) return res.status(400).json({ message: "User not deleted" });
     return res.status(200).json({ user });
@@ -375,6 +459,78 @@ export const changePassword = async (req, res, next) => {
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: "Failed to change password" });
+  }
+};
+
+// exports
+// Direct login for frontend (password-based without OTP)
+export const directLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    console.log(`🔐 Direct login attempt for: ${email}`);
+    
+    // Normalize email
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      console.log(`❌ User not found: ${email}`);
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
+
+    console.log(`👤 User found: ${user.email} (Role: ${user.role})`);
+
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      console.log(`❌ Invalid password for: ${email}`);
+      return res.status(401).json({ 
+        success: false,
+        message: "Invalid credentials" 
+      });
+    }
+
+    console.log(`✅ Password correct for: ${email}`);
+
+    // Generate JWT token directly (no OTP required)
+    const token = jwt.sign(
+      { 
+        id: user._id,
+        userId: user._id,
+        name: user.fullName,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    console.log(`🎫 JWT token generated for: ${email}`);
+    console.log(`🚀 Login successful for: ${user.email} (Role: ${user.role})`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.fullName,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.error("Direct login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Login failed",
+      error: error.message
+    });
   }
 };
 

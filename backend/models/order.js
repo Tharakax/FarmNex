@@ -8,7 +8,7 @@ const orderSchema = new mongoose.Schema({
   },
   items: [{
     productId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and String
       required: true,
     },
     name: {

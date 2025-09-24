@@ -14,16 +14,13 @@ import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getAllUsers); // Get all users
-router.post("/", addAllUsers); // Add user
-router.post("/login", loginUser); // Login route sends OTP
-router.get("/:id", getById);
-router.put("/:id", updateUser); // Update user
-router.delete("/:id", deleteUser); // Delete user
+router.get("/", getAllUsers); // Get all users - SECURED by global middleware
+router.post("/", addAllUsers); // Add user - for admins to create users  
+router.get("/:id", getById); // SECURED by global middleware
+router.put("/:id", updateUser); // Update user - SECURED by global middleware
+router.delete("/:id", deleteUser); // Delete user - SECURED by global middleware
 
-router.post("/login-otp-step1", loginWithOTPStep1);  
-router.post("/verifyOTP", verifyOTP);  
-router.post("/verify-otp", verifyOTP);  
+// Login routes moved to public routes in main app
 
 router.post("/change-password", authMiddleware, changePassword); // Change password for user
 

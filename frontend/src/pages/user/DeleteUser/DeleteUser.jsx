@@ -16,7 +16,11 @@ function DeleteUser() {
       }
 
       try {
-        await axios.delete(`http://localhost:3000/users/${id}`);
+        // Get JWT token for authentication
+        const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        await axios.delete(`http://localhost:3000/users/${id}`, { headers });
         //alert('User deleted successfully!');
         toast.success("User deleted successfully!");
         navigate('/userdetails');

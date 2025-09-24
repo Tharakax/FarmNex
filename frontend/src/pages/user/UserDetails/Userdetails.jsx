@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Search, Download, Users, UserCheck, Shield, Truck, Package, User, X, Filter } from 'lucide-react';
+import { 
+  ArrowLeft, Search, Download, Users, UserCheck, Shield, Truck, Package, 
+  User, X, Filter, Mail, Phone, Calendar, MapPin, Edit, Trash, Plus, FileText
+} from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import AdminHeader from '../../../components/AdminHeader';
 
 // User Card Component
 const UserCard = ({ user, onEdit, onDelete }) => {
@@ -19,71 +23,117 @@ const UserCard = ({ user, onEdit, onDelete }) => {
 
   const getRoleBadgeColor = (role) => {
     switch (role) {
-      case 'Admin': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Manager': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'FarmStaff': return 'bg-green-100 text-green-800 border-green-200';
-      case 'DeliveryStaff': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Customer': return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'Admin': return 'bg-red-50 text-red-700 border-red-100 shadow-red-100/40';
+      case 'Manager': return 'bg-blue-50 text-blue-700 border-blue-100 shadow-blue-100/40';
+      case 'FarmStaff': return 'bg-green-50 text-green-700 border-green-100 shadow-green-100/40';
+      case 'DeliveryStaff': return 'bg-orange-50 text-orange-700 border-orange-100 shadow-orange-100/40';
+      case 'Customer': return 'bg-purple-50 text-purple-700 border-purple-100 shadow-purple-100/40';
+      default: return 'bg-gray-50 text-gray-700 border-gray-100 shadow-gray-100/40';
+    }
+  };
+
+  const getRoleIconBgColor = (role) => {
+    switch (role) {
+      case 'Admin': return 'bg-red-100';
+      case 'Manager': return 'bg-blue-100';
+      case 'FarmStaff': return 'bg-green-100';
+      case 'DeliveryStaff': return 'bg-orange-100';
+      case 'Customer': return 'bg-purple-100';
+      default: return 'bg-gray-100';
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 p-6 user-card">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-            {user.fullName.charAt(0).toUpperCase()}
+    <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 overflow-hidden">
+      {/* Card Header with Avatar and Role Badge */}
+      <div className="p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+              {user.fullName?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">{user.fullName}</h3>
+              <div className="flex items-center text-gray-500 text-sm mt-0.5">
+                <Mail className="w-3.5 h-3.5 mr-1" />
+                <span className="truncate max-w-[180px]">{user.email}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">{user.fullName}</h3>
-            <p className="text-gray-600 text-sm">{user.email}</p>
+          
+          <div className={`flex items-center px-3 py-1.5 rounded-full border shadow-sm ${getRoleBadgeColor(user.role)}`}>
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center mr-1.5 ${getRoleIconBgColor(user.role)}`}>
+              {getRoleIcon(user.role)}
+            </div>
+            <span className="text-sm font-medium">{user.role}</span>
           </div>
-        </div>
-        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${getRoleBadgeColor(user.role)}`}>
-          {getRoleIcon(user.role)}
-          <span className="text-sm font-medium">{user.role}</span>
         </div>
       </div>
       
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between">
-          <span className="text-gray-600">UserName:</span>
-          <span className="text-green-600 font-medium">{user.username}</span>
+      {/* Card Body with User Details */}
+      <div className="p-5 bg-gray-50 space-y-3">
+        {/* Username */}
+        <div className="flex items-center text-sm">
+          <div className="w-8 flex justify-center">
+            <User className="w-4 h-4 text-gray-400" />
+          </div>
+          <span className="text-gray-500 w-24">Username:</span>
+          <span className="text-gray-800 font-medium flex-1">{user.username}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Email:</span>
-          <span className="text-green-600 font-medium">{user.email}</span>
+        
+        {/* Phone */}
+        <div className="flex items-center text-sm">
+          <div className="w-8 flex justify-center">
+            <Phone className="w-4 h-4 text-gray-400" />
+          </div>
+          <span className="text-gray-500 w-24">Phone:</span>
+          <span className="text-gray-800 font-medium flex-1">{user.phone || 'Not provided'}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Phone:</span>
-          <span className="text-green-600 font-medium">{user.phone}</span>
+        
+        {/* Age */}
+        <div className="flex items-center text-sm">
+          <div className="w-8 flex justify-center">
+            <Calendar className="w-4 h-4 text-gray-400" />
+          </div>
+          <span className="text-gray-500 w-24">Age:</span>
+          <span className="text-gray-800 font-medium flex-1">{user.age || 'Not provided'}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Age:</span>
-          <span className="text-green-600 font-medium">{user.age}</span>
+        
+        {/* Address */}
+        <div className="flex items-center text-sm">
+          <div className="w-8 flex justify-center">
+            <MapPin className="w-4 h-4 text-gray-400" />
+          </div>
+          <span className="text-gray-500 w-24">Address:</span>
+          <span className="text-gray-800 font-medium flex-1 truncate">{user.address || 'Not provided'}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Address:</span>
-          <span className="text-green-600 font-medium">{user.address}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-600">Join Date:</span>
-          <span className="text-green-600 font-medium">{user.createdAt}</span>
+        
+        {/* Join Date */}
+        <div className="flex items-center text-sm">
+          <div className="w-8 flex justify-center">
+            <FileText className="w-4 h-4 text-gray-400" />
+          </div>
+          <span className="text-gray-500 w-24">Join Date:</span>
+          <span className="text-gray-800 font-medium flex-1">
+            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Not available'}
+          </span>
         </div>
       </div>
-
-      <div className="flex space-x-2">
+      
+      {/* Card Footer with Action Buttons */}
+      <div className="p-4 flex space-x-2 border-t border-gray-100">
         <button
           onClick={onEdit}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 font-medium"
+          className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2.5 px-4 rounded-lg transition-colors duration-200 font-medium flex items-center justify-center"
         >
+          <Edit className="w-4 h-4 mr-1.5" />
           Edit
         </button>
         <button
           onClick={onDelete}
-          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 font-medium"
+          className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2.5 px-4 rounded-lg transition-colors duration-200 font-medium flex items-center justify-center"
         >
+          <Trash className="w-4 h-4 mr-1.5" />
           Delete
         </button>
       </div>
@@ -107,7 +157,21 @@ function SmartFarmingUserDetails() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:3000/users'); 
+        
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
+        console.log('Token found:', token ? 'Yes' : 'No');
+        
+        if (!token) {
+          throw new Error('No authentication token found. Please log in again.');
+        }
+        
+        const response = await axios.get('http://localhost:3000/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }); 
         console.log("Fetched users:", response.data);
         
         // Match the data structure from your working component
@@ -115,7 +179,16 @@ function SmartFarmingUserDetails() {
         setError(null);
       } catch (error) {
         console.error('Failed to fetch users:', error);
-        setError('Failed to load users. Please try again later.');
+        
+        if (error.response?.status === 401) {
+          setError('Authentication failed. Please log in again.');
+          // Optionally redirect to login
+          // window.location.href = '/login';
+        } else if (error.response?.status === 403) {
+          setError('Access denied. Admin privileges required.');
+        } else {
+          setError(error.message || 'Failed to load users. Please try again later.');
+        }
         setAllUsers([]);
       } finally {
         setLoading(false);
@@ -134,7 +207,11 @@ function SmartFarmingUserDetails() {
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(`http://localhost:3000/users/${user._id}`);
+      // Get JWT token for authentication
+      const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      
+      await axios.delete(`http://localhost:3000/users/${user._id}`, { headers });
       setAllUsers(allUsers.filter(u => u._id !== user._id));
       //alert("User deleted successfully!");
       toast.success("User deleted successfully!");
@@ -354,46 +431,42 @@ function SmartFarmingUserDetails() {
   // ... (keep the rest of your return JSX)
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleBackToAdmin}
-                className="flex items-center space-x-2 text-gray-600 hover:text-green-600 transition-colors duration-200"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium">Back to Admin</span>
-              </button>
-              <div className="h-6 border-l border-gray-300"></div>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">🌱</span>
+      {/* Clean Header Component */}
+      <AdminHeader 
+        title="User Management"
+        subtitle="Manage your smart farming team members and customers"
+        showBackButton={true}
+        backButtonText="Back to Admin"
+        backButtonPath="/admin"
+        showSearch={false}
+      />
+
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-12">
+        {/* Page Stats Summary */}
+        <div className="mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+                  <Users className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-800">Farm Nex</span>
+                <div>
+                  <p className="text-sm text-gray-500">Total System Users</p>
+                  <p className="text-2xl font-bold text-gray-900">{allUsers.length}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Welcome, Admin</span>
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <User className="w-5 h-5 text-white" />
+              <div className="text-right">
+                <p className="text-sm text-gray-500">Active Now</p>
+                <p className="text-lg font-semibold text-green-600">{allUsers.filter(user => user.status !== 'Inactive').length}</p>
               </div>
             </div>
           </div>
         </div>
-      </nav>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">User Management</h1>
-          <p className="text-gray-600">Manage your smart farming team members and customers</p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-8">
-          <div className="max-w-md mx-auto relative">
+        {/* Search and Action Bar */}
+        <div className="mb-8 flex flex-col sm:flex-row justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
             </div>
@@ -413,60 +486,128 @@ function SmartFarmingUserDetails() {
               </button>
             )}
           </div>
+          
+          <button
+            onClick={() => navigate('/adduser')}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-5 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center font-medium"
+          >
+            <Plus className="w-5 h-5 mr-1.5" />
+            Add New User
+          </button>
         </div>
 
         {/* Role Filter Tabs */}
-        <div className="mb-8">
-          <div className="flex flex-wrap justify-center space-x-2 space-y-2 sm:space-y-0">
-            {roles.map(role => (
-              <button
-                key={role}
-                className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  activeRole === role
-                    ? 'bg-green-600 text-white shadow-lg transform scale-105'
-                    : 'bg-white text-gray-700 hover:bg-green-50 hover:text-green-600 border border-gray-300'
-                }`}
-                onClick={() => setActiveRole(role)}
-              >
-                <Filter className="w-4 h-4 mr-2" />
-                {getRoleDisplayName(role)} ({getRoleCount(role)})
-              </button>
-            ))}
+        <div className="mb-6">
+          <div className="flex flex-wrap justify-center gap-2 mb-1">
+            {roles.map(role => {
+              const isActive = activeRole === role;
+              return (
+                <button
+                  key={role}
+                  className={`inline-flex items-center px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-md transform translate-y-[-2px]'
+                      : 'bg-white text-gray-700 hover:bg-green-50 hover:text-green-600 border border-gray-200 hover:border-green-200 shadow-sm'
+                  }`}
+                  onClick={() => setActiveRole(role)}
+                >
+                  {isActive ? (
+                    <>
+                      <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center mr-2">
+                        <Filter className="w-3.5 h-3.5 text-white" />
+                      </span>
+                      {getRoleDisplayName(role)}
+                      <span className="ml-1.5 bg-white/20 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {getRoleCount(role)}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Filter className="w-4 h-4 mr-2 text-gray-400" />
+                      {getRoleDisplayName(role)}
+                      <span className="ml-1.5 bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">
+                        {getRoleCount(role)}
+                      </span>
+                    </>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          {roles.slice(1).map(role => (
-            <div key={role} className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">{getRoleDisplayName(role)}</p>
-                  <p className="text-2xl font-bold text-gray-900">{getRoleCount(role)}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+          {roles.slice(1).map(role => {
+            const roleColors = {
+              'Admin': 'from-red-500 to-red-600 shadow-red-200',
+              'Manager': 'from-blue-500 to-blue-600 shadow-blue-200',
+              'FarmStaff': 'from-green-500 to-green-600 shadow-green-200',
+              'DeliveryStaff': 'from-orange-500 to-orange-600 shadow-orange-200',
+              'Customer': 'from-purple-500 to-purple-600 shadow-purple-200'
+            };
+            
+            const getRoleIcon = () => {
+              switch(role) {
+                case 'Admin': return <Shield className="w-6 h-6" />;
+                case 'Manager': return <UserCheck className="w-6 h-6" />;
+                case 'FarmStaff': return <Package className="w-6 h-6" />;
+                case 'DeliveryStaff': return <Truck className="w-6 h-6" />;
+                case 'Customer': return <User className="w-6 h-6" />;
+                default: return <Users className="w-6 h-6" />;
+              }
+            };
+            
+            return (
+              <div 
+                key={role} 
+                className="bg-white rounded-xl shadow-md p-4 border border-gray-100 hover:shadow-lg transition-shadow duration-200"
+                onClick={() => setActiveRole(role)}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">{getRoleDisplayName(role)}</p>
+                    <p className="text-2xl font-bold text-gray-800 mt-1">{getRoleCount(role)}</p>
+                  </div>
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${roleColors[role]} flex items-center justify-center text-white shadow-sm`}>
+                    {getRoleIcon()}
+                  </div>
                 </div>
-                <div className="text-green-500">
-                  {role === 'Admin' && <Shield className="w-6 h-6" />}
-                  {role === 'Manager' && <UserCheck className="w-6 h-6" />}
-                  {role === 'FarmStaff' && <Package className="w-6 h-6" />}
-                  {role === 'DeliveryStaff' && <Truck className="w-6 h-6" />}
-                  {role === 'Customer' && <User className="w-6 h-6" />}
+                <div className="mt-2 pt-2 border-t border-gray-50">
+                  <div className="text-xs font-medium text-gray-500">
+                    {getRoleCount(role) === 0 ? 'No users' : 
+                     getRoleCount(role) === 1 ? '1 user' : 
+                     `${getRoleCount(role)} users`}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Results */}
         {noResult ? (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-            <p className="text-gray-600">Try adjusting your search or filter criteria</p>
+          <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gray-50 rounded-full flex items-center justify-center">
+              <Users className="w-10 h-10 text-gray-300" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">No users found</h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-6">We couldn't find any users matching your criteria. Try adjusting your search or filter settings.</p>
+            <button 
+              onClick={() => {
+                setSearchQuery("");
+                setActiveRole("All");
+              }}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors duration-200"
+            >
+              <X className="w-4 h-4 mr-1.5" />
+              Clear Filters
+            </button>
           </div>
         ) : (
           <>
             {/* User Grid */}
-            <div ref={ComponentsRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div ref={ComponentsRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
               {filteredUsers.map((user) => (
                 <UserCard
                   key={user._id}
@@ -477,13 +618,21 @@ function SmartFarmingUserDetails() {
               ))}
             </div>
 
-            {/* Download Report Button */}
-            <div className="text-center">
+            {/* Results Stats and Download Report Button */}
+            <div className="flex flex-col sm:flex-row items-center justify-between bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <div className="mb-4 sm:mb-0 text-center sm:text-left">
+                <p className="text-gray-500 text-sm">Showing <span className="font-semibold text-gray-800">{filteredUsers.length}</span> users</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  {activeRole !== "All" ? `Filtered by ${activeRole} role` : "Showing all roles"}
+                  {searchQuery ? ` • Search: "${searchQuery}"` : ""}
+                </p>
+              </div>
+              
               <button
                 onClick={handlePrint}
-                className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                className="inline-flex items-center px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-lg shadow hover:shadow-md transform hover:translate-y-[-1px] transition-all duration-200"
               >
-                <Download className="w-5 h-5 mr-2" />
+                <Download className="w-4 h-4 mr-2" />
                 Download Report ({filteredUsers.length} users)
               </button>
             </div>

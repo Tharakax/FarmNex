@@ -52,9 +52,17 @@ export const createOrder = async (req, res) => {
 
 
 
-// Get order by ID
+// Get order by ID - SECURED: Only owner or admin can access
 export const getOrderById = async (req, res) => {
   try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
     const order = await Order.findById(req.params.id)
       .populate('customerId', 'name email')
       .populate('items.productId', 'name price');
@@ -63,6 +71,18 @@ export const getOrderById = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Order not found'
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Verify user owns this order or is admin
+    const isOwner = order.customerId && String(order.customerId._id) === String(req.user._id);
+    const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+    if (!isOwner && !isOwnerByEmail && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only view your own orders.'
       });
     }
 
@@ -147,11 +167,31 @@ export const savePayment = async (req, res) => {
     const { id } = req.params;
     const { paymentMethod, paymentCompleted, paymentDetails } = req.body;
 
+    // 🔒 SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
     const order = await Order.findById(id);
     if (!order) {
       return res.status(404).json({
         success: false,
         message: 'Order not found'
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Verify user owns this order
+    const isOwner = order.customerId && String(order.customerId) === String(req.user._id);
+    const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+    if (!isOwner && !isOwnerByEmail && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only modify your own orders.'
       });
     }
 
@@ -180,7 +220,7 @@ export const savePayment = async (req, res) => {
   }
 };
 
-// Updated saveShipping controller function
+// Updated saveShipping controller function - SECURED
 export const saveShipping = async (req, res) => {
   try {
     const { id } = req.params;
@@ -192,6 +232,14 @@ export const saveShipping = async (req, res) => {
       billingAddress,
       notes
     } = req.body;
+
+    // 🔒 SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
     // Validate required fields
     if (!contactName || !contactEmail || !contactPhone) {
@@ -216,6 +264,18 @@ export const saveShipping = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Order not found'
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Verify user owns this order
+    const isOwner = order.customerId && String(order.customerId) === String(req.user._id);
+    const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+    if (!isOwner && !isOwnerByEmail && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only modify your own orders.'
       });
     }
 
@@ -247,9 +307,24 @@ export const saveShipping = async (req, res) => {
 };
 // Add these functions to your orderController.js
 
-// Get all orders (admin only)
+// Get all orders - SECURED: Admin only
 export const getAllOrders = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Only admins can view all orders
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
     const orders = await Order.find()
       .sort({ createdAt: -1 })
       .populate('customerId', 'firstName lastName email');
@@ -302,15 +377,35 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-// Delete an order
+// Delete an order - SECURED
 export const deleteOrder = async (req, res) => {
   try {
+    // 🔒 SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
     const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({
         success: false,
         message: 'Order not found'
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Verify user owns this order or is admin
+    const isOwner = order.customerId && String(order.customerId) === String(req.user._id);
+    const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+
+    if (!isOwner && !isOwnerByEmail && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only delete your own orders.'
       });
     }
 

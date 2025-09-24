@@ -7,9 +7,25 @@ import FarmSupply from '../models/farmSupply.js';
  * Handles all report-related operations including sales, inventory, products, and supplies reports
  */
 
-// Get Sales Report Data
+// Get Sales Report Data - SECURED: Admin only
 export const getSalesReport = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access to sensitive business reports
+    if (req.user.role !== 'admin' && req.user.role !== 'Admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required for business reports.'
+      });
+    }
+
     const { dateRange = '30', category = 'all' } = req.query;
     const daysAgo = parseInt(dateRange);
     const startDate = new Date();
@@ -142,9 +158,25 @@ export const getSalesReport = async (req, res) => {
   }
 };
 
-// Get Inventory Report Data
+// Get Inventory Report Data - SECURED: Admin only
 export const getInventoryReport = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access to sensitive inventory reports
+    if (req.user.role !== 'admin' && req.user.role !== 'Admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required for inventory reports.'
+      });
+    }
+
     const { dateRange = '30', status = 'all' } = req.query;
     
     // Build query filter
@@ -257,9 +289,25 @@ export const getInventoryReport = async (req, res) => {
   }
 };
 
-// Get Product Performance Report Data
+// Get Product Performance Report Data - SECURED: Admin only
 export const getProductPerformanceReport = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access
+    if (req.user.role !== 'admin' && req.user.role !== 'Admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required for product performance reports.'
+      });
+    }
+
     const { dateRange = '30', sortBy = 'revenue' } = req.query;
     const daysAgo = parseInt(dateRange);
     const startDate = new Date();
@@ -366,9 +414,25 @@ export const getProductPerformanceReport = async (req, res) => {
   }
 };
 
-// Get Farm Supplies Report Data
+// Get Farm Supplies Report Data - SECURED: Admin only
 export const getSuppliesReport = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access
+    if (req.user.role !== 'admin' && req.user.role !== 'Admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required for supplies reports.'
+      });
+    }
+
     const { dateRange = '30', category = 'all' } = req.query;
     const daysAgo = parseInt(dateRange);
     const startDate = new Date();
@@ -505,9 +569,25 @@ export const getSuppliesReport = async (req, res) => {
   }
 };
 
-// Get Overview Dashboard Data
+// Get Overview Dashboard Data - SECURED: Admin only
 export const getOverviewReport = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access
+    if (req.user.role !== 'admin' && req.user.role !== 'Admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required for overview reports.'
+      });
+    }
+
     const { dateRange = '30' } = req.query;
     const daysAgo = parseInt(dateRange);
     const startDate = new Date();
@@ -600,9 +680,25 @@ export const getOverviewReport = async (req, res) => {
   }
 };
 
-// Get Report Statistics
+// Get Report Statistics - SECURED: Admin only
 export const getReportStats = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access
+    if (req.user.role !== 'admin' && req.user.role !== 'Admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required for report statistics.'
+      });
+    }
+
     // Mock statistics (in a real app, you'd track report generation)
     const responseData = {
       totalReports: 156,
@@ -626,9 +722,25 @@ export const getReportStats = async (req, res) => {
   }
 };
 
-// Export Report Data (placeholder)
+// Export Report Data - SECURED: Admin only
 export const exportReport = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only access
+    if (req.user.role !== 'admin' && req.user.role !== 'Admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required for report exports.'
+      });
+    }
+
     const { type, format, dateRange } = req.query;
     
     // This is a placeholder - in a real implementation, you'd:

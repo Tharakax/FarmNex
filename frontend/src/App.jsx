@@ -2,6 +2,8 @@ import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import './App.css';
+// Import axios configuration for global authentication
+import './utils/axiosConfig';
 import PaymentCardsManager from './pages/payment/PaymentCards.jsx';
 import MyOrders from './pages/payment/MyOrders.jsx';
 import ViewOrder from './pages/payment/ViewOrder.jsx';
@@ -50,6 +52,7 @@ const ChangePassword = React.lazy(() => import('./pages/user/UserProfile/ChangeP
 const OTPVerifyPage = React.lazy(() => import('./pages/user/Login/OTPVerifyPage.jsx'));
 const AdminDash = React.lazy(() => import('./pages/user/Home/AdminDash.jsx'));
 const CustomerDashboard = React.lazy(() => import('./pages/user/Home/Home.jsx')); // customer dashboard
+const ImageTest = React.lazy(() => import('./components/debug/ImageTest.jsx')); // debug component
 const UserQA = React.lazy(() => import('./pages/user/QAManagement/UserQA.jsx')); //QA
 const AdminQA = React.lazy(() => import('./pages/user/QAManagement/AdminQA.jsx')); //QA
 
@@ -152,6 +155,7 @@ function App() {
             <Route path="/otp" element={<OTPVerifyPage />} />
             <Route path="/admin" element={<AdminDash />} />
             <Route path="/customerdash" element={<CustomerDashboard />} />
+            <Route path="/test-images" element={<ImageTest />} />
 
             {/* Feedback functionality is integrated into customer dashboard */}
             {/* Standalone feedback routes removed - use /customerdash instead */}

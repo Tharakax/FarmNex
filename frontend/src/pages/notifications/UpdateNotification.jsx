@@ -3,7 +3,7 @@ import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "../../components/navigation";
 
-const AUDIENCE_OPTIONS = ["FARMER", "USER", "BOTH"];
+const AUDIENCE_OPTIONS = ["FARMER", "USER", "ADMIN", "BOTH", "ALL"];
 const TYPE_OPTIONS = ["ALERT", "OFFER", "UPDATE"];
 const PRIORITY_OPTIONS = ["HIGH", "MEDIUM", "LOW"];
 
@@ -18,6 +18,8 @@ export default function UpdateNotification() {
     audience: "USER",
     type: "UPDATE",
     priority: "MEDIUM",
+    sendEmail: false,
+    emailSent: false,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,6 +38,8 @@ export default function UpdateNotification() {
           audience: n.audience || "USER",
           type: n.type || "UPDATE",
           priority: n.priority || "MEDIUM",
+          sendEmail: n.sendEmail || false,
+          emailSent: n.emailSent || false,
         });
       } catch (err) {
         console.error("Failed to fetch notification:", err);
@@ -46,12 +50,6 @@ export default function UpdateNotification() {
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!inputs.notificationId.trim()) {
-      newErrors.notificationId = "Notification ID is required";
-    } else if (!/^[A-Za-z0-9-]+$/.test(inputs.notificationId)) {
-      newErrors.notificationId = "Notification ID can only contain letters, numbers, and hyphens";
-    }
 
     if (!inputs.title.trim()) {
       newErrors.title = "Title is required";
@@ -74,8 +72,9 @@ export default function UpdateNotification() {
   };
 
   const onChange = (e) => {
-    const { name, value } = e.target;
-    setInputs((s) => ({ ...s, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    setInputs((s) => ({ ...s, [name]: newValue }));
 
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -99,12 +98,12 @@ export default function UpdateNotification() {
     setIsSubmitting(true);
     try {
       const payload = {
-        notificationId: inputs.notificationId,
         title: inputs.title,
         body: inputs.body,
         audience: inputs.audience,
         type: inputs.type,
         priority: inputs.priority,
+        sendEmail: inputs.sendEmail,
       };
 
       await axios.put(`http://localhost:3000/api/notifications/${id}`, payload, {
@@ -132,11 +131,23 @@ export default function UpdateNotification() {
     <div>
       <Navigation />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-36 md:pt-32">
-        <h1 className="text-3xl font-extrabold tracking-tight mb-6">
-          <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
-            Update Notification
-          </span>
-        </h1>
+        <div className="mb-6 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => nav('/admin')}
+            aria-label="Back to Admin Dashboard"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+              <path fillRule="evenodd" d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <h1 className="text-3xl font-extrabold tracking-tight">
+            <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
+              Update Notification
+            </span>
+          </h1>
+        </div>
 
         <form
           onSubmit={onSubmit}
@@ -158,22 +169,22 @@ export default function UpdateNotification() {
 
           <div className="p-6 grid grid-cols-1 gap-6">
             <div className="space-y-5">
-              <div>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notification ID *
+                  Notification ID (Read-only)
                 </label>
-                <input
-                  name="notificationId"
-                  value={inputs.notificationId}
-                  onChange={onChange}
-                  className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
-                    errors.notificationId ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="e.g. NOT-1001"
-                />
-                {errors.notificationId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.notificationId}</p>
-                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    name="notificationId"
+                    value={inputs.notificationId}
+                    readOnly
+                    className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-2.5 text-sm text-gray-600 cursor-not-allowed"
+                  />
+                  <div className="text-gray-500 text-sm">🔒</div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  The notification ID is automatically generated and cannot be modified.
+                </p>
               </div>
 
               <div>
@@ -218,23 +229,39 @@ export default function UpdateNotification() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Audience *
                   </label>
-                  <div className="flex flex-col gap-2">
-                    {AUDIENCE_OPTIONS.map((a) => (
-                      <label
-                        key={a}
-                        className="inline-flex items-center gap-2 text-sm cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          name="audience"
-                          value={a}
-                          checked={inputs.audience === a}
-                          onChange={onChange}
-                          className="h-4 w-4 accent-emerald-600"
-                        />
-                        <span>{a}</span>
-                      </label>
-                    ))}
+                  <div className="flex flex-col gap-3">
+                    {AUDIENCE_OPTIONS.map((a) => {
+                      const audienceInfo = {
+                        'FARMER': { desc: 'FarmStaff & Manager roles', icon: '🌾' },
+                        'USER': { desc: 'Customer & DeliveryStaff roles', icon: '🛒' },
+                        'ADMIN': { desc: 'Admin role only', icon: '👤' },
+                        'BOTH': { desc: 'All users except Admin', icon: '👥' },
+                        'ALL': { desc: 'Everyone including Admin', icon: '🌍' }
+                      };
+                      return (
+                        <label
+                          key={a}
+                          className="flex items-start gap-3 text-sm cursor-pointer p-2 rounded-lg hover:bg-gray-50"
+                        >
+                          <input
+                            type="radio"
+                            name="audience"
+                            value={a}
+                            checked={inputs.audience === a}
+                            onChange={onChange}
+                            className="h-4 w-4 accent-emerald-600 mt-0.5"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{audienceInfo[a]?.icon} {a}</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {audienceInfo[a]?.desc}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -285,6 +312,38 @@ export default function UpdateNotification() {
                         <span>{p}</span>
                       </label>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Email Notification Checkbox */}
+              <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    name="sendEmail"
+                    checked={inputs.sendEmail}
+                    onChange={onChange}
+                    disabled={inputs.emailSent}
+                    className="h-5 w-5 accent-emerald-600 mt-0.5 disabled:opacity-50"
+                  />
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 cursor-pointer">
+                      📧 Send Email Notifications
+                    </label>
+                    <p className="text-sm text-gray-600 mt-1">
+                      When enabled, this notification will also be sent via email to all users in the selected audience who have email notifications enabled.
+                    </p>
+                    {inputs.emailSent && (
+                      <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                        ✅ <span>Email has already been sent for this notification</span>
+                      </div>
+                    )}
+                    {!inputs.emailSent && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        <strong>Note:</strong> Email configuration must be set up in the server environment variables for this to work.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

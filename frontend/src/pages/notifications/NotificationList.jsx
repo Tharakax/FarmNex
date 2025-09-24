@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import NotificationItem from "../../components/notifications/NotificationItem";
 import Navigation from "../../components/navigation";
 import jsPDF from "jspdf";
@@ -9,24 +9,27 @@ import autoTable from "jspdf-autotable";
 const API_URL = "http://localhost:3000/api/notifications";
 
 const AUDIENCE_OPTIONS = [
-  { value: "FARMER", label: "Farmer" },
-  { value: "USER", label: "User" },
-  { value: "BOTH", label: "Both" }
+  { value: "FARMER", label: "🌾 Farmer", desc: "FarmStaff & Manager" },
+  { value: "USER", label: "🛒 User", desc: "Customer & DeliveryStaff" },
+  { value: "ADMIN", label: "👤 Admin", desc: "Admin role only" },
+  { value: "BOTH", label: "👥 Both", desc: "All except Admin" },
+  { value: "ALL", label: "🌍 All", desc: "Everyone including Admin" }
 ];
 
 const TYPE_OPTIONS = [
-  { value: "ALERT", label: "Alert" },
-  { value: "OFFER", label: "Offer" },
-  { value: "UPDATE", label: "Update" }
+  { value: "ALERT", label: "🚨 Alert", desc: "Urgent notifications" },
+  { value: "OFFER", label: "🎉 Offer", desc: "Special deals" },
+  { value: "UPDATE", label: "📢 Update", desc: "General information" }
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: "HIGH", label: "High" },
-  { value: "MEDIUM", label: "Medium" },
-  { value: "LOW", label: "Low" }
+  { value: "HIGH", label: "🔴 High", desc: "Immediate attention" },
+  { value: "MEDIUM", label: "🟡 Medium", desc: "Moderate urgency" },
+  { value: "LOW", label: "🟢 Low", desc: "General information" }
 ];
 
 function NotificationList() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [filteredNotifications, setFilteredNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -181,11 +184,23 @@ function NotificationList() {
       <Navigation />
       <div className="max-w-7xl mx-auto px-4 pt-30 sm:px-6 lg:px-8 py-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
-              Notification Management
-            </span>
-          </h1>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              aria-label="Back to Admin Dashboard"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                <path fillRule="evenodd" d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
+                Notification Management
+              </span>
+            </h1>
+          </div>
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -265,16 +280,19 @@ function NotificationList() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-3">Audience</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {AUDIENCE_OPTIONS.map(option => (
-                      <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                      <label key={option.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
                         <input
                           type="checkbox"
                           checked={selectedAudiences.includes(option.value)}
                           onChange={() => toggleAudience(option.value)}
-                          className="rounded text-emerald-600 focus:ring-emerald-500"
+                          className="rounded text-emerald-600 focus:ring-emerald-500 mt-0.5"
                         />
-                        <span className="text-sm text-gray-700">{option.label}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-700">{option.label}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{option.desc}</div>
+                        </div>
                       </label>
                     ))}
                   </div>
@@ -282,16 +300,19 @@ function NotificationList() {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-3">Type</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {TYPE_OPTIONS.map(option => (
-                      <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                      <label key={option.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
                         <input
                           type="checkbox"
                           checked={selectedTypes.includes(option.value)}
                           onChange={() => toggleType(option.value)}
-                          className="rounded text-emerald-600 focus:ring-emerald-500"
+                          className="rounded text-emerald-600 focus:ring-emerald-500 mt-0.5"
                         />
-                        <span className="text-sm text-gray-700">{option.label}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-700">{option.label}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{option.desc}</div>
+                        </div>
                       </label>
                     ))}
                   </div>
@@ -299,16 +320,19 @@ function NotificationList() {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-900 mb-3">Priority</h3>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {PRIORITY_OPTIONS.map(option => (
-                      <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+                      <label key={option.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
                         <input
                           type="checkbox"
                           checked={selectedPriorities.includes(option.value)}
                           onChange={() => togglePriority(option.value)}
-                          className="rounded text-emerald-600 focus:ring-emerald-500"
+                          className="rounded text-emerald-600 focus:ring-emerald-500 mt-0.5"
                         />
-                        <span className="text-sm text-gray-700">{option.label}</span>
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-700">{option.label}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{option.desc}</div>
+                        </div>
                       </label>
                     ))}
                   </div>

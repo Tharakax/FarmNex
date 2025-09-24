@@ -1,15 +1,65 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Package, Eye, CreditCard, ShoppingBag, Clock, Truck, CheckCircle, XCircle, Download } from 'lucide-react';
 import { orderAPI } from '../../services/orderAPI';
+import { handleImageError, getProductPlaceholder } from '../../utils/imageUtils';
 
 // Resolve image URL to absolute path if needed
-const resolveImage = (src) => {
-  if (!src) return 'https://via.placeholder.com/64x64?text=No+Image';
-  if (src.startsWith('http')) return src;
+const resolveImage = (src, itemName = 'Product') => {
+  if (!src) {
+    console.log(`No image source for ${itemName}, using placeholder`);
+    return getProductPlaceholder(itemName);
+  }
+  
+  // Handle malformed data URLs that have URL prefixes
+  if (src.includes('data:image')) {
+    const dataUrlIndex = src.indexOf('data:image');
+    if (dataUrlIndex > 0) {
+      // Extract just the data URL part
+      const cleanDataUrl = src.substring(dataUrlIndex);
+      
+      // Check if the data URL is corrupted (too short to be valid)
+      if (cleanDataUrl.length < 500) {
+        console.log(`Corrupted short data URL for ${itemName}, using placeholder`);
+        return getProductPlaceholder(itemName);
+      }
+      
+      console.log(`Fixed malformed data URL for ${itemName}`);
+      return cleanDataUrl;
+    }
+    
+    // Check if it's a corrupted short data URL without prefix
+    if (src.length < 500) {
+      console.log(`Corrupted short data URL for ${itemName}, using placeholder`);
+      return getProductPlaceholder(itemName);
+    }
+    
+    console.log(`Using proper data URL for ${itemName}`);
+    return src; // It's already a proper data URL
+  }
+  
+  // Handle external via.placeholder URLs - replace with local placeholders
+  if (src.includes('via.placeholder.com')) {
+    console.log(`Replacing via.placeholder with local placeholder for ${itemName}`);
+    return getProductPlaceholder(itemName);
+  }
+  
+  // Handle regular URLs
+  if (src.startsWith('http')) {
+    console.log(`Using HTTP URL for ${itemName}: ${src.substring(0, 50)}...`);
+    return src;
+  }
+  
   const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-  if (src.startsWith('/')) return `${base}${src}`;
-  // assume it’s an uploads-relative path
-  return `${base}/uploads/${src}`;
+  if (src.startsWith('/')) {
+    const resolvedUrl = `${base}${src}`;
+    console.log(`Resolved relative URL for ${itemName}: ${resolvedUrl}`);
+    return resolvedUrl;
+  }
+  
+  // assume it's an uploads-relative path
+  const uploadsUrl = `${base}/uploads/${src}`;
+  console.log(`Resolved uploads path for ${itemName}: ${uploadsUrl}`);
+  return uploadsUrl;
 };
 
 const MyOrders = () => {
@@ -28,6 +78,19 @@ const MyOrders = () => {
     delivered: { label: 'Delivered', icon: CheckCircle, color: 'text-green-600' },
     cancelled: { label: 'Cancelled', icon: XCircle, color: 'text-red-600' }
   };
+
+  // Test our utility functions on component mount
+  useEffect(() => {
+    console.log('Testing getProductPlaceholder:', getProductPlaceholder('Test Product'));
+    console.log('Testing generatePlaceholder directly');
+    
+    try {
+      const testPlaceholder = getProductPlaceholder('Organic Carrots');
+      console.log('Generated placeholder for Organic Carrots:', testPlaceholder.substring(0, 50) + '...');
+    } catch (error) {
+      console.error('Error generating placeholder:', error);
+    }
+  }, []);
 
   // Fetch orders from API (testing endpoint for demo without auth)
   useEffect(() => {
@@ -427,12 +490,13 @@ const MyOrders = () => {
                     {order.items.map((item, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
                         {item.image ? (
-<img 
-                          src={resolveImage(item.image)} 
+                          <img 
+                          src={resolveImage(item.image, item.name)} 
                           alt={item.name}
                           className="w-12 h-12 rounded-lg object-cover bg-green-200"
                           onError={(e) => {
-                            e.target.src = 'https://via.placeholder.com/64x64?text=No+Image';
+                            console.log(`Image failed to load for ${item.name}:`, e.target.src.substring(0, 100));
+                            handleImageError(e, 48, 48, item.name || 'Product');
                           }}
                         />
                         ) : (

@@ -6,6 +6,46 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { FormValidator } from '../../utils/validation';
 import { showError, showSuccess, showLoading } from '../../utils/sweetAlert';
+import { handleImageError, getProductPlaceholder } from '../../utils/imageUtils';
+
+// Resolve image URL to handle malformed data URLs
+const resolveImage = (src, itemName = 'Product') => {
+  if (!src) return getProductPlaceholder(itemName);
+  
+  // Handle malformed data URLs that have URL prefixes
+  if (src.includes('data:image')) {
+    const dataUrlIndex = src.indexOf('data:image');
+    if (dataUrlIndex > 0) {
+      // Extract just the data URL part
+      const cleanDataUrl = src.substring(dataUrlIndex);
+      
+      // Check if the data URL is corrupted (too short to be valid)
+      if (cleanDataUrl.length < 500) {
+        return getProductPlaceholder(itemName);
+      }
+      
+      return cleanDataUrl;
+    }
+    
+    // Check if it's a corrupted short data URL without prefix
+    if (src.length < 500) {
+      return getProductPlaceholder(itemName);
+    }
+    
+    return src; // It's already a proper data URL
+  }
+  
+  // Handle external via.placeholder URLs - replace with local placeholders
+  if (src.includes('via.placeholder.com')) {
+    return getProductPlaceholder(itemName);
+  }
+  
+  if (src.startsWith('http')) return src;
+  const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+  if (src.startsWith('/')) return `${base}${src}`;
+  // assume it's an uploads-relative path
+  return `${base}/uploads/${src}`;
+};
 
 // Initialize Stripe with your publishable key from environment
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -421,13 +461,7 @@ export default function EnterPayment() {
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => navigate(`/shipping/${orderId}`)}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span className="hidden sm:inline">Back to Shipping</span>
-            </button>
+            <div></div> {/* Empty div for spacing */}
             <h1 className="text-2xl font-bold text-gray-900">Payment</h1>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500">
@@ -703,11 +737,11 @@ export default function EnterPayment() {
                   {orderData.items.map((item, index) => (
                     <div key={index} className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
-<img
-                          src={(item.image && (item.image.startsWith('http') ? item.image : `${(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000')}${item.image.startsWith('/') ? '' : '/uploads/'}${item.image.startsWith('/') ? item.image : item.image}`)) || 'https://via.placeholder.com/48x48?text=No+Image'}
+                        <img
+                          src={resolveImage(item.image, item.name)}
                           alt={item.name}
                           className="w-12 h-12 object-cover rounded bg-gray-100"
-                          onError={(e) => { e.target.src = 'https://via.placeholder.com/48x48?text=No+Image'; }}
+                          onError={(e) => handleImageError(e, 48, 48, item.name || 'Product')}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -769,15 +803,6 @@ export default function EnterPayment() {
                   </div>
                 </div>
 
-                <div className="mt-6 space-y-3">
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/shipping/${orderId}`)}
-                    className="w-full bg-gray-100 text-gray-900 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    Back to Shipping
-                  </button>
-                </div>
 
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                   <div className="flex items-start space-x-2">

@@ -34,12 +34,62 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Admin Data (could also be fetched from API)
-  const adminData = {
-    name: "Umar Ahamed",
+  // Admin Data - fetched from JWT token or localStorage
+  const [adminData, setAdminData] = useState({
+    name: "Loading...",
     role: "System Administrator",
-    email: "ahamedumar@gamil.com",
+    email: "Loading...",
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+  });
+
+  // Function to get user data from JWT token or localStorage
+  const getCurrentUser = () => {
+    try {
+      // Try to get user data from localStorage first
+      const userData = localStorage.getItem('currentUser');
+      if (userData) {
+        const user = JSON.parse(userData);
+        return {
+          name: user.name || user.fullName || user.firstName + ' ' + user.lastName || 'Admin User',
+          role: user.role === 'admin' ? 'System Administrator' : user.role || 'Administrator',
+          email: user.email || 'admin@farmnex.com',
+          avatar: user.avatar || user.profileImage || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+        };
+      }
+
+      // Try to get from JWT token if localStorage is empty
+      const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+      if (token) {
+        try {
+          // Decode JWT token (basic decoding, in production use a proper JWT library)
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          return {
+            name: payload.name || payload.fullName || payload.firstName + ' ' + payload.lastName || 'Admin User',
+            role: payload.role === 'admin' ? 'System Administrator' : payload.role || 'Administrator', 
+            email: payload.email || 'admin@farmnex.com',
+            avatar: payload.avatar || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+          };
+        } catch (jwtError) {
+          console.error('Error decoding JWT token:', jwtError);
+        }
+      }
+
+      // Fallback to default admin data
+      return {
+        name: "Admin User",
+        role: "System Administrator",
+        email: "admin@farmnex.com",
+        avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+      };
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return {
+        name: "Admin User",
+        role: "System Administrator", 
+        email: "admin@farmnex.com",
+        avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+      };
+    }
   };
 
   // Real users data state
@@ -51,23 +101,50 @@ function AdminDashboard() {
     monthlyRevenue: "$0"
   });
 
-  // Fetch users data from API
+  // Load current user data and fetch API data
   useEffect(() => {
+    // Load current admin user data
+    const currentUser = getCurrentUser();
+    setAdminData(currentUser);
+    console.log('Loaded admin user data:', currentUser);
+
+    // Fetch API data
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch users
-        const usersResponse = await axios.get('http://localhost:3000/users');
-        setUsers(usersResponse.data.users || []);
         
-        // Fetch dashboard stats (you'll need to create this endpoint)
-        const statsResponse = await axios.get('http://localhost:3000/users');
-        setDashboardStats(statsResponse.data);
+        // Get JWT token for authentication
+        const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        // Fetch users with authentication header
+        const usersResponse = await axios.get('http://localhost:3000/users', { headers });
+        const usersData = usersResponse.data.users || usersResponse.data || [];
+        setUsers(usersData);
+        
+        // Update dashboard stats based on fetched users
+        const farmerCount = usersData.filter(user => user.role === 'farmer').length;
+        const totalUsers = usersData.length;
+        
+        setDashboardStats({
+          totalUsers: totalUsers,
+          activeFarms: farmerCount,
+          totalCrops: Math.floor(farmerCount * 1.2), // Estimate based on farmers
+          monthlyRevenue: `$${(totalUsers * 150).toLocaleString()}` // Estimate
+        });
         
         setError(null);
       } catch (error) {
         console.error('Failed to fetch data:', error);
         setError('Failed to load data. Please try again later.');
+        
+        // Set fallback stats if API fails
+        setDashboardStats({
+          totalUsers: 0,
+          activeFarms: 0,
+          totalCrops: 0,
+          monthlyRevenue: "$0"
+        });
       } finally {
         setLoading(false);
       }
@@ -80,7 +157,11 @@ function AdminDashboard() {
   const handleDeleteUser = async (userId) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await axios.delete(`http://localhost:3000/users/${userId}`);
+        // Get JWT token for authentication
+        const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        await axios.delete(`http://localhost:3000/users/${userId}`, { headers });
         setUsers(users.filter(user => user._id !== userId));
         // Update stats after deletion
         setDashboardStats(prev => ({
