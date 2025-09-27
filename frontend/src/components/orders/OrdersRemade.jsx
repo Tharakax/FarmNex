@@ -217,22 +217,33 @@ const OrdersRemade = () => {
 
 
   const handleGenerate = async (format) => {
+    if (!Array.isArray(orders) || orders.length === 0) {
+      alert('No orders to export yet.');
+      return;
+    }
     const sales = orders.map(o => ({
       customer: { name: o.contactName },
       createdAt: o.createdAt,
-      items: o.items,
-      totalAmount: o.total,
+      items: Array.isArray(o.items) ? o.items : [],
+      totalAmount: Number(o.total) || 0,
       paymentMethod: o.paymentMethod,
       status: o.status
     }));
     const period = 'Current View';
     const { default: ExportService } = await import('../../services/exportService.js');
-    if (format === 'excel') {
-      ExportService.exportSales?.toExcel
-        ? ExportService.exportSales.toExcel(sales, period)
-        : alert('Excel export not available.');
-    } else {
-      ExportService.exportSales.toPDF(sales, period);
+    try {
+      if (format === 'excel') {
+        if (ExportService.exportSales?.toExcel) {
+          ExportService.exportSales.toExcel(sales, period);
+        } else {
+          alert('Excel export not available.');
+        }
+      } else {
+        ExportService.exportSales.toPDF(sales, period);
+      }
+    } catch (e) {
+      console.error('Export error:', e);
+      alert('Export failed. See console for details.');
     }
   };
 

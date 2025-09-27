@@ -370,29 +370,56 @@ class ExportService {
   static exportSales = {
     toPDF: (salesData, period = 'All Time') => {
       try {
+        const safeData = Array.isArray(salesData) ? salesData : [];
         const doc = new jsPDF();
-        const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
+        const totalRevenue = safeData.reduce((sum, sale) => sum + (Number(sale.totalAmount) || 0), 0);
         const startY = ExportService.addPDFHeader(doc, 'Sales Report', `Period: ${period} | Total Revenue: LKR ${totalRevenue.toFixed(2)}`);
         
-        const tableData = salesData.map(sale => [
-          sale.customer?.name || 'Unknown Customer',
-          new Date(sale.createdAt || sale.date).toLocaleDateString(),
-          (sale.items || []).map(item => `${item.name} (${item.quantity})`).join(', '),
-          `LKR ${(sale.totalAmount || 0).toFixed(2)}`,
-          sale.paymentMethod || 'Unknown',
-          sale.status || 'Completed'
-        ]);
+        let tableData = [];
+        try {
+          tableData = safeData.map(sale => {
+            const dateStr = (() => {
+              try { return new Date(sale.createdAt || sale.date).toLocaleDateString(); } catch { return ''; }
+            })();
+            const itemsStr = (Array.isArray(sale.items) ? sale.items : [])
+              .map(it => `${it?.name ?? 'Item'} (${it?.quantity ?? 0})`)
+              .join(', ');
+            return [
+              sale?.customer?.name || 'Unknown Customer',
+              dateStr,
+              itemsStr,
+              `LKR ${(Number(sale.totalAmount) || 0).toFixed(2)}`,
+              sale?.paymentMethod || 'Unknown',
+              sale?.status || 'Completed'
+            ];
+          });
+        } catch (mapErr) {
+          console.error('Table data build error:', mapErr);
+          tableData = [];
+        }
 
-        doc.autoTable({
-          head: [['Customer', 'Date', 'Items', 'Total', 'Payment', 'Status']],
-          body: tableData,
-          startY: startY,
-          theme: 'grid',
-          headStyles: { fillColor: ExportService.PDF_STYLES.headerColor },
-          alternateRowStyles: { fillColor: ExportService.PDF_STYLES.alternateRowColor },
-          fontSize: ExportService.PDF_STYLES.fontSize.body,
-          margin: { top: 20, bottom: 30 }
-        });
+        if (typeof doc.autoTable === 'function') {
+          doc.autoTable({
+            head: [['Customer', 'Date', 'Items', 'Total', 'Payment', 'Status']],
+            body: tableData,
+            startY: startY,
+            theme: 'grid',
+            headStyles: { fillColor: ExportService.PDF_STYLES.headerColor },
+            alternateRowStyles: { fillColor: ExportService.PDF_STYLES.alternateRowColor },
+            fontSize: ExportService.PDF_STYLES.fontSize.body,
+            margin: { top: 20, bottom: 30 }
+          });
+        } else {
+          // Fallback simple list if autotable is not registered
+          let y = startY;
+          doc.setFontSize(ExportService.PDF_STYLES.fontSize.body);
+          tableData.forEach((row, idx) => {
+            const line = `${idx + 1}. ${row[0]} | ${row[1]} | ${row[3]} | ${row[5]}`;
+            doc.text(line, 20, y);
+            y += 6;
+            if (y > doc.internal.pageSize.height - 20) { doc.addPage(); y = 20; }
+          });
+        }
 
         ExportService.addPDFFooter(doc);
         doc.save(`sales-report-${new Date().toISOString().split('T')[0]}.pdf`);
