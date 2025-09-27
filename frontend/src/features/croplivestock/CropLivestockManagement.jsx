@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sprout, Users, Plus, List, BarChart3, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import BackButton from '../common/BackButton';
+import BackButton from '../../components/common/BackButton';
 import axios from 'axios';
 
 // Card Component

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, Settings, User, ChevronDown, Sprout, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import NotificationBell from './notifications/NotificationBell';
+import NotificationBell from '../features/notifications/NotificationBell';
 
 const AdminHeader = ({ 
   title = "Admin Dashboard", 
