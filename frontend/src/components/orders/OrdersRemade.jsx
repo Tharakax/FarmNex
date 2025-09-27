@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
 import ExportSplitButton from '../reports/ExportSplitButton.jsx';
 import ExportService from '../../services/exportService.js';
+import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const OrdersRemade = () => {
   const [orders, setOrders] = useState([]);
@@ -244,6 +245,38 @@ const OrdersRemade = () => {
     );
   }
 
+  // Derived chart data
+  const statusData = useMemo(() => {
+    const s = analytics.byStatus || {};
+    return [
+      { name: 'pending', value: s.pending || 0 },
+      { name: 'processing', value: s.processing || 0 },
+      { name: 'shipped', value: s.shipped || 0 },
+      { name: 'delivered', value: s.delivered || 0 },
+      { name: 'cancelled', value: s.cancelled || 0 },
+    ];
+  }, [analytics]);
+
+  const revenueSeries = useMemo(() => {
+    const map = new Map();
+    (orders || []).forEach(o => {
+      const key = new Date(o.createdAt).toISOString().split('T')[0];
+      const amt = Number(o.total) || 0;
+      map.set(key, (map.get(key) || 0) + amt);
+    });
+    const arr = Array.from(map.entries()).map(([date, total]) => ({ date, total }));
+    arr.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return arr;
+  }, [orders]);
+
+  const STATUS_COLORS = {
+    pending: '#FCD34D',
+    processing: '#60A5FA',
+    shipped: '#A78BFA',
+    delivered: '#34D399',
+    cancelled: '#F87171',
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -275,6 +308,50 @@ const OrdersRemade = () => {
         <div className="p-4 bg-white rounded-lg border">
           <div className="text-xs text-gray-500">This Month</div>
           <div className="text-2xl font-semibold">{formatCurrency(analytics.thisMonthRevenue)}</div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">Status Distribution</h3>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Legend verticalAlign="top" height={24} />
+                <RTooltip formatter={(value, name) => [value, name]} />
+                <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={3}>
+                  {statusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#999'} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">Revenue Over Time</h3>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.5}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                <YAxis tickFormatter={v => formatCurrency(v)} width={80} />
+                <RTooltip formatter={(v) => formatCurrency(v)} labelFormatter={d => `Date: ${d}`} />
+                <Area type="monotone" dataKey="total" stroke="#10B981" fillOpacity={1} fill="url(#colorRev)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
