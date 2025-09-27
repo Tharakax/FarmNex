@@ -85,7 +85,7 @@ const OrdersRemade = () => {
       setError(null);
       const headers = getAuthHeaders();
 
-      // Try multiple endpoints, then fall back to debug sampler so UI doesn't break
+      // Try multiple endpoints, then fall back to a sample/debug endpoint so the UI stays responsive
       const endpoints = [
         `${API_BASE_URL}/api/order/admin-orders`,
         `${API_BASE_URL}/api/order/admin/dashboard`,
@@ -150,7 +150,7 @@ const OrdersRemade = () => {
         } catch {}
       }
 
-      // Admin override: update local either way
+      // Local fallback: update UI state regardless of server response
       setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
       if (!success) alert('Updated locally.');
     } catch (e) {
