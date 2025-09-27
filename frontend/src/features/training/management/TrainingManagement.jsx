@@ -26,8 +26,8 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { parseAndCleanTags } from '../../../utils/tagUtils';
-import TrainingViewer from '../components/TrainingViewer';
-import AddEditTrainingForm from '../components/AddEditTrainingForm';
+import TrainingViewer from '../../../components/training/components/TrainingViewer';
+import AddEditTrainingForm from '../../../components/training/components/AddEditTrainingForm';
 import { getFileUrl } from '../../../config/env';
 import { trainingAPIReal } from '../../../services/trainingAPIReal';
 

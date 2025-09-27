@@ -15,7 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { trainingAPIReal } from '../../../services/trainingAPIReal';
-import AddEditTrainingForm from '../components/AddEditTrainingForm';
+import AddEditTrainingForm from '../../../components/training/components/AddEditTrainingForm';
 import { showSuccess, showError, showConfirm } from '../../../utils/sweetAlertRobust';
 
 const TrainingDashboard = () => {

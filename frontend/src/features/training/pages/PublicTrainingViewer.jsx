@@ -13,8 +13,8 @@ import {
   Play,
   Image
 } from 'lucide-react';
-import Navigation from '../../navigation';
-import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
+import Navigation from '../../../components/navigation';
+import EnhancedVideoPlayer from '../../../components/training/components/EnhancedVideoPlayer';
 
 const PublicTrainingViewer = () => {
   const { id } = useParams();

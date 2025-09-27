@@ -115,7 +115,7 @@ const ProfessionalReportDashboard = React.lazy(() =>
 );
 
 const TrainingManagementComponent = React.lazy(() => 
-  import('../components/training/management/TrainingManagement')
+  import('../features/training/management/TrainingManagement')
     .catch(error => {
       console.error('Failed to load TrainingManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Training Management" /> };

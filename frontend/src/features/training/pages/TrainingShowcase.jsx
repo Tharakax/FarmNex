@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import Navigation from '../../navigation';
+import Navigation from '../../../components/navigation';
 import { 
   BookOpen, Video, FileText, Award, ArrowRight, Users, TrendingUp, Clock, 
   Play, Download, Star, CheckCircle, Target, Lightbulb, Calendar, Eye, PlayCircle 
