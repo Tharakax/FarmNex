@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
 import ExportSplitButton from '../reports/ExportSplitButton.jsx';
-import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend, Line } from 'recharts';
+import { PieChart, Pie, Cell, ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend, Line } from 'recharts';
 
 const OrdersRemade = () => {
   const [orders, setOrders] = useState([]);
@@ -341,7 +341,7 @@ const OrdersRemade = () => {
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <ComposedChart data={revenueSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.5}/>
@@ -359,7 +359,7 @@ const OrdersRemade = () => {
                 <Area type="monotone" name="Total" dataKey="total" stroke="#10B981" fillOpacity={1} fill="url(#colorRev)" />
                 <Area type="monotone" name="Delivered" dataKey="delivered" stroke="#3B82F6" fillOpacity={1} fill="url(#colorDel)" />
                 <Line type="monotone" name="Cumulative" dataKey="cumTotal" stroke="#065F46" dot={false} strokeWidth={2} />
-              </AreaChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
