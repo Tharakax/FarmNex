@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
 import ExportSplitButton from '../reports/ExportSplitButton.jsx';
 import ExportService from '../../services/exportService.js';
-import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend, Line } from 'recharts';
 
 const OrdersRemade = () => {
   const [orders, setOrders] = useState([]);
@@ -216,7 +216,6 @@ const OrdersRemade = () => {
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
   const formatDate = (ds) => new Date(ds).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n) || 0);
 
   const handleGenerate = async (format) => {
     const sales = orders.map(o => ({
@@ -262,10 +261,15 @@ const OrdersRemade = () => {
     (orders || []).forEach(o => {
       const key = new Date(o.createdAt).toISOString().split('T')[0];
       const amt = Number(o.total) || 0;
-      map.set(key, (map.get(key) || 0) + amt);
+      const delivered = (o.status || '').toLowerCase() === 'delivered' ? amt : 0;
+      const prev = map.get(key) || { total: 0, delivered: 0 };
+      map.set(key, { total: prev.total + amt, delivered: prev.delivered + delivered });
     });
-    const arr = Array.from(map.entries()).map(([date, total]) => ({ date, total }));
+    const arr = Array.from(map.entries()).map(([date, vals]) => ({ date, ...vals }));
     arr.sort((a, b) => new Date(a.date) - new Date(b.date));
+    // cumulative
+    let cum = 0;
+    arr.forEach(p => { cum += p.total; p.cumTotal = cum; });
     return arr;
   }, [orders]);
 
@@ -343,12 +347,18 @@ const OrdersRemade = () => {
                     <stop offset="5%" stopColor="#10B981" stopOpacity={0.5}/>
                     <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
                   </linearGradient>
+                  <linearGradient id="colorDel" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                 <YAxis tickFormatter={v => formatCurrency(v)} width={80} />
-                <RTooltip formatter={(v) => formatCurrency(v)} labelFormatter={d => `Date: ${d}`} />
-                <Area type="monotone" dataKey="total" stroke="#10B981" fillOpacity={1} fill="url(#colorRev)" />
+                <RTooltip formatter={(v, name) => [formatCurrency(v), name]} labelFormatter={d => `Date: ${d}`} />
+                <Area type="monotone" name="Total" dataKey="total" stroke="#10B981" fillOpacity={1} fill="url(#colorRev)" />
+                <Area type="monotone" name="Delivered" dataKey="delivered" stroke="#3B82F6" fillOpacity={1} fill="url(#colorDel)" />
+                <Line type="monotone" name="Cumulative" dataKey="cumTotal" stroke="#065F46" dot={false} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
