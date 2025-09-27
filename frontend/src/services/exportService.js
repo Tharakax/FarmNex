@@ -405,35 +405,30 @@ class ExportService {
 
     toExcel: (salesData, period = 'All Time') => {
       try {
-        const excelData = salesData.map(sale => ({
-          'Customer Name': sale.customer?.name || 'Unknown Customer',
-          'Customer Email': sale.customer?.email || '',
-          'Sale Date': sale.createdAt || sale.date || '',
-          'Items Sold': (sale.items || []).map(item => `${item.name} (${item.quantity})`).join('; '),
-          'Total Amount': sale.totalAmount || 0,
-          'Payment Method': sale.paymentMethod || '',
-          'Status': sale.status || 'Completed',
-          'Notes': sale.notes || '',
-          'Sale ID': sale._id || sale.id || ''
+        const rows = salesData.map(sale => ({
+          'Customer': sale.customer?.name || 'Unknown Customer',
+          'Date': new Date(sale.createdAt || sale.date).toLocaleString(),
+          'Items': (sale.items || []).map(item => `${item.name} (${item.quantity})`).join(', '),
+          'Total': sale.totalAmount || 0,
+          'Payment Method': sale.paymentMethod || 'Unknown',
+          'Status': sale.status || 'Completed'
         }));
 
+        const totalRevenue = salesData.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+
         const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(excelData);
+        const ws = XLSX.utils.json_to_sheet(rows);
         XLSX.utils.book_append_sheet(wb, ws, 'Sales');
 
-        // Add summary sheet
-        const totalRevenue = salesData.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
         const summaryData = [
           ['Sales Summary', ''],
           ['Period', period],
-          ['Total Sales', salesData.length],
-          ['Total Revenue', `LKR ${totalRevenue.toFixed(2)}`],
-          ['Average Sale', `LKR ${(totalRevenue / (salesData.length || 1)).toFixed(2)}`],
+          ['Orders', salesData.length],
+          ['Total Revenue', totalRevenue],
           ['Generated On', new Date().toLocaleString()]
         ];
-        
-        const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-        XLSX.utils.book_append_sheet(wb, summaryWs, 'Summary');
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
         const fileName = `sales-report-${new Date().toISOString().split('T')[0]}.xlsx`;
         XLSX.writeFile(wb, fileName);

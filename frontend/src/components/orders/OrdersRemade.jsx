@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
+import ExportSplitButton from '../reports/ExportSplitButton.jsx';
+import ExportService from '../../services/exportService.js';
 
 const OrdersRemade = () => {
   const [orders, setOrders] = useState([]);
@@ -8,6 +10,13 @@ const OrdersRemade = () => {
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [analytics, setAnalytics] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    avgOrderValue: 0,
+    thisMonthRevenue: 0,
+    byStatus: { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 }
+  });
 
   useEffect(() => {
     fetchOrders();
@@ -125,6 +134,24 @@ const OrdersRemade = () => {
 
       const normalized = normalizeOrders(ordersData);
       setOrders(normalized);
+
+      // Compute analytics
+      const totalOrders = normalized.length;
+      const totalRevenue = normalized.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+      const now = new Date();
+      const thisMonthRevenue = normalized
+        .filter(o => {
+          const d = new Date(o.createdAt);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        })
+        .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const byStatus = normalized.reduce((acc, o) => {
+        const s = (o.status || 'pending');
+        acc[s] = (acc[s] || 0) + 1;
+        return acc;
+      }, { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 });
+      setAnalytics({ totalOrders, totalRevenue, avgOrderValue, thisMonthRevenue, byStatus });
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || 'Failed to load orders');
       setOrders([]);
@@ -188,6 +215,27 @@ const OrdersRemade = () => {
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
   const formatDate = (ds) => new Date(ds).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+  const formatCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(n) || 0);
+
+  const handleGenerate = async (format) => {
+    const sales = orders.map(o => ({
+      customer: { name: o.contactName },
+      createdAt: o.createdAt,
+      items: o.items,
+      totalAmount: o.total,
+      paymentMethod: o.paymentMethod,
+      status: o.status
+    }));
+    const period = 'Current View';
+    if (format === 'excel') {
+      ExportService.exportSales?.toExcel
+        ? ExportService.exportSales.toExcel(sales, period)
+        : alert('Excel export not available.');
+    } else {
+      ExportService.exportSales.toPDF(sales, period);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -205,7 +253,28 @@ const OrdersRemade = () => {
           {error && <p className="text-yellow-700 mt-1 text-sm">{error}</p>}
         </div>
         <div className="flex items-center space-x-3">
+          <ExportSplitButton onGenerate={handleGenerate} />
           <button onClick={fetchOrders} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Refresh</button>
+        </div>
+      </div>
+
+      {/* Analytics summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 bg-white rounded-lg border">
+          <div className="text-xs text-gray-500">Total Orders</div>
+          <div className="text-2xl font-semibold">{analytics.totalOrders}</div>
+        </div>
+        <div className="p-4 bg-white rounded-lg border">
+          <div className="text-xs text-gray-500">Total Revenue</div>
+          <div className="text-2xl font-semibold">{formatCurrency(analytics.totalRevenue)}</div>
+        </div>
+        <div className="p-4 bg-white rounded-lg border">
+          <div className="text-xs text-gray-500">Average Order</div>
+          <div className="text-2xl font-semibold">{formatCurrency(analytics.avgOrderValue)}</div>
+        </div>
+        <div className="p-4 bg-white rounded-lg border">
+          <div className="text-xs text-gray-500">This Month</div>
+          <div className="text-2xl font-semibold">{formatCurrency(analytics.thisMonthRevenue)}</div>
         </div>
       </div>
 
