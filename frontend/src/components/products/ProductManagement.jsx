@@ -16,7 +16,7 @@ import { productAPI } from '../../services/productAPI';
 import AddProductForm from './AddProductForm';
 import ProductList from './ProductList';
 import ProductStats from './ProductStats';
-import ProductManagementReport from '../reports/ProductManagementReport';
+import ProductManagementReport from '../../features/reports/ProductManagementReport';
 import { 
   exportToPDF, 
   exportToExcel, 
