@@ -236,15 +236,7 @@ const OrdersRemade = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-      </div>
-    );
-  }
-
-  // Derived chart data
+  // Derived chart data (hooks must stay before any conditional returns)
   const statusData = useMemo(() => {
     const s = analytics.byStatus || {};
     return [
@@ -272,6 +264,14 @@ const OrdersRemade = () => {
     arr.forEach(p => { cum += p.total; p.cumTotal = cum; });
     return arr;
   }, [orders]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
 
   const STATUS_COLORS = {
     pending: '#FCD34D',
