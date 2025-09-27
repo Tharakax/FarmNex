@@ -200,7 +200,7 @@ const OrdersRemade = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Orders (Admin)</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Orders</h2>
           <p className="text-gray-600 mt-1 text-sm">View orders, change status, and delete orders</p>
           {error && <p className="text-yellow-700 mt-1 text-sm">{error}</p>}
         </div>
