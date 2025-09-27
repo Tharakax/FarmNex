@@ -96,7 +96,7 @@ const FarmerSuppliesManagement = React.lazy(() =>
 );
 
 const ReportsManagement = React.lazy(() => 
-  import('../components/reports/ReportsManagement')
+  import('../features/reports/ReportsManagement')
     .catch(error => {
       console.error('Failed to load ReportsManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Reports Management" /> };
@@ -107,7 +107,7 @@ const ReportsManagement = React.lazy(() =>
 import OrdersRemade from '../components/orders/OrdersRemade.jsx';
 
 const ProfessionalReportDashboard = React.lazy(() => 
-  import('../components/reports/ProfessionalReportDashboard')
+  import('../features/reports/ProfessionalReportDashboard')
     .catch(error => {
       console.error('Failed to load ProfessionalReportDashboard:', error);
       return { default: () => <ErrorFallback error={error} componentName="Professional Reports" /> };
@@ -140,7 +140,7 @@ const RecipeListEmbedded = React.lazy(() =>
 );
 
 const ProductReport = React.lazy(() =>
-  import('../components/reports/ProductReport.jsx')
+  import('../features/reports/ProductReport.jsx')
     .catch(error => {
       console.error('Failed to load ProductReport:', error);
       return { default: () => <ErrorFallback error={error} componentName="Product Report" /> };
