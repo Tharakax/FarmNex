@@ -2,7 +2,6 @@ import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
 import ExportSplitButton from '../reports/ExportSplitButton.jsx';
-import ExportService from '../../services/exportService.js';
 import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend, Line } from 'recharts';
 
 const OrdersRemade = () => {
@@ -227,6 +226,7 @@ const OrdersRemade = () => {
       status: o.status
     }));
     const period = 'Current View';
+    const { default: ExportService } = await import('../../services/exportService.js');
     if (format === 'excel') {
       ExportService.exportSales?.toExcel
         ? ExportService.exportSales.toExcel(sales, period)
