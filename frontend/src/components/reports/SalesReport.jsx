@@ -11,8 +11,10 @@ import {
   FileSpreadsheet,
   Filter
 } from 'lucide-react';
-import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
+import { exportToExcel } from '../../utils/exportUtils';
 import { reportAPI } from '../../services/reportAPI';
+import toast from 'react-hot-toast';
+import { formatCurrency } from '../../utils/currencyUtils.js';
 
 const SalesReport = ({ dateRange }) => {
   const [salesData, setSalesData] = useState({
@@ -28,6 +30,7 @@ const SalesReport = ({ dateRange }) => {
   });
   
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   useEffect(() => {
@@ -87,46 +90,50 @@ const SalesReport = ({ dateRange }) => {
     setLoading(false);
   };
 
-  const handleExportSalesReport = (format) => {
-    const exportData = {
-      summary: [
-        ['Total Revenue', `$${salesData.totalRevenue.toLocaleString()}`],
-        ['Total Orders', salesData.totalOrders.toString()],
-        ['Average Order Value', `$${salesData.averageOrderValue}`],
-        ['Revenue Change', `${salesData.revenueChange > 0 ? '+' : ''}${salesData.revenueChange}%`],
-        ['Orders Change', `${salesData.ordersChange > 0 ? '+' : ''}${salesData.ordersChange}%`]
-      ],
-      topProducts: salesData.topProducts,
-      dailySales: salesData.dailySales,
-      categorySales: salesData.categorySales
-    };
-
-    const filename = `sales_report_${dateRange}days_${new Date().toISOString().split('T')[0]}`;
+  const handleExportSalesReport = async (format) => {
+    if (exporting) return; // Prevent multiple clicks
     
-    if (format === 'pdf') {
-      exportToPDF(
-        exportData.topProducts,
-        `Sales Report - Last ${dateRange} Days`,
-        [
-          { header: 'Product Name', dataKey: 'name' },
-          { header: 'Revenue', dataKey: 'revenue' },
-          { header: 'Orders', dataKey: 'orders' },
-          { header: 'Growth %', dataKey: 'growth' }
-        ],
-        filename
-      );
-    } else {
-      exportToExcel(
-        exportData.topProducts,
-        'Sales Report',
-        [
-          { header: 'Product Name', dataKey: 'name' },
-          { header: 'Revenue', dataKey: 'revenue' },
-          { header: 'Orders', dataKey: 'orders' },
-          { header: 'Growth %', dataKey: 'growth' }
-        ],
-        filename
-      );
+    setExporting(true);
+    try {
+      if (format === 'pdf') {
+        // Use backend PDF service for professional reports
+        await reportAPI.exportSalesPDF(dateRange, selectedCategory);
+        toast.success('📄 Sales report PDF downloaded successfully!');
+      } else {
+        // Use client-side Excel export for quick data export
+        const exportData = {
+          summary: [
+            ['Total Revenue', formatCurrency(salesData.totalRevenue)],
+            ['Total Orders', salesData.totalOrders.toString()],
+            ['Average Order Value', formatCurrency(salesData.averageOrderValue)],
+            ['Revenue Change', `${salesData.revenueChange > 0 ? '+' : ''}${salesData.revenueChange}%`],
+            ['Orders Change', `${salesData.ordersChange > 0 ? '+' : ''}${salesData.ordersChange}%`]
+          ],
+          topProducts: salesData.topProducts,
+          dailySales: salesData.dailySales,
+          categorySales: salesData.categorySales
+        };
+
+        const filename = `sales_report_${dateRange}days_${new Date().toISOString().split('T')[0]}`;
+        
+        await exportToExcel(
+          exportData.topProducts,
+          'Sales Report',
+          [
+            { header: 'Product Name', key: 'name' },
+            { header: 'Revenue', key: 'revenue' },
+            { header: 'Orders', key: 'orders' },
+            { header: 'Growth %', key: 'growth' }
+          ],
+          filename
+        );
+        toast.success('📊 Sales report Excel downloaded successfully!');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error(`❌ Failed to export report: ${error.message}`);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -152,17 +159,27 @@ const SalesReport = ({ dateRange }) => {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => handleExportSalesReport('pdf')}
-            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+            disabled={exporting}
+            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
           >
-            <FileText className="h-4 w-4 mr-1" />
-            PDF
+            {exporting ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+            ) : (
+              <FileText className="h-4 w-4 mr-1" />
+            )}
+            {exporting ? 'Generating...' : 'PDF'}
           </button>
           <button
             onClick={() => handleExportSalesReport('excel')}
-            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+            disabled={exporting}
+            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
           >
-            <FileSpreadsheet className="h-4 w-4 mr-1" />
-            Excel
+            {exporting ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+            ) : (
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+            )}
+            {exporting ? 'Exporting...' : 'Excel'}
           </button>
         </div>
       </div>
@@ -173,7 +190,7 @@ const SalesReport = ({ dateRange }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-100 text-sm">Total Revenue</p>
-              <p className="text-2xl font-bold">${salesData.totalRevenue.toLocaleString()}</p>
+              <p className="text-2xl font-bold">{formatCurrency(salesData.totalRevenue)}</p>
               <div className="flex items-center mt-2 text-green-100">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 <span className="text-sm">+{salesData.revenueChange}%</span>
@@ -201,7 +218,7 @@ const SalesReport = ({ dateRange }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm">Average Order Value</p>
-              <p className="text-2xl font-bold">${salesData.averageOrderValue}</p>
+              <p className="text-2xl font-bold">{formatCurrency(salesData.averageOrderValue)}</p>
               <div className="flex items-center mt-2 text-purple-100">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 <span className="text-sm">+5.1%</span>
@@ -244,7 +261,7 @@ const SalesReport = ({ dateRange }) => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-gray-900">${product.revenue.toLocaleString()}</p>
+                  <p className="font-semibold text-gray-900">{formatCurrency(product.revenue)}</p>
                   <div className={`text-sm flex items-center ${
                     product.growth >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>

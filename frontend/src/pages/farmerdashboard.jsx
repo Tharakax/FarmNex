@@ -103,13 +103,8 @@ const ReportsManagement = React.lazy(() =>
     })
 );
 
-const OrdersRemade = React.lazy(() => 
-  import('../components/orders/OrdersRemade.jsx')
-    .catch(error => {
-      console.error('Failed to load OrdersRemade:', error);
-      return { default: () => <ErrorFallback error={error} componentName="Order Management" /> };
-    })
-);
+// Import OrdersRemade directly to avoid lazy-loading failures in critical workflow
+import OrdersRemade from '../components/orders/OrdersRemade.jsx';
 
 const ProfessionalReportDashboard = React.lazy(() => 
   import('../components/reports/ProfessionalReportDashboard')

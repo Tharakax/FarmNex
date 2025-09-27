@@ -209,7 +209,9 @@ export const orderAPI = {
         })
         .reduce((total, order) => {
           const amount = Number(order.total ?? order.totalAmount ?? order.amount ?? 0);
-          return total + (isNaN(amount) ? 0 : amount);
+          const refund = Number(order.refundAmount || 0);
+          const net = Math.max(0, (isNaN(amount) ? 0 : amount) - refund);
+          return total + net;
         }, 0);
 
       // Get recent orders (last 5, sorted by date)
@@ -218,10 +220,14 @@ export const orderAPI = {
         .slice(0, 5)
         .map(order => {
           const amount = Number(order.total ?? order.totalAmount ?? order.amount ?? 0);
+          const refund = Number(order.refundAmount || 0);
           return {
             id: order._id || order.orderId,
             date: new Date(order.createdAt || order.orderDate).toISOString().split('T')[0],
             total: isNaN(amount) ? 0 : amount,
+            netTotal: Math.max(0, (isNaN(amount) ? 0 : amount) - refund),
+            refunded: refund > 0,
+            refundAmount: refund,
             status: order.status || 'Processing',
             items: order.items?.length || 0
           };

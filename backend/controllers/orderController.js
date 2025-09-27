@@ -2,9 +2,10 @@ import Order from '../models/order.js';
 import User from '../models/usermodel.js';
 
 // Helper: case-insensitive admin check
+// Treat farmer and farmstaff as admin-equivalent per requirements
 const isAdminRole = (role) => {
   const r = (role || '').toString().toLowerCase();
-  return r === 'admin' || r === 'superadmin';
+  return r === 'admin' || r === 'superadmin' || r === 'farmer' || r === 'farmstaff';
 };
 // Create a new order
 export const createOrder = async (req, res) => {
@@ -502,6 +503,147 @@ export const deleteOrder = async (req, res) => {
       message: 'Failed to delete order',
       error: error.message
     });
+  }
+};
+
+// Admin hard delete (bypass ownership and status) – restricted to admins only
+export const adminDeleteOrder = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    if (!isAdminRole(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
+    }
+
+    const { id } = req.params;
+    const existing = await Order.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    await Order.findByIdAndDelete(id);
+    return res.status(200).json({ success: true, message: 'Order permanently deleted' });
+  } catch (error) {
+    console.error('Admin delete order error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete order', error: error.message });
+  }
+};
+
+// Process a refund for an order - Admin/farmer only
+export const refundOrder = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+    if (!isAdminRole(req.user.role)) {
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
+    }
+
+    const { id } = req.params;
+    const { amount, method, note } = req.body || {};
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    // Only allow refunds for Stripe/credit card payments
+    if (!order.paymentMethod || order.paymentMethod !== 'credit_card') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Refunds are only supported for credit card payments processed through Stripe' 
+      });
+    }
+
+    // Validate Stripe payment details exist
+    const p = order.paymentDetails || {};
+    const pi = p.paymentIntentId || p.payment_intent_id || p.payment_intent || p.stripePaymentIntentId || null;
+    const chargeId = p.chargeId || p.charge || null;
+    
+    if (!pi && !chargeId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot refund: No Stripe payment reference found for this order' 
+      });
+    }
+
+    // Validate Stripe is configured
+    const hasStripeKey = !!process.env.STRIPE_SECRET;
+    if (!hasStripeKey) {
+      return res.status(500).json({ 
+        success: false, 
+        message: 'Refunds are not available: Stripe is not configured' 
+      });
+    }
+
+    // Determine remaining refundable amount
+    const alreadyRefunded = Number(order.refundAmount || 0);
+    const total = Number(order.total || 0);
+    const remaining = Math.max(0, total - alreadyRefunded);
+
+    let amt = amount != null ? Number(amount) : remaining;
+    if (!Number.isFinite(amt) || amt <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid refund amount' });
+    }
+    if (amt > remaining) amt = remaining;
+
+    // Process Stripe refund (guaranteed to work since we validated above)
+    let txnId = `rf_${order._id.toString().slice(-8)}_${Date.now()}`;
+    let providerStatus = 'succeeded';
+
+    try {
+      const { default: Stripe } = await import('stripe');
+      const stripe = new Stripe(process.env.STRIPE_SECRET);
+      const amountCents = Math.round(amt * 100);
+      let refund;
+      
+      if (pi) {
+        refund = await stripe.refunds.create({ payment_intent: pi, amount: amountCents });
+      } else {
+        refund = await stripe.refunds.create({ charge: chargeId, amount: amountCents });
+      }
+      
+      txnId = refund.id || txnId;
+      providerStatus = refund.status || providerStatus;
+      
+      console.log(`✅ Stripe refund successful: ${refund.id}, amount: ${amt}, status: ${refund.status}`);
+      
+    } catch (stripeErr) {
+      console.error('❌ Stripe refund error:', stripeErr?.message || stripeErr);
+      return res.status(502).json({ 
+        success: false, 
+        message: `Stripe refund failed: ${stripeErr?.message || 'Unknown error'}` 
+      });
+    }
+
+    // Record refund
+    order.refundAmount = alreadyRefunded + amt;
+    order.refundStatus = order.refundAmount >= total ? 'processed' : 'partial';
+    order.refundMethod = 'credit_card'; // Always credit card since that's all we support
+    order.refundTxnId = txnId;
+    order.refundAt = new Date();
+    order.refundNote = note || order.refundNote;
+
+    await order.save();
+
+    // Email customer (best-effort)
+    try {
+      const { default: sendMail } = await import('../utils/sendMail.js');
+      const to = order.contactEmail || '';
+      if (to) {
+        const baseUrl = process.env.PUBLIC_API_URL || 'http://localhost:3000';
+        const creditUrl = `${baseUrl}/api/order/credit-note/${order._id}/pdf`;
+        const subject = 'Your refund has been processed';
+        const text = `Hello ${order.contactName || ''},\n\nWe have processed your refund for order ${order._id.toString()}.\n\nAmount: LKR ${amt.toFixed(2)}\nMethod: ${order.refundMethod}\nTransaction: ${txnId}\nStatus: ${order.refundStatus} (${providerStatus})\n\nYou can download your credit note here:\n${creditUrl}\n\nThank you,\nFarmNex Team`;
+        await sendMail(to, subject, text);
+      }
+    } catch (mailErr) {
+      console.warn('Refund email failed (non-blocking):', mailErr?.message || mailErr);
+    }
+
+    return res.status(200).json({ success: true, message: 'Refund recorded', order });
+  } catch (error) {
+    console.error('Refund order error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to process refund', error: error.message });
   }
 };
 

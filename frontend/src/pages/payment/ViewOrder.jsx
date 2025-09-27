@@ -438,6 +438,19 @@ const ViewOrder = ({ orderId }) => {
                   <span>Total</span>
                   <span>${order.total.toFixed(2)}</span>
                 </div>
+                {Number(order.refundAmount || 0) > 0 && (
+                  <>
+                    <div className="flex justify-between text-red-600">
+                      <span>Refunded</span>
+                      <span>-${Number(order.refundAmount).toFixed(2)}</span>
+                    </div>
+                    <hr className="border-green-200" />
+                    <div className="flex justify-between text-lg font-semibold text-green-900">
+                      <span>Net Total</span>
+                      <span>${(order.total - Number(order.refundAmount)).toFixed(2)}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -461,6 +474,49 @@ const ViewOrder = ({ orderId }) => {
                       {order.paymentMethod.replace('_', ' ')}
                     </span>
                   </div>
+                )}
+                {Number(order.refundAmount || 0) > 0 && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-green-700">Refund Status</span>
+                      <span className="text-red-800 font-medium">
+                        {order.refundStatus || 'Processed'}
+                      </span>
+                    </div>
+                    {order.refundTxnId && (
+                      <div className="flex justify-between">
+                        <span className="text-green-700">Refund ID</span>
+                        <span className="text-green-800 font-mono text-sm">
+                          {order.refundTxnId}
+                        </span>
+                      </div>
+                    )}
+                    {order.refundAt && (
+                      <div className="flex justify-between">
+                        <span className="text-green-700">Refund Date</span>
+                        <span className="text-green-800">
+                          {formatDate(order.refundAt)}
+                        </span>
+                      </div>
+                    )}
+                    {order.refundNote && (
+                      <div className="mt-3">
+                        <p className="text-sm text-green-700 mb-1">Refund Note:</p>
+                        <p className="text-sm text-green-800 bg-red-50 p-2 rounded">{order.refundNote}</p>
+                      </div>
+                    )}
+                    <div className="mt-4">
+                      <a
+                        href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/order/credit-note/${order._id}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                      >
+                        <Download size={16} />
+                        Download Credit Note
+                      </a>
+                    </div>
+                  </>
                 )}
                 {!order.paymentcompleted && (
                   <div className="mt-4">
@@ -553,6 +609,19 @@ const ViewOrder = ({ orderId }) => {
                     </div>
                   </div>
                 )}
+
+                {Number(order.refundAmount || 0) > 0 && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div>
+                      <p className="text-sm font-medium text-red-900">Refund Processed</p>
+                      <p className="text-xs text-red-600">
+                        ${Number(order.refundAmount).toFixed(2)} refunded
+                        {order.refundAt && ` on ${formatDate(order.refundAt)}`}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -574,6 +643,17 @@ const ViewOrder = ({ orderId }) => {
                   >
                     Download Receipt
                   </button>
+                )}
+                
+                {Number(order.refundAmount || 0) > 0 && (
+                  <a
+                    href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/order/credit-note/${order._id}/pdf`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full text-left px-3 py-2 text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                  >
+                    Download Credit Note
+                  </a>
                 )}
                 
                 <button

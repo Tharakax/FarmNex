@@ -93,18 +93,26 @@ const renderFaIconToDataUrl = (faIconDef, size = 48, color = '#FFFFFF') => {
 
 // Draw a header matching the web UI (leaf tile + FarmNex + title)
 // Returns bottom Y position of the header area
-const drawFarmNexPdfHeader = (pdf, title, pageWidth, options = {}) => {
+export const drawFarmNexPdfHeader = (pdf, title, pageWidth, options = {}) => {
   try {
     console.log('Drawing PDF header:', { title, pageWidth, options });
-    const paddingX = (options && options.paddingX) !== undefined ? options.paddingX : 15;
+  const paddingX = (options && options.paddingX) !== undefined ? options.paddingX : 15;
   const topY = (options && options.topY) !== undefined ? options.topY : 12;
   const tileSize = (options && options.tileSize) !== undefined ? options.tileSize : 16;
   const align = options.align || 'right'; // 'left' | 'center' | 'right'
   const titleSize = options.titleFontSize || 24; // larger, more prominent
 
-  // Leaf tile (rounded square)
+  // Leaf tile (rounded square) with safe fallback if roundedRect is unavailable
   pdf.setFillColor(...BRAND_COLORS.greenLight);
-  pdf.roundedRect(paddingX, topY, tileSize, tileSize, 3, 3, 'F');
+  try {
+    if (typeof pdf.roundedRect === 'function') {
+      pdf.roundedRect(paddingX, topY, tileSize, tileSize, 3, 3, 'F');
+    } else {
+      pdf.rect(paddingX, topY, tileSize, tileSize, 'F');
+    }
+  } catch {
+    pdf.rect(paddingX, topY, tileSize, tileSize, 'F');
+  }
 
   // Try to render FontAwesome fa-leaf into the tile; fallback to vector glyph
   const iconDataUrl = renderFaIconToDataUrl(faLeafIcon, Math.round(tileSize * 1.2), '#16A34A');
@@ -145,9 +153,9 @@ const drawFarmNexPdfHeader = (pdf, title, pageWidth, options = {}) => {
   // Title - placed below the brand row
   pdf.setFont('helvetica', 'bold');
   pdf.setFontSize(titleSize);
-  const titleColor = options.titleColor || BRAND_COLORS.dark;
+  const titleColor = options.titleColor || BRAND_COLORS.primary;
   pdf.setTextColor(...titleColor);
-  const titleY = topY + tileSize + 10; // below logo + brand name row
+  let titleY = topY + tileSize + 10; // below logo + brand name row
   if (align === 'center') {
     pdf.text(title || 'Report', pageWidth / 2, titleY, { align: 'center' });
   } else if (align === 'left') {
@@ -397,7 +405,7 @@ export const exportToPDF = async (data, title, columns, filename = 'export', sec
     const sectionTitle = sectionColors.title;
     
 // Header matching UI
-const themeColor = (options && options.titleColor) || ((SECTION_COLORS[section] && SECTION_COLORS[section].primary)) || BRAND_COLORS.dark;
+const themeColor = (options && options.titleColor) || BRAND_COLORS.primary; // Force green titles unless overridden
 const headerBottomY = drawFarmNexPdfHeader(pdf, title, pageWidth, { align: 'center', titleFontSize: 26, tileSize: 18, subtitle: (options && options.subtitle), titleColor: themeColor });
 
     // Professional metadata below header
@@ -770,50 +778,35 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title, pageWidth, { align: 'cent
       });
     }
     
-    // Add colorful footer and page numbers
-    const pageCount = pdf.internal.getNumberOfPages();
-    
-    for (let i = 1; i <= pageCount; i++) {
-      pdf.setPage(i);
-      
-      // Professional footer with border
-      pdf.setDrawColor(...BRAND_COLORS.border);
-      pdf.setLineWidth(0.5);
-      pdf.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20);
-      
-      // Professional page numbering and footer
-      pdf.setFontSize(9);
-      pdf.setTextColor(...BRAND_COLORS.gray);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
-      
-      // Company info with contact details
-      pdf.setFontSize(7);
-      pdf.text('FarmNex Farm Management System • No 8, Temple Road, Beralapanathra, Sri Lanka', 15, pageHeight - 12);
-      pdf.text('Tel: 0742331740 • Email: farmnex@gmail.com', 15, pageHeight - 6);
-      const timestamp = new Date().toLocaleString();
-      pdf.text(`Generated: ${timestamp}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
-    }
-    
-    // Professional summary section
+    // Professional summary section (positioned safely above footer)
     if (data.length > 0) {
       const finalY = pdf.lastAutoTable?.finalY || 200;
+      const boxHeight = 25;
+      const bottomMargin = 40; // keep clear of footer
+      const gap = 10; // space after table
+      let yTop = finalY + gap;
+      
+      // If not enough space on this page, move summary to the next page
+      if (yTop + boxHeight > pageHeight - bottomMargin) {
+        pdf.addPage();
+        yTop = 40; // nice top margin on new page
+      }
       
       // Clean summary border
       pdf.setDrawColor(...BRAND_COLORS.border);
       pdf.setLineWidth(1);
-      pdf.rect(15, finalY + 15, pageWidth - 30, 25, 'S');
+      pdf.rect(15, yTop, pageWidth - 30, boxHeight, 'S');
       
       // Summary title
       pdf.setFontSize(12);
       pdf.setTextColor(...BRAND_COLORS.dark);
       pdf.setFont('helvetica', 'bold');
-      pdf.text('REPORT SUMMARY', pageWidth / 2, finalY + 26, { align: 'center' });
+      pdf.text('REPORT SUMMARY', pageWidth / 2, yTop + 11, { align: 'center' });
       
       // Summary content
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Total records: ${data.length} | Generated by FarmNex System`, pageWidth / 2, finalY + 34, { align: 'center' });
+      pdf.text(`Total records: ${data.length} | Generated by FarmNex System`, pageWidth / 2, yTop + 19, { align: 'center' });
     }
     
     // Optional charts page appended
@@ -831,8 +824,15 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title, pageWidth, { align: 'cent
           value: c.value || c.amount || 0,
           color: c.color
         }));
-        const barUrl = await renderBarChartToDataUrl(barSeries, 800, 320);
-        const pieUrl = await renderDonutChartToDataUrl(pieSeries, 340);
+        const barUrl = await renderBarChartToDataUrl(barSeries, 800, 320, {
+          title: 'Products by Category',
+          yLabel: 'Count',
+          xLabel: 'Categories'
+        });
+const pieUrl = await renderDonutChartToDataUrl(pieSeries, 340, {
+          title: 'Product Distribution',
+          showLegend: false
+        });
         const margin = 15;
         const colGap = 10;
         const topY = headerBottomY + 8;
@@ -888,6 +888,9 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title, pageWidth, { align: 'cent
     if (options && options.watermark) {
       applyWatermark(pdf, typeof options.watermark === 'string' ? options.watermark : 'FarmNex Confidential', (options.cover ? 2 : 1));
     }
+
+    // Add branded footer and page numbers after all content is drawn
+    addFarmNexFooter(pdf);
 
     console.log('PDF generation completed, saving file');
     
@@ -1071,6 +1074,27 @@ export const getSuppliesColumns = () => [
 ];
 
 /**
+ * Detailed column set for inventory analysis (products + supplies)
+ */
+export const getInventoryDetailedColumns = () => [
+  { header: 'Item Name', key: 'productName' },
+  { header: 'Type', key: 'type' },
+  { header: 'Category', key: 'category' },
+  { header: 'Quantity', key: 'quantity' },
+  { header: 'Unit', key: 'unit' },
+  { header: 'Min', key: 'min' },
+  { header: 'Max', key: 'max' },
+  { header: 'Unit Price', key: 'pricePerUnit' },
+  { header: 'Total Value', key: 'totalValue' },
+  { header: 'Status', key: 'status' },
+  { header: 'Supplier', key: 'supplier' },
+  { header: 'Location', key: 'location' },
+  { header: 'Purchase Date', key: 'purchaseDate' },
+  { header: 'Expiry Date', key: 'expiryDate' },
+  { header: 'Last Updated', key: 'lastUpdated' }
+];
+
+/**
  * Get common column definitions for products data
  */
 export const getProductsColumns = () => [
@@ -1133,7 +1157,7 @@ export const processDataForExport = (data, currencyFields = [], dateFields = [])
  * @param {string} imageUrl - URL of the image to load
  * @returns {Promise<string>} - Base64 encoded image data
  */
-const loadImageAsBase64 = (imageUrl) => {
+export const loadImageAsBase64 = (imageUrl, maxWidth = 800, maxHeight = 600) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -1143,24 +1167,59 @@ const loadImageAsBase64 = (imageUrl) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // Set canvas size
-        canvas.width = img.width;
-        canvas.height = img.height;
+        // Calculate aspect ratio and fit within max dimensions
+        let { width, height } = img;
+        const aspectRatio = width / height;
         
-        // Draw image to canvas
-        ctx.drawImage(img, 0, 0);
+        if (width > maxWidth) {
+          width = maxWidth;
+          height = width / aspectRatio;
+        }
         
-        // Convert to base64
-        const base64 = canvas.toDataURL('image/jpeg', 0.8);
+        if (height > maxHeight) {
+          height = maxHeight;
+          width = height * aspectRatio;
+        }
+        
+        // Set canvas size to calculated dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Clear canvas with white background to handle transparent images
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Draw image to canvas with proper scaling
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64 with higher quality
+        const base64 = canvas.toDataURL('image/jpeg', 0.9);
         resolve(base64);
       } catch (error) {
+        console.error('Error processing image:', error);
         reject(error);
       }
     };
     
-    img.onerror = () => {
+    img.onerror = (error) => {
+      console.error('Error loading image:', imageUrl, error);
       reject(new Error(`Failed to load image: ${imageUrl}`));
     };
+    
+    // Add timeout to prevent hanging
+    const timeout = setTimeout(() => {
+      reject(new Error(`Image load timeout: ${imageUrl}`));
+    }, 10000); // 10 second timeout
+    
+    img.onload = (originalOnLoad => () => {
+      clearTimeout(timeout);
+      originalOnLoad();
+    })(img.onload);
+    
+    img.onerror = (originalOnError => (error) => {
+      clearTimeout(timeout);
+      originalOnError(error);
+    })(img.onerror);
     
     img.src = imageUrl;
   });
@@ -1195,7 +1254,7 @@ export const exportProductsToCompactPDF = async (data, title, columns, filename 
     const sectionPrimary = sectionColors.primary;
     
     // Header matching UI
-const themeColor2 = (options && options.titleColor) || ((SECTION_COLORS[section] && SECTION_COLORS[section].primary)) || BRAND_COLORS.dark;
+const themeColor2 = (options && options.titleColor) || BRAND_COLORS.primary; // Force green titles unless overridden
 const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report', pageWidth, { align: 'center', titleFontSize: 26, tileSize: 18, subtitle: (options && options.subtitle), titleColor: themeColor2 });
 
     // Metadata
@@ -1299,82 +1358,238 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report', page
 };
 
 // Helpers to render simple charts to images (browser only)
-const renderBarChartToDataUrl = async (series, width = 800, height = 320) => {
+const renderBarChartToDataUrl = async (series, width = 800, height = 320, options = {}) => {
   try {
     if (typeof document === 'undefined') return null;
+    const scale = options.scale || (typeof window !== 'undefined' && window.devicePixelRatio ? Math.max(2, window.devicePixelRatio * 1.5) : 2);
+
+    // Typography options with larger defaults for better legibility
+    const fonts = {
+      title: options.titleFontSize || 28,
+      ticks: options.tickFontSize || 16,
+      labels: options.labelFontSize || 18,
+      values: options.valueFontSize || 18,
+    };
+
+    const maxBarWidth = options.maxBarWidth || 200;
+    const minBarWidth = options.minBarWidth || 40;
+
     const canvas = document.createElement('canvas');
-    canvas.width = width; canvas.height = height;
+    canvas.width = Math.floor(width * scale);
+    canvas.height = Math.floor(height * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+    ctx.scale(scale, scale);
+    ctx.imageSmoothingEnabled = true;
+
+    const title = options.title || 'Products by Category';
+    const xLabel = options.xLabel || '';
+    const yLabel = options.yLabel || 'Count';
 
     // Background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
-    // Axes
-    const margin = { top: 16, right: 16, bottom: 32, left: 36 };
+    // Title
+    ctx.fillStyle = '#111827';
+    ctx.font = `bold ${fonts.title}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, width / 2, 10);
+
+    // Plot area with more bottom room for 2-line labels
+    const margin = { top: 40, right: 24, bottom: 84, left: 64 };
     const plotW = width - margin.left - margin.right;
     const plotH = height - margin.top - margin.bottom;
     const x0 = margin.left, y0 = height - margin.bottom;
 
+    // Gridlines + Y ticks
+    const maxV = Math.max(1, ...series.map(s => s.value));
+    const ticks = Math.max(3, Math.min(7, maxV));
     ctx.strokeStyle = '#e5e7eb';
     ctx.lineWidth = 1;
+    for (let t = 0; t <= ticks; t++) {
+      const y = y0 - (plotH * t / ticks);
+      const yPix = Math.round(y) + 0.5; // crisper horizontal lines
+      ctx.beginPath();
+      ctx.moveTo(x0, yPix);
+      ctx.lineTo(x0 + plotW, yPix);
+      ctx.stroke();
+
+      // tick label
+      ctx.fillStyle = '#4b5563';
+      ctx.font = `${fonts.ticks}px sans-serif`;
+      ctx.textAlign = 'right';
+      const val = Math.round(maxV * t / ticks);
+      ctx.fillText(String(val), x0 - 8, y - fonts.ticks / 2 + 4);
+    }
+
+    // Axes
+    ctx.strokeStyle = '#9ca3af';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(x0, y0); ctx.lineTo(x0 + plotW, y0); // X axis
-    ctx.moveTo(x0, y0); ctx.lineTo(x0, y0 - plotH); // Y axis
+    ctx.moveTo(x0, Math.round(y0)+0.5); ctx.lineTo(x0 + plotW, Math.round(y0)+0.5); // X axis
+    ctx.moveTo(Math.round(x0)+0.5, y0); ctx.lineTo(Math.round(x0)+0.5, y0 - plotH); // Y axis
     ctx.stroke();
 
-    const maxV = Math.max(1, ...series.map(s => s.value));
-    const barW = Math.max(10, Math.min(60, plotW / (series.length * 1.5)));
-    const gap = barW * 0.5;
+    // Bars: wider and centered when there are few categories
+    const roughBar = plotW / Math.max(1, series.length * 1.2);
+    const barW = Math.max(minBarWidth, Math.min(maxBarWidth, roughBar));
+    const gap = Math.max(20, barW * 0.45);
+    const totalBarsWidth = series.length * barW + (series.length - 1) * gap;
+    let x = x0 + Math.max(0, (plotW - totalBarsWidth) / 2);
 
-    let x = x0 + gap;
     series.forEach((s, i) => {
       const h = (s.value / maxV) * (plotH - 10);
       const y = y0 - h;
       const color = s.color || ['#10B981','#22C55E','#06B6D4','#F59E0B','#8B5CF6','#EF4444'][i % 6];
+      // bar
       ctx.fillStyle = color;
-      ctx.fillRect(x, y, barW, h);
+      ctx.fillRect(Math.round(x)+0.5, y, Math.round(barW), h);
 
-      // label
-      ctx.fillStyle = '#374151';
-      ctx.font = '12px sans-serif';
+      // value label above bar
+      ctx.fillStyle = '#111827';
+      ctx.font = `bold ${fonts.values}px sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(String(s.label).slice(0,8), x + barW/2, y0 + 16);
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(String(s.value), x + barW/2, y - 6);
+
+      // category label (horizontal; wrap to 2 lines if needed)
+      ctx.fillStyle = '#374151';
+      ctx.font = `${fonts.labels}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const xMid = x + barW/2;
+      const maxW = Math.max(barW + 20, 80);
+      const label = String(s.label || '');
+
+      const words = label.split(/\s+/);
+      let line1 = '';
+      let line2 = '';
+      for (const w of words) {
+        const test = line1 ? line1 + ' ' + w : w;
+        if (ctx.measureText(test).width <= maxW) {
+          line1 = test;
+        } else if (!line2) {
+          line2 = w;
+        } else {
+          let candidate = line2 + ' ' + w;
+          if (ctx.measureText(candidate).width <= maxW) {
+            line2 = candidate;
+          } else {
+            // truncate last word
+            while (ctx.measureText(candidate + '…').width > maxW && candidate.length > 0) {
+              candidate = candidate.slice(0, -1);
+            }
+            line2 = candidate + '…';
+            break;
+          }
+        }
+      }
+      if (!line1) line1 = label.length > 12 ? label.slice(0, 12) + '…' : label;
+      if (line1 && !line2) {
+        ctx.fillText(line1, xMid, y0 + 12);
+      } else {
+        ctx.fillText(line1, xMid, y0 + 6);
+        ctx.fillText(line2, xMid, y0 + 24);
+      }
 
       x += barW + gap;
     });
+
+    // Axis labels
+    if (xLabel) {
+      ctx.fillStyle = '#6b7280';
+      ctx.font = `${fonts.ticks}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(xLabel, x0 + plotW / 2, height - 10);
+    }
+    if (yLabel) {
+      ctx.save();
+      ctx.translate(18, margin.top + plotH / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = `${fonts.ticks}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText(yLabel, 0, 0);
+      ctx.restore();
+    }
 
     return canvas.toDataURL('image/png');
   } catch { return null; }
 };
 
-const renderDonutChartToDataUrl = async (series, size = 340) => {
+const renderDonutChartToDataUrl = async (series, size = 340, options = {}) => {
   try {
     if (typeof document === 'undefined') return null;
+    const scale = options.scale || (typeof window !== 'undefined' && window.devicePixelRatio ? Math.max(2, window.devicePixelRatio * 1.5) : 2);
     const canvas = document.createElement('canvas');
-    canvas.width = size; canvas.height = size;
+    canvas.width = Math.floor(size * scale); canvas.height = Math.floor(size * scale);
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
+    ctx.scale(scale, scale);
+    ctx.imageSmoothingEnabled = true;
+
+    const fonts = {
+      title: options.titleFontSize || 28,
+      percent: options.percentFontSize || 20,
+      legend: options.legendFontSize || 14,
+      center: options.centerFontSize || 18,
+    };
+
+    // Show in-canvas legend by default unless explicitly disabled
+    const showLegend = options.showLegend !== false;
 
     // Background
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0,0,size,size);
 
-    const cx = size/2, cy = size/2, r = size/2 - 10, inner = r * 0.6;
+    const title = options.title || 'Products Distribution';
+    // Title
+    ctx.fillStyle = '#111827';
+    ctx.font = `bold ${fonts.title}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, size/2, 8);
+
+    // Slightly smaller ring radius and lower center to add top clearance under the title
+    const cx = size/2, cy = size/2 + 14, r = size/2 - 34, inner = r * 0.62;
     const total = series.reduce((a,b)=>a+(b.value||0),0) || 1;
     let start = -Math.PI/2;
 
+    const colors = ['#10B981','#F59E0B','#8B5CF6','#EF4444','#6B7280','#22C55E','#06B6D4','#14B8A6'];
     series.forEach((s, i) => {
-      const val = Math.max(0, s.value || 0) / total;
-      const end = start + val * Math.PI * 2;
-      const color = s.color || ['#10B981','#F59E0B','#8B5CF6','#EF4444','#6B7280','#22C55E'][i % 6];
+      const frac = Math.max(0, s.value || 0) / total;
+      const end = start + frac * Math.PI * 2;
+      const color = s.color || colors[i % colors.length];
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, r, start, end);
       ctx.closePath();
       ctx.fillStyle = color;
       ctx.fill();
+
+      // percentage label: ALWAYS inside the ring
+      const mid = (start + end) / 2;
+      const pct = Math.round(frac * 100);
+      // Dynamic font sizing so tiny slices still fit
+      const base = fonts.percent;
+      const scaled = Math.max(10, Math.min(base, Math.round(base * (0.65 + Math.sqrt(frac) * 0.6))));
+      ctx.font = `bold ${scaled}px sans-serif`;
+
+      // place between inner and outer radii for good clearance
+      const labelR = inner + (r - inner) * 0.55;
+      const rx = cx + Math.cos(mid) * labelR;
+      const ry = cy + Math.sin(mid) * labelR;
+
+      // outline + fill for contrast
+      ctx.textAlign = 'center';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.strokeText(`${pct}%`, rx, ry);
+      ctx.fillStyle = '#111827';
+      ctx.fillText(`${pct}%`, rx, ry);
+
       start = end;
     });
 
@@ -1385,8 +1600,58 @@ const renderDonutChartToDataUrl = async (series, size = 340) => {
     ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
 
-return canvas.toDataURL('image/png');
+    // Center text (total)
+    ctx.fillStyle = '#374151';
+    ctx.font = `bold ${fonts.center}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`Total: ${total}`, cx, cy);
+
+// Legend (optional)
+    if (showLegend) {
+      const legendX = 10, legendY = size - 12 - Math.min(series.length, 6) * 18;
+      ctx.font = `${fonts.legend}px sans-serif`;
+      series.slice(0, 8).forEach((s, i) => {
+        const color = s.color || colors[i % colors.length];
+        const y = legendY + i * 18;
+        ctx.fillStyle = color;
+        ctx.fillRect(legendX, y - 10, 12, 12);
+        ctx.fillStyle = '#374151';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${s.label} (${s.value})`, legendX + 16, y);
+      });
+    }
+
+    return canvas.toDataURL('image/png');
   } catch { return null; }
+};
+
+// Add branded FarmNex footer with page numbers on all pages
+export const addFarmNexFooter = (pdf) => {
+  const pageCount = pdf.internal.getNumberOfPages();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+
+    // Footer border
+    pdf.setDrawColor(...BRAND_COLORS.border);
+    pdf.setLineWidth(0.5);
+    pdf.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20);
+
+    // Page numbering and footer
+    pdf.setFontSize(9);
+    pdf.setTextColor(...BRAND_COLORS.gray);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+
+    // Company info with contact details
+    pdf.setFontSize(7);
+    pdf.text('FarmNex Farm Management System • No 8, Temple Road, Beralapanathra, Sri Lanka', 15, pageHeight - 12);
+    pdf.text('Tel: 0742331740 • Email: farmnex@gmail.com', 15, pageHeight - 6);
+    const timestamp = new Date().toLocaleString();
+    pdf.text(`Generated: ${timestamp}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
+  }
 };
 
 // Draw a simple cover page
@@ -1458,7 +1723,7 @@ export const exportProductsToPDFWithImages = async (data, title, columns, filena
     const sectionPrimary = sectionColors.primary;
     
     // Header matching UI
-const themeColor3 = (options && options.titleColor) || ((SECTION_COLORS[section] && SECTION_COLORS[section].primary)) || BRAND_COLORS.dark;
+const themeColor3 = (options && options.titleColor) || BRAND_COLORS.primary; // Force green titles unless overridden
 const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report with Images', pageWidth, { align: 'center', titleFontSize: 26, tileSize: 18, subtitle: (options && options.subtitle), titleColor: themeColor3 });
 
     // Metadata
@@ -1491,14 +1756,30 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report with I
         yPosition = 30;
       }
       
-      // Product container background
+  // Product container background (fallback if roundedRect unavailable)
       pdf.setFillColor(248, 249, 250);
-      pdf.roundedRect(leftMargin, yPosition, contentWidth, itemHeight, 3, 3, 'F');
+      try {
+        if (typeof pdf.roundedRect === 'function') {
+          pdf.roundedRect(leftMargin, yPosition, contentWidth, itemHeight, 3, 3, 'F');
+        } else {
+          pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'F');
+        }
+      } catch {
+        pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'F');
+      }
       
       // Product container border
       pdf.setDrawColor(...BRAND_COLORS.border);
       pdf.setLineWidth(0.5);
-      pdf.roundedRect(leftMargin, yPosition, contentWidth, itemHeight, 3, 3, 'S');
+      try {
+        if (typeof pdf.roundedRect === 'function') {
+          pdf.roundedRect(leftMargin, yPosition, contentWidth, itemHeight, 3, 3, 'S');
+        } else {
+          pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'S');
+        }
+      } catch {
+        pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'S');
+      }
       
       try {
         // Load and embed product image
@@ -1630,8 +1911,15 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report with I
           color: c.color
         }));
 
-        const barUrl = await renderBarChartToDataUrl(barSeries, 800, 320);
-        const pieUrl = await renderDonutChartToDataUrl(pieSeries, 340);
+        const barUrl = await renderBarChartToDataUrl(barSeries, 800, 320, {
+          title: 'Products by Category',
+          yLabel: 'Count',
+          xLabel: 'Categories'
+        });
+const pieUrl = await renderDonutChartToDataUrl(pieSeries, 340, {
+          title: 'Product Distribution',
+          showLegend: false
+        });
 
         const margin = 15;
         const colGap = 10;
@@ -1737,18 +2025,21 @@ export default {
   exportToExcel,
   exportProductsToPDFWithImages,
   exportProductsToCompactPDF,
-  loadImageAsBase64,
   formatCurrency,
   formatDate,
   getInventoryColumns,
+  getInventoryDetailedColumns,
   getSuppliesColumns,
   getProductsColumns,
   getSalesColumns,
   processDataForExport,
   drawFarmNexPdfHeader,
+  addFarmNexFooter,
   drawSummaryBlock,
   drawCoverPage,
-  applyWatermark
+  applyWatermark,
+  renderBarChartToDataUrl,
+  renderDonutChartToDataUrl
 };
 
-export { drawFarmNexPdfHeader, drawSummaryBlock, drawCoverPage, applyWatermark };
+export { drawSummaryBlock, drawCoverPage, applyWatermark, renderBarChartToDataUrl, renderDonutChartToDataUrl };

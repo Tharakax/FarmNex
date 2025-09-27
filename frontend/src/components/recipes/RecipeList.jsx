@@ -6,6 +6,7 @@ import Navigation from "../navigation";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { drawFarmNexPdfHeader, addFarmNexFooter, loadImageAsBase64, renderBarChartToDataUrl, renderDonutChartToDataUrl } from "../../utils/exportUtils.js";
 
 const API_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/recipes`;
 
@@ -182,42 +183,37 @@ function RecipeList({ showHeader = true, publicView = false }) {
     }
   };
 
-  // 📥 Download all recipes as PDF (FarmNex theme)
+  // 📥 Download all recipes as PDF (aligned with other reports)
   const handleDownloadAllPDF = async () => {
     if (!filteredRecipes || filteredRecipes.length === 0) {
       alert("No recipes available to download.");
       return;
     }
 
-    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const headerHeight = 34; // themed header bar (taller for two-line title)
-    const footerHeight = 16; // themed footer bar
-    const greenDark = [30, 126, 52]; // #1e7e34
-    const green = [40, 167, 69]; // #28a745
 
-    // Build a lightweight leaf SVG (embedded) and convert to PNG for consistent PDF rendering
-    const leafSvg = `<?xml version="1.0" encoding="UTF-8"?>
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-        <path d="M8 40 C 8 20, 28 8, 48 8 C 48 28, 36 48, 16 48 Z" fill="#28a745"/>
-        <path d="M16 48 C 22 38, 28 32, 40 20" stroke="#166534" stroke-width="3" fill="none" stroke-linecap="round"/>
-      </svg>`;
-    let leafPng;
-    try {
-      leafPng = await svgToPngDataUrl(leafSvg, 96, 96);
-    } catch (e) {
-      leafPng = undefined; // proceed without icon if conversion fails
-    }
+    // Branded header (same style as other reports) with green title
+    const headerBottomY = drawFarmNexPdfHeader(doc, 'Recipe Catalog', pageWidth, {
+      align: 'center',
+      titleFontSize: 26,
+      tileSize: 18,
+      subtitle: `Total Recipes: ${filteredRecipes.length}`,
+      titleColor: [34, 197, 94]
+    });
 
-    const generatedAt = new Date();
-    const dateText = generatedAt.toLocaleString();
-    const reportId = `FNX-${generatedAt.getFullYear()}-${String(generatedAt.getMonth()+1).padStart(2,'0')}${String(generatedAt.getDate()).padStart(2,'0')}-${String(generatedAt.getHours()).padStart(2,'0')}${String(generatedAt.getMinutes()).padStart(2,'0')}`;
+    // Meta line below header
+    const metaY = headerBottomY + 8;
+    doc.setFontSize(9);
+    doc.setTextColor(31, 41, 55);
+    const now = new Date();
+    doc.text(`Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`, 15, metaY);
+    doc.text(`Total Records: ${filteredRecipes.length}`, pageWidth - 15, metaY, { align: 'right' });
 
+    // Prepare rows
     const rows = filteredRecipes.map((recipe, index) => {
-      const meals = Array.isArray(recipe.meal)
-        ? recipe.meal.join(', ')
-        : recipe.meal || '—';
+      const meals = Array.isArray(recipe.meal) ? recipe.meal.join(', ') : (recipe.meal || '—');
       return [
         index + 1,
         recipe.title || 'Untitled',
@@ -227,12 +223,14 @@ function RecipeList({ showHeader = true, publicView = false }) {
       ];
     });
 
+    // Table styling consistent with other reports
     autoTable(doc, {
       head: [["#", "Title", "Type", "Meals", "Time"]],
       body: rows,
-      startY: headerHeight + 8,
+      startY: headerBottomY + 18,
+      theme: 'grid',
       styles: { fontSize: 9, cellPadding: 2.5 },
-      headStyles: { fillColor: greenDark, textColor: 255, fontStyle: 'bold' },
+      headStyles: { fillColor: [34, 197, 94], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [248, 249, 250] },
       bodyStyles: { valign: 'middle' },
       columnStyles: {
@@ -242,40 +240,124 @@ function RecipeList({ showHeader = true, publicView = false }) {
         3: { cellWidth: 54 },
         4: { cellWidth: 22 },
       },
-      margin: { top: headerHeight + 6, bottom: footerHeight + 8, left: 10, right: 10 },
-      didDrawPage: (data) => {
-        // Header gradient bar with subtle overlay circle
-        drawGradientBar(doc, 0, headerHeight, greenDark, green, pageWidth);
-        // Decorative circle top-right
-        doc.setFillColor(46, 204, 113); // lighter green
-        doc.circle(pageWidth - 6, 6, 18, 'F');
-
-        // Company and title + icon
-        if (leafPng) {
-          // draw leaf icon on the header (approx 9x9 mm)
-          doc.addImage(leafPng, 'PNG', 8, 9, 9, 9);
-        }
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(18);
-        doc.text('FARMNEX', 20, 14);
-        doc.setFontSize(12);
-        doc.text('Agricultural Analytics Report', 20, 22);
-
-        // Right-aligned date and report id (two lines, like reference)
-        doc.setFontSize(9.5);
-        doc.text(`Generated: ${dateText}`, pageWidth - 10, 10, { align: 'right' });
-        doc.text(`Report ID: ${reportId}`, pageWidth - 10, 16, { align: 'right' });
-
-        // Footer bar
-        const str = `Page ${doc.getCurrentPageInfo().pageNumber} of ${doc.internal.getNumberOfPages()}`;
-        doc.setFillColor(...greenDark);
-        doc.rect(0, pageHeight - footerHeight, pageWidth, footerHeight, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(8.5);
-        doc.text('www.farmnex.com | support@farmnex.com', 10, pageHeight - 5);
-        doc.text(str, pageWidth - 10, pageHeight - 5, { align: 'right' });
-      }
+      margin: { left: 10, right: 10, top: headerBottomY + 16, bottom: 30 }
     });
+
+    // Charts pages (larger): full-width bar on its own page, large donut on a second page
+    try {
+      const typeMap = new Map();
+      const mealMap = new Map();
+      filteredRecipes.forEach(r => {
+        const type = (r.type || 'Unknown').toString();
+        typeMap.set(type, (typeMap.get(type) || 0) + 1);
+        const meals = Array.isArray(r.meal) ? r.meal : (typeof r.meal === 'string' ? r.meal.split(',') : []);
+        meals.map(m => (m || '').toString().trim()).filter(Boolean).forEach(m => mealMap.set(m, (mealMap.get(m) || 0) + 1));
+      });
+      const typeSeries = Array.from(typeMap.entries()).map(([name, value]) => ({ label: name, value }));
+      const mealSeries = Array.from(mealMap.entries()).map(([name, value]) => ({ label: name, value }));
+
+      // Page for bar chart (wide)
+      doc.addPage();
+      const hbBar = drawFarmNexPdfHeader(doc, 'Recipe Insights — Types', pageWidth, { align: 'center', titleFontSize: 24, tileSize: 18, titleColor: [34,197,94] });
+      const margin = 12; const topBarY = hbBar + 8; const availW = pageWidth - margin * 2; const barH_mm = 110; // big bar area
+      const barUrl = await renderBarChartToDataUrl(typeSeries, 1600, 600, { title: 'Recipes by Type', yLabel: 'Count', scale: 3, titleFontSize: 30, tickFontSize: 18, labelFontSize: 20, valueFontSize: 20, maxBarWidth: 240 });
+      if (barUrl) {
+        doc.addImage(barUrl, 'PNG', margin, topBarY, availW, barH_mm);
+      }
+
+      // Page for donut chart (large)
+      doc.addPage();
+      const hbPie = drawFarmNexPdfHeader(doc, 'Recipe Insights — Meals', pageWidth, { align: 'center', titleFontSize: 24, tileSize: 18, titleColor: [34,197,94] });
+      const topPieY = hbPie + 16; const pieSize_mm = Math.min(pageWidth - 50, 150);
+      const pieUrl = await renderDonutChartToDataUrl(mealSeries, 900, { title: 'Recipes by Meal', scale: 3, titleFontSize: 30, percentFontSize: 20, legendFontSize: 14, centerFontSize: 18 });
+      if (pieUrl) {
+        const x = (pageWidth - pieSize_mm) / 2;
+        doc.addImage(pieUrl, 'PNG', x, topPieY, pieSize_mm, pieSize_mm);
+      }
+    } catch (e) { console.warn('Recipe charts failed:', e); }
+
+    // Gallery page with images and descriptions
+    try {
+      doc.addPage();
+      const hb3 = drawFarmNexPdfHeader(doc, 'Recipe Gallery', pageWidth, { align: 'center', titleFontSize: 24, tileSize: 18, titleColor: [34,197,94] });
+      let x = 15; let y = hb3 + 8; const gap = 8; const cardW = (pageWidth - 15*2 - gap)/2; const imgH = 40; const cardH = 58;
+      const addCard = async (rec) => {
+        // Image with proper aspect ratio handling
+        let imgUrl = rec.image || rec.imageUrl || (Array.isArray(rec.images) ? rec.images[0] : null);
+        let addedImg = false;
+        
+        if (imgUrl) {
+          try {
+            // Load image and get its natural dimensions
+            const base64 = await loadImageAsBase64(imgUrl, 400, 300); // Reasonable max size
+            
+            // Create a temporary image to get its dimensions after processing
+            const tempImg = new Image();
+            await new Promise((resolve) => {
+              tempImg.onload = resolve;
+              tempImg.src = base64;
+            });
+            
+            // Calculate aspect ratio preserving dimensions that fit in the card area
+            const imgAspect = tempImg.width / tempImg.height;
+            const cardAspect = cardW / imgH;
+            
+            let drawWidth, drawHeight, drawX, drawY;
+            
+            if (imgAspect > cardAspect) {
+              // Image is wider - fit to width
+              drawWidth = cardW;
+              drawHeight = cardW / imgAspect;
+              drawX = x;
+              drawY = y + (imgH - drawHeight) / 2; // Center vertically
+            } else {
+              // Image is taller - fit to height
+              drawHeight = imgH;
+              drawWidth = imgH * imgAspect;
+              drawX = x + (cardW - drawWidth) / 2; // Center horizontally
+              drawY = y;
+            }
+            
+            // Draw background rectangle (for centering effect)
+            doc.setFillColor(248, 248, 248);
+            doc.rect(x, y, cardW, imgH, 'F');
+            
+            // Draw the properly sized image
+            doc.addImage(base64, 'JPEG', drawX, drawY, drawWidth, drawHeight);
+            addedImg = true;
+            
+          } catch (error) {
+            console.warn('Failed to load recipe image:', imgUrl, error);
+          }
+        }
+        
+        if (!addedImg) { 
+          doc.setFillColor(240, 240, 240); 
+          doc.rect(x, y, cardW, imgH, 'F'); 
+          doc.setTextColor(150); 
+          doc.setFontSize(8); 
+          doc.text('No Image', x + cardW/2, y + imgH/2, { align: 'center' }); 
+        }
+        // Title
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(34,197,94); doc.text(rec.title || 'Untitled', x + 2, y + imgH + 6);
+        // Description
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(31,41,55);
+        const desc = (rec.description || '').toString();
+        const lines = doc.splitTextToSize(desc, cardW - 4).slice(0,3);
+        doc.text(lines, x + 2, y + imgH + 12);
+        // Border
+        doc.setDrawColor(209,213,219); doc.rect(x, y, cardW, cardH, 'S');
+        // Next position
+        x += cardW + gap;
+        if (x + cardW > pageWidth - 15) { x = 15; y += cardH + gap; if (y + cardH > pageHeight - 20) { doc.addPage(); const hb = drawFarmNexPdfHeader(doc, 'Recipe Gallery (cont.)', pageWidth, { align: 'center', titleFontSize: 24, tileSize: 18, titleColor: [34,197,94] }); y = hb + 8; } }
+      };
+      for (const r of filteredRecipes) { // sequential to keep layout stable
+        await addCard(r);
+      }
+    } catch (e) { console.warn('Recipe gallery failed:', e); }
+
+    // Branded footer with page numbers and contact
+    addFarmNexFooter(doc);
 
     doc.save('recipes.pdf');
   };

@@ -26,6 +26,7 @@ import InventoryReport from './InventoryReport';
 import ProductPerformanceReport from './ProductPerformanceReport';
 import ProductManagementReport from './ProductManagementReport';
 import SuppliesReport from './SuppliesReport';
+import OrderReport from './OrderReport';
 
 const ReportsManagement = () => {
   const [activeReport, setActiveReport] = useState('overview');
@@ -76,6 +77,13 @@ const ReportsManagement = () => {
       icon: Truck,
       description: 'Supply usage, costs, and reorder alerts',
       color: 'bg-orange-500'
+    },
+    {
+      id: 'orders',
+      name: 'Order Analytics',
+      icon: ShoppingCart,
+      description: 'Order performance, revenue, and customer insights',
+      color: 'bg-blue-500'
     },
     {
       id: 'product-management',
@@ -130,48 +138,48 @@ const ReportsManagement = () => {
       {
         title: 'Total Revenue',
         value: `$${overview.totalRevenue?.toLocaleString() || 0}`,
-        change: '+12.5%',
-        changeType: 'positive',
+        change: overview.revenueChange ? `+${overview.revenueChange.toFixed(1)}%` : '+12.5%',
+        changeType: (overview.revenueChange || 12.5) >= 0 ? 'positive' : 'negative',
         icon: DollarSign,
         color: 'bg-green-500'
       },
       {
         title: 'Total Orders',
         value: overview.totalOrders?.toLocaleString() || 0,
-        change: '+8.3%',
-        changeType: 'positive',
+        change: overview.ordersChange ? `+${overview.ordersChange.toFixed(1)}%` : '+8.3%',
+        changeType: (overview.ordersChange || 8.3) >= 0 ? 'positive' : 'negative',
         icon: ShoppingCart,
         color: 'bg-blue-500'
       },
       {
         title: 'Average Order Value',
         value: `$${overview.averageOrderValue || 0}`,
-        change: '+5.1%',
-        changeType: 'positive',
+        change: overview.aovChange ? `+${overview.aovChange.toFixed(1)}%` : '+5.1%',
+        changeType: (overview.aovChange || 5.1) >= 0 ? 'positive' : 'negative',
         icon: TrendingUp,
         color: 'bg-purple-500'
       },
       {
         title: 'Products Sold',
         value: overview.productsSold?.toLocaleString() || 0,
-        change: '+15.2%',
-        changeType: 'positive',
+        change: overview.productsSoldChange ? `+${overview.productsSoldChange.toFixed(1)}%` : '+15.2%',
+        changeType: (overview.productsSoldChange || 15.2) >= 0 ? 'positive' : 'negative',
         icon: Package,
         color: 'bg-orange-500'
       },
       {
         title: 'Inventory Value',
         value: `$${overview.inventoryValue?.toLocaleString() || 0}`,
-        change: '-2.1%',
-        changeType: 'negative',
+        change: overview.inventoryChange ? `${overview.inventoryChange >= 0 ? '+' : ''}${overview.inventoryChange.toFixed(1)}%` : '-2.1%',
+        changeType: (overview.inventoryChange || -2.1) >= 0 ? 'positive' : 'negative',
         icon: Truck,
         color: 'bg-yellow-500'
       },
       {
         title: 'Active Customers',
-        value: '1,234',
-        change: '+9.7%',
-        changeType: 'positive',
+        value: overview.activeCustomers?.toLocaleString() || '1,234',
+        change: overview.customerChange ? `+${overview.customerChange.toFixed(1)}%` : '+9.7%',
+        changeType: (overview.customerChange || 9.7) >= 0 ? 'positive' : 'negative',
         icon: Users,
         color: 'bg-indigo-500'
       }
@@ -222,17 +230,22 @@ const ReportsManagement = () => {
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Categories</h3>
             <div className="space-y-3">
-              {['Vegetables', 'Fruits', 'Dairy Products', 'Leafy Greens'].map((category, index) => (
-                <div key={category} className="flex items-center justify-between">
-                  <span className="text-gray-700">{category}</span>
+              {(overview.topCategories || [
+                { name: 'Vegetables', percentage: 100 },
+                { name: 'Fruits', percentage: 85 },
+                { name: 'Dairy Products', percentage: 70 },
+                { name: 'Leafy Greens', percentage: 55 }
+              ]).map((category, index) => (
+                <div key={category.name} className="flex items-center justify-between">
+                  <span className="text-gray-700">{category.name}</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-24 bg-gray-200 rounded-full h-2">
                       <div 
                         className="bg-green-500 h-2 rounded-full" 
-                        style={{ width: `${100 - (index * 15)}%` }}
+                        style={{ width: `${category.percentage}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm text-gray-600">{100 - (index * 15)}%</span>
+                    <span className="text-sm text-gray-600">{Math.round(category.percentage)}%</span>
                   </div>
                 </div>
               ))}
@@ -242,27 +255,40 @@ const ReportsManagement = () => {
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Alerts & Notifications</h3>
             <div className="space-y-3">
-              <div className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
-                <div>
-                  <p className="text-sm font-medium text-yellow-800">Low Stock Alert</p>
-                  <p className="text-xs text-yellow-600">5 products below minimum threshold</p>
+              {(overview.lowStockItems || 0) > 0 && (
+                <div className="flex items-center p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800">Low Stock Alert</p>
+                    <p className="text-xs text-yellow-600">{overview.lowStockItems} products below minimum threshold</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-blue-600 mr-3" />
-                <div>
-                  <p className="text-sm font-medium text-blue-800">Sales Trending Up</p>
-                  <p className="text-xs text-blue-600">15% increase this week</p>
+              )}
+              {(overview.revenueChange || 0) > 0 && (
+                <div className="flex items-center p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-blue-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Sales Trending Up</p>
+                    <p className="text-xs text-blue-600">{Math.round(overview.revenueChange || 15)}% increase this period</p>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
                 <DollarSign className="h-5 w-5 text-green-600 mr-3" />
                 <div>
-                  <p className="text-sm font-medium text-green-800">Revenue Target</p>
-                  <p className="text-xs text-green-600">85% of monthly goal achieved</p>
+                  <p className="text-sm font-medium text-green-800">Revenue Performance</p>
+                  <p className="text-xs text-green-600">Revenue: ${overview.totalRevenue?.toLocaleString() || 0}</p>
                 </div>
               </div>
+              {(overview.outOfStockItems || 0) > 0 && (
+                <div className="flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-red-600 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Out of Stock Alert</p>
+                    <p className="text-xs text-red-600">{overview.outOfStockItems} products are out of stock</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -279,6 +305,8 @@ const ReportsManagement = () => {
         return <InventoryReport dateRange={dateRange} />;
       case 'products':
         return <ProductPerformanceReport dateRange={dateRange} />;
+      case 'orders':
+        return <OrderReport dateRange={dateRange} />;
       case 'product-management':
         return <ProductManagementReport dateRange={dateRange} />;
       case 'supplies':

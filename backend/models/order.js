@@ -59,8 +59,9 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['credit_card', 'paypal', 'bank_transfer', 'cash_on_delivery'],
+    enum: ['credit_card'],
     required: false,
+    default: 'credit_card',
   },
   shippingAddress: {
     name: String,
@@ -120,6 +121,38 @@ const orderSchema = new mongoose.Schema({
   isHidden: {
     type: Boolean,
     default: false,
+  },
+  // Refund tracking
+  refundStatus: {
+    type: String,
+    enum: ['none', 'pending', 'processed', 'partial', 'failed'],
+    default: 'none',
+  },
+  refundAmount: {
+    type: Number,
+    default: 0,
+  },
+  refundMethod: {
+    type: String,
+  },
+  refundTxnId: {
+    type: String,
+  },
+  refundAt: {
+    type: Date,
+  },
+  refundNote: {
+    type: String,
+  },
+  // Stripe payment integration
+  paymentDetails: {
+    paymentIntentId: String,
+    stripePaymentIntentId: String,
+    chargeId: String,
+    cardBrand: String,
+    last4: String,
+    source: String, // 'stripe', 'manual_fix', etc.
+    error: String // For failed payments
   },
 }, {
   timestamps: true, // This automatically adds createdAt and updatedAt fields

@@ -10,6 +10,7 @@ import {
 } from '../controllers/reportController.js';
 import {
   generateProductReportPDF,
+  generateSalesReportPDF,
   getReportCategories,
   getReportStatus
 } from '../controllers/pdfReportController.js';
@@ -45,6 +46,9 @@ router.get('/export', authMiddleware, exportReport);
 
 // Enhanced PDF Product Reports - Available to Admin & FarmStaff
 router.get('/product-pdf', authMiddleware, generateProductReportPDF);
+
+// Enhanced PDF Sales Reports - Available to Admin & FarmStaff
+router.get('/sales-pdf', authMiddleware, generateSalesReportPDF);
 
 // Get Report Categories - Available to authenticated users
 router.get('/categories', authMiddleware, getReportCategories);

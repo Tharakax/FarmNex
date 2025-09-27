@@ -9,7 +9,11 @@
     "dev": "concurrently \"npm start\" \"npm run arduino-bridge\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migrate:recipes": "node scripts/migrateRecipes.js",
-    "seed:orders": "node scripts/seedOrdersFromRegisteredUsers.js"
+    "seed:orders": "node scripts/seedOrdersFromRegisteredUsers.js",
+    "purge:test-orders": "node scripts/purgeTestOrders.js",
+    "purge:test-orders:apply": "node scripts/purgeTestOrders.js --apply",
+    "list:orders": "node scripts/listOrdersSimple.js",
+    "delete:orders:tails": "node scripts/deleteOrdersByTail.js"
   },
   "keywords": [],
   "author": "",

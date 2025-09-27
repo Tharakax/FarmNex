@@ -3,6 +3,21 @@ import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
 import ExportSplitButton from '../reports/ExportSplitButton.jsx';
 import { PieChart, Pie, Cell, ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend, Line } from 'recharts';
+import { formatCurrency, formatCompactLKR } from '../../utils/currencyUtils.js';
+
+// Status config for professional, consistent styling
+const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+const STATUS_STYLES = {
+  pending:    'bg-yellow-100 text-yellow-800 border-yellow-300',
+  processing: 'bg-blue-100 text-blue-800 border-blue-300',
+  shipped:    'bg-purple-100 text-purple-800 border-purple-300',
+  delivered:  'bg-emerald-100 text-emerald-800 border-emerald-300',
+  cancelled:  'bg-rose-100 text-rose-800 border-rose-300'
+};
+
+const Spinner = () => (
+  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-transparent align-middle" />
+);
 
 const OrdersRemade = () => {
   const [orders, setOrders] = useState([]);
@@ -17,9 +32,27 @@ const OrdersRemade = () => {
     thisMonthRevenue: 0,
     byStatus: { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 }
   });
+  const [savingStatus, setSavingStatus] = useState({}); // { [orderId]: true }
+  // Refund modal state (must be declared before any early returns)
+  const [showRefund, setShowRefund] = useState(false);
+  const [refundForm, setRefundForm] = useState({ amount: 0, note: '' });
 
   useEffect(() => {
     fetchOrders();
+  }, []);
+
+  // Determine if current user is admin from token/localStorage
+  const isAdmin = useMemo(() => {
+    try {
+      const raw = (localStorage.getItem('token') || sessionStorage.getItem('authToken') || '').trim();
+      if (!raw) return false;
+      const token = /^Bearer\b/i.test(raw) ? raw.split(' ')[1] : raw;
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const role = String(payload.role || payload.Role || payload.userRole || '').toLowerCase();
+      return role === 'admin' || role === 'superadmin' || role === 'farmer' || role === 'farmstaff';
+    } catch {
+      return false;
+    }
   }, []);
 
   // Build Authorization header correctly even if stored token already contains "Bearer"
@@ -71,19 +104,56 @@ const OrdersRemade = () => {
       const rawId = order?._id || order?.id || order?.orderId;
       const normalizedId = rawId ? rawId.toString() : `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+      // Normalize payment method to a human-friendly label (only credit card supported)
+      const rawMethod = order?.paymentMethod || '';
+      const paymentMethod = (() => {
+        const m = rawMethod.toLowerCase();
+        if (m === 'credit_card') return 'Credit card';
+        return 'Credit card'; // Default to credit card since that's all we support
+      })();
+
+      // Build best-available shipping address
+      const hasAny = (obj) => !!obj && Object.values(obj).some(v => Boolean(v));
+      let shipping = hasAny(order?.shippingAddress) ? order.shippingAddress
+                  : hasAny(order?.billingAddress) ? order.billingAddress
+                  : null;
+      if (!shipping) {
+        const fallbackStreet = order?.customerId?.address || '';
+        const fallbackPhone = order?.customerId?.phone || '';
+        if (fallbackStreet || fallbackPhone) {
+          shipping = {
+            name: safeContactName,
+            street: fallbackStreet || undefined,
+            city: undefined,
+            state: undefined,
+            zipCode: undefined,
+            phone: fallbackPhone || undefined
+          };
+        }
+      }
+
+      const contactPhone = order?.contactPhone || order?.shippingAddress?.phone || order?.customerId?.phone || 'N/A';
+
       return {
         ...order,
         _id: normalizedId,
         contactName: safeContactName,
         contactEmail: safeContactEmail,
-        contactPhone: order?.contactPhone || order?.shippingAddress?.phone || 'N/A',
+        contactPhone,
         total: Number(order?.total ?? order?.totalAmount ?? order?.amount ?? 0),
         status: order?.status || 'pending',
         createdAt: order?.createdAt || order?.updatedAt || new Date().toISOString(),
         items: Array.isArray(order?.items) ? order.items : [],
         paymentcompleted: (order?.paymentcompleted ?? order?.paymentCompleted) || false,
-        paymentMethod: order?.paymentMethod || 'N/A',
-        shippingAddress: order?.shippingAddress || {},
+        paymentMethod,
+        // Refund fields (defaults)
+        refundStatus: order?.refundStatus || 'none',
+        refundAmount: Number(order?.refundAmount || 0),
+        refundAt: order?.refundAt || null,
+        refundTxnId: order?.refundTxnId || '',
+        refundMethod: order?.refundMethod || '',
+        refundNote: order?.refundNote || '',
+        shippingAddress: shipping || {},
       };
     });
 
@@ -94,13 +164,11 @@ const OrdersRemade = () => {
       setError(null);
       const headers = getAuthHeaders();
 
-      // Try multiple endpoints, then fall back to a sample/debug endpoint so the UI stays responsive
+      // Query only real endpoints (remove any mock/debug fallbacks)
       const endpoints = [
         `${API_BASE_URL}/api/order/admin-orders`,
-        `${API_BASE_URL}/api/order/admin/dashboard`,
         `${API_BASE_URL}/api/order`,
-        `${API_BASE_URL}/orders`,
-        `${API_BASE_URL}/api/order/debug/all`
+        `${API_BASE_URL}/orders`
       ];
 
       let ordersData = [];
@@ -114,8 +182,8 @@ const OrdersRemade = () => {
           } else if (Array.isArray(res.data)) {
             ordersData = res.data;
           } else if (res.data?.success && res.data?.data) {
-            // debug/dashboard style
-            ordersData = res.data.data.sampleOrders || res.data.data.orders || [];
+            // dashboard style payloads return orders under data.orders
+            ordersData = res.data.data.orders || [];
           }
           if (ordersData.length) break;
         } catch (err) {
@@ -134,24 +202,8 @@ const OrdersRemade = () => {
 
       const normalized = normalizeOrders(ordersData);
       setOrders(normalized);
-
-      // Compute analytics
-      const totalOrders = normalized.length;
-      const totalRevenue = normalized.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-      const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
-      const now = new Date();
-      const thisMonthRevenue = normalized
-        .filter(o => {
-          const d = new Date(o.createdAt);
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        })
-        .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-      const byStatus = normalized.reduce((acc, o) => {
-        const s = (o.status || 'pending');
-        acc[s] = (acc[s] || 0) + 1;
-        return acc;
-      }, { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 });
-      setAnalytics({ totalOrders, totalRevenue, avgOrderValue, thisMonthRevenue, byStatus });
+      // If a modal is open, keep its selected order in sync
+      setSelectedOrder(prev => prev ? normalized.find(o => o._id === prev._id) || prev : prev);
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || 'Failed to load orders');
       setOrders([]);
@@ -161,28 +213,41 @@ const OrdersRemade = () => {
   };
 
   const handleStatusUpdate = async (orderId, newStatus) => {
-    try {
-      const headers = getAuthHeaders();
-      const endpoints = [
-        `${API_BASE_URL}/api/order/admin/status/${orderId}`,
-        `${API_BASE_URL}/api/order/status/${orderId}`
-      ];
+    // Optional confirmation when cancelling
+    if (newStatus === 'cancelled' && !window.confirm('Cancel this order?')) return;
 
-      let success = false;
-      for (const endpoint of endpoints) {
-        try {
-          await axios.put(endpoint, { status: newStatus }, { headers });
-          success = true;
-          break;
-        } catch {}
+    const headers = getAuthHeaders();
+    const endpoints = [
+      `${API_BASE_URL}/api/order/admin/status/${orderId}`,
+      `${API_BASE_URL}/api/order/status/${orderId}`
+    ];
+
+    // Optimistic update with revert on failure
+    setSavingStatus(prev => ({ ...prev, [orderId]: true }));
+    let prevStatus = null;
+    setOrders(prev => prev.map(o => {
+      if (o._id === orderId) { prevStatus = o.status; return { ...o, status: newStatus }; }
+      return o;
+    }));
+
+    let ok = false; let lastErr = null;
+    for (const endpoint of endpoints) {
+      try {
+        const res = await axios.put(endpoint, { status: newStatus }, { headers });
+        if (res?.data?.success || res?.status === 200) { ok = true; break; }
+        lastErr = res?.data;
+      } catch (err) {
+        lastErr = err?.response?.data || { message: err?.message };
       }
-
-      // Local fallback: update UI state regardless of server response
-      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
-      if (!success) alert('Updated locally.');
-    } catch (e) {
-      console.error(e);
     }
+
+    if (!ok) {
+      // Revert
+      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: prevStatus } : o));
+      alert(lastErr?.message || 'Failed to update status.');
+    }
+
+    setSavingStatus(prev => { const copy = { ...prev }; delete copy[orderId]; return copy; });
   };
 
   const handleDelete = async (orderId) => {
@@ -194,25 +259,33 @@ const OrdersRemade = () => {
         `${API_BASE_URL}/api/order/${orderId}`
       ];
       let success = false;
+      let lastErr = null;
       for (const endpoint of endpoints) {
         try {
-          await axios.delete(endpoint, { headers });
-          success = true;
-          break;
-        } catch {}
+          const res = await axios.delete(endpoint, { headers });
+          if (res?.data?.success || res?.status === 200 || res?.status === 204) {
+            success = true;
+            break;
+          }
+          lastErr = res?.data;
+        } catch (err) {
+          lastErr = err?.response?.data || { message: err?.message };
+        }
       }
-      setOrders(prev => prev.filter(o => o._id !== orderId));
-      if (!success) alert('Deleted locally.');
+      if (success) {
+        setOrders(prev => prev.filter(o => o._id !== orderId));
+      } else {
+        const msg = lastErr?.message || 'Delete failed on server. Order was not removed.';
+        alert(msg);
+      }
     } catch (e) {
       console.error(e);
-      setOrders(prev => prev.filter(o => o._id !== orderId));
-      alert('Deleted locally despite error.');
+      alert('Delete failed.');
     }
   };
 
 
 
-  const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
   const formatDate = (ds) => new Date(ds).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 
@@ -259,11 +332,32 @@ const OrdersRemade = () => {
     ];
   }, [analytics]);
 
+  // Recompute analytics whenever orders change so the summary updates after deletes/updates
+  useEffect(() => {
+    const normalized = Array.isArray(orders) ? orders : [];
+    const totalOrders = normalized.length;
+    const totalRevenue = normalized.reduce((sum, o) => sum + (Number(o.total) - Number(o.refundAmount || 0) || 0), 0);
+    const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+    const now = new Date();
+    const thisMonthRevenue = normalized
+      .filter(o => {
+        const d = new Date(o.createdAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      })
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const byStatus = normalized.reduce((acc, o) => {
+      const s = (o.status || 'pending');
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 });
+    setAnalytics({ totalOrders, totalRevenue, avgOrderValue, thisMonthRevenue, byStatus });
+  }, [orders]);
+
   const revenueSeries = useMemo(() => {
     const map = new Map();
     (orders || []).forEach(o => {
       const key = new Date(o.createdAt).toISOString().split('T')[0];
-      const amt = Number(o.total) || 0;
+      const amt = (Number(o.total) - Number(o.refundAmount || 0)) || 0;
       const delivered = (o.status || '').toLowerCase() === 'delivered' ? amt : 0;
       const prev = map.get(key) || { total: 0, delivered: 0 };
       map.set(key, { total: prev.total + amt, delivered: prev.delivered + delivered });
@@ -290,6 +384,43 @@ const OrdersRemade = () => {
     shipped: '#A78BFA',
     delivered: '#34D399',
     cancelled: '#F87171',
+  };
+
+  // Refund modal handlers
+
+  const openRefundModal = (order) => {
+    // Check if order is eligible for refund (credit card only)
+    if (order.paymentMethod !== 'Credit card') {
+      alert('Refunds are only available for credit card payments processed through Stripe.');
+      return;
+    }
+    
+    const remaining = Math.max(0, Number(order.total || 0) - Number(order.refundAmount || 0));
+    setRefundForm({ amount: remaining, note: '' });
+    setShowRefund(true);
+  };
+
+  const submitRefund = async () => {
+    try {
+      const headers = getAuthHeaders();
+      const res = await axios.post(`${API_BASE_URL}/api/order/refund/${selectedOrder._id}`, {
+        amount: Number(refundForm.amount),
+        note: refundForm.note
+      }, { headers });
+      const updated = res.data?.order;
+      if (updated) {
+        const normalized = normalizeOrders([updated])[0];
+        setOrders(prev => prev.map(o => o._id === updated._id ? normalized : o));
+        setSelectedOrder(normalized);
+        // One-click open credit note after refund
+        const url = `${API_BASE_URL}/api/order/credit-note/${normalized._id}/pdf`;
+        // Opening in a new tab; popup blockers usually allow user-initiated actions
+        window.open(url, '_blank');
+      }
+      setShowRefund(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || err?.message || 'Refund failed');
+    }
   };
 
   return (
@@ -365,7 +496,7 @@ const OrdersRemade = () => {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tickFormatter={v => formatCurrency(v)} width={80} />
+                <YAxis tickFormatter={v => formatCompactLKR(v)} width={80} />
                 <RTooltip formatter={(v, name) => [formatCurrency(v), name]} labelFormatter={d => `Date: ${d}`} />
                 <Area type="monotone" name="Total" dataKey="total" stroke="#10B981" fillOpacity={1} fill="url(#colorRev)" />
                 <Area type="monotone" name="Delivered" dataKey="delivered" stroke="#3B82F6" fillOpacity={1} fill="url(#colorDel)" />
@@ -401,21 +532,28 @@ const OrdersRemade = () => {
                     <div className="text-xs text-gray-500">{order.contactEmail || order?.customerId?.email || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={order.status}
-                      onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
-                      className="px-2 py-1 border border-gray-300 rounded"
-                    >
-                      {['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <select
+                        aria-label="Change status"
+                        value={order.status}
+                        onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
+                        disabled={!isAdmin || !!savingStatus[order._id]}
+                        className={`px-3 py-1 rounded-full border text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-1 ${STATUS_STYLES[order.status] || 'bg-gray-100 text-gray-800 border-gray-300'} ${(!isAdmin || savingStatus[order._id]) ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {STATUS_OPTIONS.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      {savingStatus[order._id] && <Spinner />}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{formatCurrency(order.total)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{formatDate(order.createdAt)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                     <button onClick={() => { setSelectedOrder(order); setShowModal(true); }} className="text-blue-600 hover:text-blue-900">View</button>
-                    <button onClick={() => handleDelete(order._id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    {isAdmin && (
+                      <button onClick={() => handleDelete(order._id)} className="text-red-600 hover:text-red-900">Delete</button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -456,10 +594,19 @@ const OrdersRemade = () => {
                 </div>
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h4 className="font-semibold text-gray-900 mb-2">Payment</h4>
-                  <div className="text-sm text-gray-800">
+                  <div className="text-sm text-gray-800 space-y-1">
                     <p><strong>Method:</strong> {selectedOrder.paymentMethod || 'N/A'}</p>
                     <p><strong>Status:</strong> {selectedOrder.paymentcompleted ? 'Completed' : 'Pending'}</p>
                     <p><strong>Total:</strong> {formatCurrency(selectedOrder.total)}</p>
+                    {Number(selectedOrder.refundAmount || 0) > 0 && (
+                      <>
+                        <p className="text-rose-700"><strong>Refund:</strong> {formatCurrency(selectedOrder.refundAmount)} ({selectedOrder.refundStatus || 'processed'}) {selectedOrder.refundTxnId ? ` • TXN ${selectedOrder.refundTxnId}` : ''}</p>
+                        <a href={`${API_BASE_URL}/api/order/credit-note/${selectedOrder._id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-block mt-1 text-sm text-blue-600 hover:underline">Download Credit Note</a>
+                      </>
+                    )}
+                    {isAdmin && selectedOrder.paymentcompleted && selectedOrder.status === 'cancelled' && ((Number(selectedOrder.refundAmount||0) < Number(selectedOrder.total||0))) && (
+                      <button onClick={() => openRefundModal(selectedOrder)} className="mt-2 px-3 py-1 text-sm bg-rose-600 text-white rounded hover:bg-rose-700">Issue Refund</button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -495,13 +642,43 @@ const OrdersRemade = () => {
                 </div>
               </div>
 
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-2">Raw Order JSON</h4>
-                <pre className="text-xs bg-white border border-gray-200 rounded p-2 overflow-x-auto">{JSON.stringify(selectedOrder, null, 2)}</pre>
-              </div>
             </div>
             <div className="p-4 border-t border-gray-200 flex justify-end">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showRefund && selectedOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+            <div className="p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold">Issue Refund</h3>
+              <p className="text-xs text-gray-500">Order #{(selectedOrder._id || '').toString().slice(-8)}</p>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="text-xs text-gray-600">Amount</label>
+                <input type="number" min={0} step={0.01} value={refundForm.amount}
+                  onChange={e => setRefundForm(f => ({ ...f, amount: e.target.value }))}
+                  className="w-full mt-1 px-3 py-2 border rounded" />
+                <p className="text-xs text-gray-500">Max: {formatCurrency(Math.max(0, (Number(selectedOrder.total||0) - Number(selectedOrder.refundAmount||0))))}</p>
+              </div>
+              <div>
+                <label className="text-xs text-gray-600">Refund Method</label>
+                <div className="w-full mt-1 px-3 py-2 bg-gray-50 border rounded text-gray-700">
+                  Credit Card (Stripe)
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Refunds are processed automatically through Stripe</p>
+              </div>
+              <div>
+                <label className="text-xs text-gray-600">Note</label>
+                <textarea rows={3} value={refundForm.note} onChange={e => setRefundForm(f => ({ ...f, note: e.target.value }))} className="w-full mt-1 px-3 py-2 border rounded" />
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-2">
+              <button onClick={() => setShowRefund(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Cancel</button>
+              <button onClick={submitRefund} className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700">Confirm Refund</button>
             </div>
           </div>
         </div>

@@ -110,7 +110,8 @@ export const handleStripeWebhook = async (req, res) => {
             paymentcompleted: true,
             paymentMethod: 'credit_card',
             paymentDetails: {
-              stripePaymentIntentId: paymentIntentSucceeded.id,
+              paymentIntentId: paymentIntentSucceeded.id,
+              stripePaymentIntentId: paymentIntentSucceeded.id, // Keep for backward compatibility
               cardBrand: paymentIntentSucceeded.payment_method_details?.card?.brand,
               last4: paymentIntentSucceeded.payment_method_details?.card?.last4
             }

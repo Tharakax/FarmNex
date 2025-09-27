@@ -507,6 +507,9 @@ const MyOrders = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-green-900">${order.total.toFixed(2)}</p>
+                    {Number(order.refundAmount || 0) > 0 && (
+                      <p className="text-sm text-red-600">Refund: -${Number(order.refundAmount).toFixed(2)}</p>
+                    )}
                     <p className="text-sm text-green-600">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
@@ -579,6 +582,9 @@ const MyOrders = () => {
                       <p className={`font-medium ${order.paymentcompleted ? 'text-green-800' : 'text-yellow-800'}`}>
                         {order.paymentcompleted ? 'Paid' : 'Pending Payment'}
                       </p>
+                      {Number(order.refundAmount || 0) > 0 && (
+                        <p className="text-sm text-red-600">Refunded {order.refundStatus ? `(${order.refundStatus})` : ''}: ${Number(order.refundAmount).toFixed(2)} {order.refundTxnId ? `• TXN ${order.refundTxnId}` : ''}</p>
+                      )}
                     </div>
                     {order.paymentMethod && (
                       <div className="text-right">
@@ -586,6 +592,9 @@ const MyOrders = () => {
                         <p className="font-medium text-green-900 capitalize">
                           {order.paymentMethod.replace('_', ' ')}
                         </p>
+                        {Number(order.refundAmount || 0) > 0 && (
+                          <a href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/order/credit-note/${order._id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-block mt-1 text-sm text-blue-600 hover:underline">Download Credit Note</a>
+                        )}
                       </div>
                     )}
                   </div>
@@ -655,9 +664,9 @@ const MyOrders = () => {
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
               <p className="text-2xl font-bold text-green-900">
-                ${orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
+                ${orders.reduce((sum, order) => sum + Math.max(0, order.total - Number(order.refundAmount || 0)), 0).toFixed(2)}
               </p>
-              <p className="text-sm text-green-600">Total Spent</p>
+              <p className="text-sm text-green-600">Total Spent (net)</p>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
               <p className="text-2xl font-bold text-green-900">
