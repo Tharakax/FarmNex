@@ -257,12 +257,44 @@ const ProductManagement = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       
+      // Build auto summary
+      const total = exportData.length;
+      const low = exportData.filter(r => r.status === 'Low Stock').length;
+      const out = exportData.filter(r => r.status === 'Out of Stock').length;
+      const inStock = total - low - out;
+      const inventoryValue = exportData.reduce((s,r)=> s + ((r.price || 0) * (r.stockQuantity || 0)), 0);
+      const summary = {
+        title: 'Report Summary',
+        metrics: [
+          { label: 'Total Products', value: total },
+          { label: 'In Stock', value: inStock },
+          { label: 'Low Stock', value: low },
+          { label: 'Out of Stock', value: out },
+          { label: 'Inventory Value', value: `LKR ${Math.round(inventoryValue).toLocaleString()}` },
+          { label: 'Active Categories', value: new Set(exportData.map(p=>p.category)).size },
+        ],
+        sections: ['Summary','Products Table','Analytics Snapshots']
+      };
+
+      // Build category breakdown for charts
+      const counts = exportData.reduce((acc, p) => {
+        const k = (p.category || 'Other').toString();
+        acc[k] = (acc[k] || 0) + 1;
+        return acc;
+      }, {});
+      const breakdown = Object.entries(counts)
+        .map(([name, count]) => ({ name, value: Math.round((count / Math.max(total,1)) * 100) }))
+        .sort((a,b) => b.value - a.value)
+        .slice(0,5)
+        .map((item, i) => ({ ...item, color: ['#10B981','#F59E0B','#8B5CF6','#EF4444','#6B7280'][i % 5] }));
+
       const success = await exportToPDF(
         processedData,
         'Products Management Report',
         getProductsColumns(),
         filename,
-        'products'
+        'products',
+        { summary, charts: { bar: breakdown, pie: breakdown } }
       );
       
       toast.dismiss(loadingToast);
@@ -403,13 +435,6 @@ const ProductManagement = () => {
             {showStats ? 'Hide' : 'Show'} Stats
           </button>
           
-          <button
-            onClick={() => setShowReports(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            <TrendingUp className="h-4 w-4 mr-2 inline" />
-            View Reports
-          </button>
           
           <button
             onClick={loadProducts}

@@ -8,7 +8,8 @@
     "arduino-bridge": "node serialBridge_Arduino.js",
     "dev": "concurrently \"npm start\" \"npm run arduino-bridge\"",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate:recipes": "node scripts/migrateRecipes.js"
+    "migrate:recipes": "node scripts/migrateRecipes.js",
+    "seed:orders": "node scripts/seedOrdersFromRegisteredUsers.js"
   },
   "keywords": [],
   "author": "",

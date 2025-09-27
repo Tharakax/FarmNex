@@ -1,4 +1,11 @@
 import Order from '../models/order.js';
+import User from '../models/usermodel.js';
+
+// Helper: case-insensitive admin check
+const isAdminRole = (role) => {
+  const r = (role || '').toString().toLowerCase();
+  return r === 'admin' || r === 'superadmin';
+};
 // Create a new order
 export const createOrder = async (req, res) => {
   try {
@@ -9,12 +16,16 @@ export const createOrder = async (req, res) => {
       shipping,
       discount,
       total,
-
-     
+      contactEmail: bodyContactEmail,
+      contactName: bodyContactName
     } = req.body;
 
     // Get customer ID from authenticated user (if available)
     const customerId = req.user?._id || null;
+
+    // Derive identity from authenticated user when available
+    const derivedEmail = req.user?.email || bodyContactEmail;
+    const derivedName = req.user?.fullName || req.user?.name || bodyContactName;
 
     // Create new order
     const newOrder = new Order({
@@ -25,10 +36,9 @@ export const createOrder = async (req, res) => {
       shipping,
       discount,
       total,
- 
+      contactEmail: derivedEmail,
+      contactName: derivedName,
       status: 'pending',
-      
-      
     });
 
     // Save the order
@@ -77,7 +87,7 @@ export const getOrderById = async (req, res) => {
     // 🔒 SECURITY CHECK: Verify user owns this order or is admin
     const isOwner = order.customerId && String(order.customerId._id) === String(req.user._id);
     const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+    const isAdmin = isAdminRole(req.user.role);
 
     if (!isOwner && !isOwnerByEmail && !isAdmin) {
       return res.status(403).json({
@@ -128,17 +138,20 @@ export const getCustomerOrders = async (req, res) => {
   }
 };
 
-// Update order status (admin only)
+// Update order status - Admins can update any status, customers can only cancel
 export const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
+    // 🔒 SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
+    const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -146,9 +159,45 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
+    // 🔒 SECURITY CHECK: Verify user owns this order or is admin
+    const isOwner = order.customerId && String(order.customerId) === String(req.user._id);
+    const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
+    const isAdmin = isAdminRole(req.user.role);
+
+    if (!isOwner && !isOwnerByEmail && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only modify your own orders.'
+      });
+    }
+
+    // 🔒 BUSINESS LOGIC: Customers can only cancel their orders, admins can set any status
+    if (!isAdmin) {
+      // Customer restrictions
+      if (status !== 'cancelled') {
+        return res.status(403).json({
+          success: false,
+          message: 'Customers can only cancel orders. Other status changes require admin access.'
+        });
+      }
+      
+      // Can only cancel pending or processing orders
+      if (!['pending', 'processing'].includes(order.status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'You can only cancel orders that are pending or being processed.'
+        });
+      }
+    }
+
+    // Update the order status
+    order.status = status;
+    order.updatedAt = new Date();
+    const updatedOrder = await order.save();
+
     res.status(200).json({
       success: true,
-      order,
+      order: updatedOrder,
       message: 'Order status updated successfully'
     });
   } catch (error) {
@@ -186,13 +235,19 @@ export const savePayment = async (req, res) => {
     // 🔒 SECURITY CHECK: Verify user owns this order
     const isOwner = order.customerId && String(order.customerId) === String(req.user._id);
     const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+    const isAdmin = isAdminRole(req.user.role);
 
     if (!isOwner && !isOwnerByEmail && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. You can only modify your own orders.'
-      });
+      // Graceful linking: if order has no owner yet, link to current user
+      if (!order.customerId && !order.contactEmail && req.user && (req.user.role || '').toLowerCase() === 'customer') {
+        order.customerId = req.user._id;
+        order.contactEmail = req.user.email || order.contactEmail;
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You can only modify your own orders.'
+        });
+      }
     }
 
     order.paymentMethod = paymentMethod;
@@ -233,12 +288,20 @@ export const saveShipping = async (req, res) => {
       notes
     } = req.body;
 
-    // 🔒 SECURITY CHECK: Authentication required
+    // 🔒 SECURITY CHECK: Authentication required (relaxed for first-time shipping on guest orders)
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
+      // Allow setting shipping once for orders that are not yet linked and have no email
+      const tempOrder = await Order.findById(id);
+      if (!tempOrder) {
+        return res.status(404).json({ success: false, message: 'Order not found' });
+      }
+      if (tempOrder.customerId || tempOrder.contactEmail) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required'
+        });
+      }
+      // proceed without req.user: we will not link customerId, but we will set contactEmail from payload
     }
 
     // Validate required fields
@@ -270,21 +333,30 @@ export const saveShipping = async (req, res) => {
     // 🔒 SECURITY CHECK: Verify user owns this order
     const isOwner = order.customerId && String(order.customerId) === String(req.user._id);
     const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+    const isAdmin = isAdminRole(req.user.role);
 
     if (!isOwner && !isOwnerByEmail && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. You can only modify your own orders.'
-      });
+      // Graceful linking: if order has no owner yet, link to current user
+      if (!order.customerId && !order.contactEmail && req.user && (req.user.role || '').toLowerCase() === 'customer') {
+        order.customerId = req.user._id;
+        if (!contactEmail && req.user.email) {
+          // Use authenticated user's email if not provided
+          order.contactEmail = req.user.email;
+        }
+      } else {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You can only modify your own orders.'
+        });
+      }
     }
 
     // Update order with shipping details
-    order.contactEmail = contactEmail;
-    order.contactPhone = contactPhone;
-    order.shippingAddress = shippingAddress;
-    order.billingAddress = billingAddress || shippingAddress; // Use shipping if billing not provided
-    order.notes = notes || '';
+    order.contactEmail = contactEmail || order.contactEmail || req.user?.email || order.contactEmail;
+    order.contactPhone = contactPhone || order.contactPhone;
+    order.shippingAddress = shippingAddress || order.shippingAddress;
+    order.billingAddress = billingAddress || shippingAddress || order.billingAddress; // Use shipping if billing not provided
+    order.notes = notes || order.notes || '';
     order.updatedAt = new Date();
     order.shippinginfo = true; // Mark shipping info as completed
 
@@ -318,7 +390,7 @@ export const getAllOrders = async (req, res) => {
       });
     }
 
-    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    if (!isAdminRole(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin privileges required.'
@@ -400,7 +472,7 @@ export const deleteOrder = async (req, res) => {
     // 🔒 SECURITY CHECK: Verify user owns this order or is admin
     const isOwner = order.customerId && String(order.customerId) === String(req.user._id);
     const isOwnerByEmail = order.contactEmail && order.contactEmail === req.user.email;
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+    const isAdmin = isAdminRole(req.user.role);
 
     if (!isOwner && !isOwnerByEmail && !isAdmin) {
       return res.status(403).json({
@@ -409,11 +481,11 @@ export const deleteOrder = async (req, res) => {
       });
     }
 
-    // Only allow deletion if order is pending or cancelled
-    if (!['pending', 'cancelled'].includes(order.status)) {
+    // Only allow deletion if order is pending/cancelled OR user is admin
+    if (!isAdmin && !['pending', 'cancelled'].includes(order.status)) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete order that is being processed or completed'
+        message: 'Cannot delete order that is being processed or completed. Admin access required.'
       });
     }
 
@@ -461,6 +533,9 @@ export const claimOrder = async (req, res) => {
     if (!order.contactEmail && req.user.email) {
       order.contactEmail = req.user.email;
     }
+    if (!order.contactName && (req.user.fullName || req.user.name)) {
+      order.contactName = req.user.fullName || req.user.name;
+    }
     order.updatedAt = new Date();
 
     const updated = await order.save();
@@ -468,5 +543,171 @@ export const claimOrder = async (req, res) => {
   } catch (error) {
     console.error('Error claiming order:', error);
     return res.status(500).json({ success: false, message: 'Failed to claim order', error: error.message });
+  }
+};
+
+// Admin-only: Backfill contactEmail/contactName for orders with a customerId but missing contact info
+export const backfillOrderContacts = async (req, res) => {
+  try {
+    const role = (req.user?.role || '').toString().toLowerCase();
+    if (!req.user || !(role === 'admin' || role === 'superadmin' || role === 'admin'.toLowerCase())) {
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
+    }
+
+    const dryRun = String(req.query.dryRun || req.body?.dryRun || 'false').toLowerCase() === 'true';
+
+    // Find candidate orders
+    const criteria = {
+      customerId: { $ne: null },
+      $or: [
+        { contactEmail: { $exists: false } },
+        { contactEmail: null },
+        { contactEmail: '' }
+      ]
+    };
+
+    const orders = await Order.find(criteria).limit(5000); // safety cap
+    if (!orders.length) {
+      return res.status(200).json({ success: true, message: 'No orders require backfill', checked: 0, updated: 0 });
+    }
+
+    let updated = 0;
+    const updates = [];
+
+    for (const order of orders) {
+      try {
+        const user = await User.findById(order.customerId).select('email fullName role');
+        if (!user || !user.email) continue;
+        if ((user.role || '').toLowerCase() !== 'customer') continue;
+        const updateDoc = {
+          contactEmail: order.contactEmail || user.email,
+          contactName: order.contactName || user.fullName || order.contactName,
+          updatedAt: new Date()
+        };
+        if (!dryRun) {
+          await Order.updateOne({ _id: order._id }, { $set: updateDoc });
+        }
+        updated += 1;
+        updates.push({ id: order._id, email: updateDoc.contactEmail, name: updateDoc.contactName });
+      } catch {}
+    }
+
+    return res.status(200).json({
+      success: true,
+      dryRun,
+      checked: orders.length,
+      updated,
+      sample: updates.slice(0, 10)
+    });
+  } catch (error) {
+    console.error('Backfill contacts error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to backfill order contacts', error: error.message });
+  }
+};
+
+// Admin-only: Link an order to a registered user when contactEmail matches user.email
+export const linkOrderByEmail = async (req, res) => {
+  try {
+    const role = (req.user?.role || '').toString().toLowerCase();
+    if (!req.user || !(role === 'admin' || role === 'superadmin')) {
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
+    }
+
+    const { id } = req.params;
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    if (order.customerId) {
+      return res.status(200).json({ success: true, order, message: 'Order already linked to a user' });
+    }
+
+    const email = (order.contactEmail || '').toLowerCase().trim();
+    if (!email) return res.status(400).json({ success: false, message: 'Order has no contactEmail to link' });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: 'No registered user with that email' });
+
+    order.customerId = user._id;
+    if (!order.contactName && user.fullName) order.contactName = user.fullName;
+    if (!order.contactEmail) order.contactEmail = user.email;
+    order.updatedAt = new Date();
+    const updated = await order.save();
+
+    return res.status(200).json({ success: true, order: updated, message: 'Order linked by email' });
+  } catch (error) {
+    console.error('Link by email error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to link order by email', error: error.message });
+  }
+};
+
+// Admin-only: Bulk link all unowned orders where contactEmail matches user.email
+export const bulkLinkUnownedByEmail = async (req, res) => {
+  try {
+    const role = (req.user?.role || '').toString().toLowerCase();
+    if (!req.user || !(role === 'admin' || role === 'superadmin')) {
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
+    }
+
+    const dryRun = String(req.query.dryRun || req.body?.dryRun || 'false').toLowerCase() === 'true';
+    const candidates = await Order.find({ customerId: { $eq: null }, contactEmail: { $type: 'string', $ne: '' } }).limit(5000);
+
+    let updated = 0;
+    const samples = [];
+
+    for (const order of candidates) {
+      try {
+        const email = order.contactEmail.toLowerCase().trim();
+        const user = await User.findOne({ email });
+        if (!user) continue;
+        if (!dryRun) {
+          order.customerId = user._id;
+          if (!order.contactName && user.fullName) order.contactName = user.fullName;
+          order.updatedAt = new Date();
+          await order.save();
+        }
+        updated += 1;
+        samples.push({ id: order._id, email: user.email });
+      } catch {}
+    }
+
+    return res.status(200).json({ success: true, dryRun, checked: candidates.length, updated, sample: samples.slice(0, 10) });
+  } catch (error) {
+    console.error('Bulk link by email error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to bulk link orders', error: error.message });
+  }
+};
+
+// Admin-only: Force set contactEmail on an order and link to registered user with that email (if exists)
+export const adminForceSetEmail = async (req, res) => {
+  try {
+    const role = (req.user?.role || '').toString().toLowerCase();
+    if (!req.user || !(role === 'admin' || role === 'superadmin')) {
+      return res.status(403).json({ success: false, message: 'Admin privileges required' });
+    }
+
+    const { id } = req.params;
+    const { contactEmail } = req.body || {};
+    if (!contactEmail) {
+      return res.status(400).json({ success: false, message: 'contactEmail is required' });
+    }
+
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    order.contactEmail = contactEmail.toLowerCase().trim();
+
+    // Try to link to a registered user with that email
+    const user = await User.findOne({ email: order.contactEmail });
+    if (user) {
+      order.customerId = user._id;
+      if (!order.contactName && user.fullName) order.contactName = user.fullName;
+    }
+    order.updatedAt = new Date();
+    const updated = await order.save();
+
+    return res.status(200).json({ success: true, order: updated, linked: !!user, message: user ? 'Email set and order linked' : 'Email set (no matching user found)' });
+  } catch (error) {
+    console.error('Admin force set email error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to set email', error: error.message });
   }
 };

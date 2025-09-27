@@ -4,8 +4,9 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, Heart } from 'lucide-react
 import { addToCart , removeFromCart , getCart , updateQuantity } from '../../utils/cart.js';
 import { useEffect } from 'react';
 import axios from 'axios';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { handleImageError, getProductPlaceholder } from '../../utils/imageUtils';
+import { getLoggedInUser } from '../../utils/userUtils';
 
 // Configure axios defaults
 axios.defaults.timeout = 10000; // 10 second timeout
@@ -25,7 +26,7 @@ export default function Cart() {
   const [savedItems, setSavedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-const Navigate = useNavigate();
+const navigate = useNavigate();
   // Load cart data on component mount
   useEffect(() => {
     const loadCart = () => {
@@ -34,19 +35,11 @@ const Navigate = useNavigate();
         const cartData =  getCart();
         setCart(cartData);
         
-        // Auto-redirect to products page if cart is empty
-        if (!cartData || cartData.length === 0) {
-          setTimeout(() => {
-            Navigate("/products");
-          }, 100); // Small delay to prevent flash
-        }
+        // If cart is empty, stay on page and show empty state instead of redirecting
       } catch (error) {
         console.error("Error loading cart:", error);
         setCart([]);
-        // Redirect to products on error as well
-        setTimeout(() => {
-          Navigate("/products");
-        }, 100);
+        // On error, keep user on cart page to allow retry
       } finally {
         setLoading(false);
       }
@@ -56,7 +49,7 @@ const Navigate = useNavigate();
 
     // Optional: Listen for storage changes from other tabs
 
-  }, [Navigate]);
+  }, [navigate]);
 
   // Calculate totals
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -82,9 +75,7 @@ const Navigate = useNavigate();
       
       // Auto-redirect if cart becomes empty
       if (!updatedCart || updatedCart.length === 0) {
-        setTimeout(() => {
-          Navigate("/products");
-        }, 500); // Small delay for user feedback
+        // Optionally keep user on cart page; they can click Continue Shopping
       }
     } catch (error) {
       console.error("Error removing item:", error);
@@ -142,9 +133,7 @@ const Navigate = useNavigate();
       setCart([]);
       
       // Auto-redirect after clearing cart
-      setTimeout(() => {
-        Navigate("/products");
-      }, 300);
+      // Stay on cart page; show it as empty
     } catch (error) {
       console.error("Error clearing cart:", error);
     }
@@ -213,24 +202,40 @@ const Navigate = useNavigate();
       }
 
       // Prepare order data from cart - optimize payload size
+      const currentUser = getLoggedInUser();
       const orderData = {
-        items: cart.map(item => ({
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          // Only include image filename/URL, not full base64 data
-          image: typeof item.image === 'string' && item.image.length > 500 
-            ? item.image.substring(0, 200) + '...' 
-            : item.image,
-          description: item.description ? item.description.substring(0, 200) : ''
-        })),
+        items: cart.map(item => {
+          // Preserve usable image without corrupting data URLs
+          let image = item.image;
+          if (typeof image === 'string') {
+            // if it's a backend path or full URL, keep as is
+            if (image.startsWith('http') || image.startsWith('/')) {
+              // ok
+            } else if (image.startsWith('data:image')) {
+              // keep full data URL (do NOT truncate)
+            } else if (Array.isArray(item.images) && item.images.length) {
+              // fallback to first product image if provided as array
+              image = item.images[0];
+            }
+          }
+          return ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image,
+            description: item.description ? item.description.substring(0, 200) : ''
+          });
+        }),
         subtotal: subtotal,
         tax: tax,
         shipping: shipping,
         discount: discount,
         total: total,
-        status: 'pending'
+        status: 'pending',
+        // Pre-fill contact using logged-in user when available
+        contactEmail: currentUser?.email || undefined,
+        contactName: currentUser?.name || undefined
       };
 
       console.log('Order data prepared:', orderData);
@@ -262,7 +267,7 @@ const Navigate = useNavigate();
       if (response.data.success) {
         handleClearCart();
         console.log("Order created successfully with ID:", response.data.order._id);
-        Navigate(`/shipping/${response.data.order._id}`);
+        navigate(`/shipping/${response.data.order._id}`);
       } else {
         console.error('Checkout failed:', response.data.message);
         alert(`Checkout failed: ${response.data.message || 'Unknown error'}`);
@@ -319,12 +324,7 @@ const Navigate = useNavigate();
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <button 
-              onClick={() => Navigate("/products")}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <ArrowLeft size={20} />
-                <span className="hidden sm:inline">Continue Shopping</span>
-              </button>
+              {/* Removed local back/continue button to avoid overlap with global back button */}
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Shopping Cart</h1>
             <div className="flex items-center space-x-4">
@@ -539,7 +539,7 @@ const Navigate = useNavigate();
                     </button>
                     
                     <button 
-                    onClick={() => {Navigate("/products")}}
+onClick={() => {navigate("/customerdash")}}
                     className="w-full bg-gray-100 text-gray-900 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors">
                       Continue Shopping
                     </button>

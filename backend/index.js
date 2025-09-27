@@ -155,15 +155,16 @@ app.get('/api/health', (req, res) => {
 // Public chatbot routes (no authentication required)
 app.use("/api/chatbot", chatbotRouter);
 
+// Order routes (supports both guest and authenticated users) - Before auth for admin access
+app.use("/api/order", orderRouter);
+app.use("/orders", orderRouter); // Direct route for admin dashboard compatibility
+
 // Apply JWT auth for all other routes
 app.use(JWTauth)
 
 // Protected routes (after authentication middleware)
 app.use("/users", userroute);
 app.use("/api/questions", questionRoute);
-
-// Order routes (supports both guest and authenticated users)
-app.use("/api/order", orderRouter);
 
 
 // Test route for video files

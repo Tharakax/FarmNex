@@ -339,6 +339,33 @@ const MyOrders = () => {
     // Or if using React Router: navigate(`/payment/${orderId}`);
   };
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const result = await orderAPI.cancelOrder(orderId);
+      
+      if (result.success) {
+        // Update the local state to reflect the cancellation
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId 
+              ? { ...order, status: 'cancelled' } 
+              : order
+          )
+        );
+        alert('Order cancelled successfully!');
+      } else {
+        alert('Failed to cancel order: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error cancelling order:', error);
+      alert('Failed to cancel order. Please try again.');
+    }
+  };
+
   // Load jsPDF library
   useEffect(() => {
     if (typeof window !== 'undefined' && !window.jspdf) {
@@ -600,6 +627,17 @@ const MyOrders = () => {
                     >
                       <CreditCard size={16} />
                       Pay Now
+                    </button>
+                  )}
+                  
+                  {/* Cancel Order Button - Only show for pending/processing orders */}
+                  {(['pending', 'processing'].includes(order.status)) && (
+                    <button
+                      onClick={() => handleCancelOrder(order._id)}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      <XCircle size={16} />
+                      Cancel Order
                     </button>
                   )}
                 </div>

@@ -1,6 +1,7 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom'; // 
 import { getLoggedInUser, getRoleDisplayName } from '../utils/userUtils';
+import sessionManager from '../utils/sessionManager';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import WeatherWidget from '../components/WeatherWidget';
@@ -12,7 +13,6 @@ import {
   Wheat, 
   Users, 
   Cloud, 
-  TrendingUp,
   Package, 
   FileText, 
   Settings, 
@@ -30,7 +30,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Sprout
+  Sprout,
+  ShoppingCart
 } from 'lucide-react';
 
 // Current crop yield data (2024 - tons per hectare)
@@ -102,11 +103,19 @@ const ReportsManagement = React.lazy(() =>
     })
 );
 
-const ProductManagementReport = React.lazy(() => 
-  import('../components/reports/ProductManagementReport')
+const OrdersRemade = React.lazy(() => 
+  import('../components/orders/OrdersRemade.jsx')
     .catch(error => {
-      console.error('Failed to load ProductManagementReport:', error);
-      return { default: () => <ErrorFallback error={error} componentName="Product Report" /> };
+      console.error('Failed to load OrdersRemade:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Order Management" /> };
+    })
+);
+
+const ProfessionalReportDashboard = React.lazy(() => 
+  import('../components/reports/ProfessionalReportDashboard')
+    .catch(error => {
+      console.error('Failed to load ProfessionalReportDashboard:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Professional Reports" /> };
     })
 );
 
@@ -132,6 +141,14 @@ const RecipeListEmbedded = React.lazy(() =>
     .catch(error => {
       console.error('Failed to load RecipeList:', error);
       return { default: () => <ErrorFallback error={error} componentName="Recipe List" /> };
+    })
+);
+
+const ProductReport = React.lazy(() =>
+  import('../components/reports/ProductReport.jsx')
+    .catch(error => {
+      console.error('Failed to load ProductReport:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Product Report" /> };
     })
 );
 
@@ -279,12 +296,13 @@ const ActivityTable = () => {
 };
 
 // Sidebar Component
-const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed, toggleCollapse }) => {
+const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed, toggleCollapse, onMenuSelect }) => {
   const currentUser = getLoggedInUser();
   
   const menuItems = [
     { name: 'Home', icon: Home },
     { name: 'Products', icon: ShoppingBag },
+    { name: 'Orders', icon: ShoppingCart },
     { name: 'Supplies', icon: Truck },
     { name: 'Crop & Livestock', icon: Sprout },
     { name: 'Weather', icon: Cloud },
@@ -358,7 +376,11 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
               <button
                 key={item.name}
                 onClick={() => {
-                  setActiveItem(item.name);
+                  if (onMenuSelect) {
+                    onMenuSelect(item.name);
+                  } else {
+                    setActiveItem(item.name);
+                  }
                   // Auto-close sidebar on mobile after selection
                   if (window.innerWidth < 1024) {
                     toggleSidebar();
@@ -406,15 +428,16 @@ const Header = ({ toggleSidebar }) => {
   const currentUser = getLoggedInUser();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Clear all localStorage items related to user session
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userName');
-    
-    // Redirect to login page
-    navigate('/login', { replace: true });
+  const handleLogout = async () => {
+    try {
+      // Use session manager for proper logout
+      await sessionManager.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback to manual logout
+      localStorage.clear();
+      navigate('/login', { replace: true });
+    }
   };
 
   return (
@@ -462,6 +485,7 @@ const Header = ({ toggleSidebar }) => {
 const FarmerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const resolveTab = () => {
     try {
       const params = new URLSearchParams(location.search);
@@ -469,6 +493,9 @@ const FarmerDashboard = () => {
       const map = {
         home: 'Home',
         products: 'Products',
+        orders: 'Orders',
+        'product-report': 'Product Report',
+        'productreport': 'Product Report',
         supplies: 'Supplies',
         inventory: 'Inventory',
         weather: 'Weather',
@@ -484,11 +511,32 @@ const FarmerDashboard = () => {
   };
   const [activeItem, setActiveItem] = useState(resolveTab());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  // Session management - Start monitoring when dashboard loads
+  useEffect(() => {
+    console.log('🔒 Starting session monitoring for farmer dashboard...');
+    
+    // Check if user is logged in
+    const currentUser = getLoggedInUser();
+    if (!currentUser) {
+      console.log('❌ No user found, redirecting to login');
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    // Start session monitoring
+    sessionManager.startSessionMonitoring();
+    
+    // Cleanup on unmount
+    return () => {
+      console.log('🧹 Cleaning up session monitoring...');
+      sessionManager.stopSessionMonitoring();
+    };
+  }, []); // Run only on mount
 
   // Update tab if query param changes
   React.useEffect(() => {
@@ -500,6 +548,32 @@ const FarmerDashboard = () => {
     setSidebarCollapsed(!sidebarCollapsed);
   };
 
+  // Ensure clicks update both UI state and URL (?tab=...)
+  const nameToTabSlug = (name) => {
+    const map = {
+      'Home': 'home',
+      'Products': 'products',
+      'Orders': 'orders',
+      'Product Report': 'product-report',
+      'Supplies': 'supplies',
+      'Inventory': 'inventory',
+      'Weather': 'weather',
+      'Training': 'training',
+      'Recipes': 'recipes',
+      'Reports': 'reports',
+      'Crop & Livestock': 'crop',
+      'Settings': 'settings'
+    };
+    return map[name] || 'home';
+  };
+
+  const handleMenuSelect = (name) => {
+    setActiveItem(name);
+    const slug = nameToTabSlug(name);
+    // Update only the search part to avoid unnecessary route changes
+    navigate({ search: `?tab=${slug}` }, { replace: false });
+  };
+
   // Render the appropriate content based on active sidebar item
   const renderContent = () => {
     console.log('Current active item:', activeItem);
@@ -509,6 +583,12 @@ const FarmerDashboard = () => {
         case 'Products':
           console.log('Rendering ProductManagement');
           return <ProductManagement />;
+        case 'Orders':
+          console.log('Rendering OrdersRemade');
+          return <OrdersRemade />;
+        case 'Product Report':
+          console.log('Rendering ProductReport');
+          return <ProductReport />;
         case 'Inventory':
           console.log('Rendering FarmerInventoryManagement');
           return <FarmerInventoryManagement />;
@@ -525,8 +605,8 @@ const FarmerDashboard = () => {
           console.log('Rendering TrainingManagement with all features');
           return <TrainingManagementComponent />;
         case 'Reports':
-          console.log('Rendering ProductManagementReport');
-          return <ProductManagementReport />;
+          console.log('Rendering ProfessionalReportDashboard');
+          return <ProfessionalReportDashboard />;
         case 'Recipes':
           console.log('Rendering RecipeList in dashboard');
           return <RecipeListEmbedded showHeader={false} />;
@@ -630,6 +710,7 @@ const FarmerDashboard = () => {
         setActiveItem={setActiveItem}
         isCollapsed={sidebarCollapsed}
         toggleCollapse={toggleSidebarCollapse}
+        onMenuSelect={handleMenuSelect}
       />
       
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-0'}`}>

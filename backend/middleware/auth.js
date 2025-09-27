@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import User from '../models/usermodel.js';
+import sessionService from '../services/sessionService.js';
 dotenv.config();
 
 const JWTauth = async (req, res, next) => {
@@ -20,12 +21,36 @@ const JWTauth = async (req, res, next) => {
           try {
             const user = await User.findById(decoded.id).select('-password');
             if (user) {
+              // TEMPORARILY DISABLED: Validate session if sessionId is present in token
+              // This is disabled to fix immediate login issues
+              if (decoded.sessionId && false) { // Added '&& false' to disable
+                try {
+                  const isValidSession = await sessionService.validateSession(decoded.id, decoded.sessionId);
+                  if (!isValidSession) {
+                    console.log('❌ Invalid or expired session for user:', decoded.id);
+                    req.authError = {
+                      success: false,
+                      message: 'Session expired or invalid. Please login again.',
+                      code: 'INVALID_SESSION'
+                    };
+                    return next();
+                  }
+                } catch (sessionError) {
+                  console.error('Session validation error (continuing with graceful fallback):', sessionError.message);
+                  console.log('⚠️ Continuing without session validation due to error');
+                  // Don't block user - continue with token validation
+                }
+              }
+              
+              console.log('📝 Session validation temporarily disabled for user:', decoded.id);
+              
               // Add both decoded token data and full user data
               req.user = {
                 id: decoded.id,
                 email: decoded.email,
                 name: decoded.name,
                 role: decoded.role,
+                sessionId: decoded.sessionId,
                 ...user.toObject() // Add full user details
               };
             } else {

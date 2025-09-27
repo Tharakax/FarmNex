@@ -85,7 +85,7 @@ const DashboardShoppingCart = ({ onBrowseProducts }) => {
         <h3 className="text-xl font-semibold text-gray-900 mb-3">Your cart is empty</h3>
         <p className="text-gray-600 mb-6">Add some products to your cart to get started</p>
         <button 
-          onClick={() => onBrowseProducts ? onBrowseProducts() : navigate('/products')}
+onClick={() => onBrowseProducts ? onBrowseProducts() : navigate('/customerdash')}
           className="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-all font-semibold hover:scale-105 shadow-md"
         >
           <Package className="w-5 h-5" />
@@ -209,7 +209,7 @@ const DashboardShoppingCart = ({ onBrowseProducts }) => {
       {/* Continue Shopping */}
       <div className="text-center">
         <button
-          onClick={() => onBrowseProducts ? onBrowseProducts() : navigate('/products')}
+onClick={() => onBrowseProducts ? onBrowseProducts() : navigate('/customerdash')}
           className="text-green-600 hover:text-green-700 font-medium transition-colors"
         >
           ← Continue Shopping

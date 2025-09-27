@@ -35,6 +35,7 @@ import { exportToPDF, exportToExcel, exportProductsToPDFWithImages } from '../..
 import { reportAPI } from '../../services/reportAPI';
 import { productAPI } from '../../services/productAPI';
 import toast from 'react-hot-toast';
+import ReportHeader from './ReportHeader';
 
 const ProductManagementReport = ({ dateRange = '30' }) => {
   const [reportData, setReportData] = useState({
@@ -470,7 +471,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
         };
       });
 
-      const fileName = `product_management_report_${dateRange}days_${new Date().toISOString().split('T')[0]}`;
+      const fileName = `products_report_${dateRange}days_${new Date().toISOString().split('T')[0]}`;
       
       if (format === 'pdf') {
         // Use enhanced PDF export with embedded images
@@ -497,7 +498,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
         
         await exportProductsToPDFWithImages(
           imageExportData,
-          'Product Management Report with Images',
+          'Products Management Report',
           [], // Columns not needed for image layout
           fileName,
           'products'
@@ -538,7 +539,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
         console.log('📈 Excel data ready:', excelData.length, 'rows');
         console.log('📈 Excel data sample:', excelData[0]);
         
-        await exportToExcel(excelData, 'Product Management Report', columns, fileName);
+        await exportToExcel(excelData, 'Products Management Report', columns, fileName);
         console.log('✅ Excel export completed successfully');
       }
       
@@ -1322,41 +1323,37 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Product Management Report</h1>
-          <p className="text-gray-600 mt-1">
-            Comprehensive analysis of product performance, inventory status, and strategic insights
-          </p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <select
-            value={exportFormat}
-            onChange={(e) => setExportFormat(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="pdf">📄 PDF with Images</option>
-            <option value="excel">📊 Excel Spreadsheet</option>
-          </select>
-          
-          <button
-            onClick={() => handleExport(exportFormat)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
-          </button>
-          
-          <button
-            onClick={loadReportData}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </button>
-        </div>
-      </div>
+      <ReportHeader 
+        title="Product Management Report"
+        actions={(
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => handleExport('pdf')}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center font-semibold"
+              title="Export PDF"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              PDF
+            </button>
+            <button
+              onClick={() => handleExport('excel')}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center font-semibold"
+              title="Export Excel"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Excel
+            </button>
+            <button
+              onClick={loadReportData}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center"
+              title="Refresh data"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </button>
+          </div>
+        )}
+      />
 
       {/* Navigation Tabs */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">

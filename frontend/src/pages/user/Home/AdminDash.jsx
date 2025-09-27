@@ -20,7 +20,8 @@ import {
   UserPlus,
   Activity,
   MessageSquare,
-  Megaphone 
+  Megaphone,
+  ShoppingCart
 } from 'lucide-react';
  import axios from 'axios';
 
@@ -248,6 +249,7 @@ function AdminDashboard() {
 
   );
 
+
   // Users Tab
   const renderUserManagement = () => {
     if (loading) {
@@ -422,6 +424,7 @@ function AdminDashboard() {
               <Users className="mr-3 h-5 w-5" />
               User Management
             </button>
+
 
             <button onClick={() => navigate('/adduser')} className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 transition-colors">
               <Plus className="mr-3 h-5 w-5" />

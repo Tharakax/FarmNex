@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
 import { reportAPI } from '../../services/reportAPI';
+import ReportHeader from './ReportHeader';
 
 const ProductPerformanceReport = ({ dateRange }) => {
   const [performanceData, setPerformanceData] = useState({
@@ -236,38 +237,37 @@ const ProductPerformanceReport = ({ dateRange }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Product Performance Report</h2>
-          <p className="text-gray-600 mt-1">Analyze product sales, profitability, and customer satisfaction</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          >
-            <option value="revenue">Sort by Revenue</option>
-            <option value="units">Sort by Units Sold</option>
-            <option value="profit">Sort by Profit Margin</option>
-            <option value="rating">Sort by Rating</option>
-          </select>
-          <button
-            onClick={() => handleExportProductReport('pdf')}
-            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
-          >
-            <FileText className="h-4 w-4 mr-1" />
-            PDF
-          </button>
-          <button
-            onClick={() => handleExportProductReport('excel')}
-            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-1" />
-            Excel
-          </button>
-        </div>
-      </div>
+      <ReportHeader
+        title="Product Performance Report"
+        actions={(
+          <div className="flex items-center space-x-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              <option value="revenue">Sort by Revenue</option>
+              <option value="units">Sort by Units Sold</option>
+              <option value="profit">Sort by Profit Margin</option>
+              <option value="rating">Sort by Rating</option>
+            </select>
+            <button
+              onClick={() => handleExportProductReport('pdf')}
+              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+            >
+              <FileText className="h-4 w-4 mr-1" />
+              PDF
+            </button>
+            <button
+              onClick={() => handleExportProductReport('excel')}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              Excel
+            </button>
+          </div>
+        )}
+      />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

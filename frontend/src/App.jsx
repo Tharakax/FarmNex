@@ -14,7 +14,6 @@ import { GlobalBackButton } from './components/common/BackButton';
 // Lazy load components for easier debugging
 const HomePage = React.lazy(() => import('./pages/homePage.jsx'));
 //const LoginPage = React.lazy(() => import('./pages/loginpage'));
-const AdminDashboard = React.lazy(() => import('./pages/admindashboard'));
 const ProductsPage = React.lazy(() => import('./pages/client/Products.jsx'));
 const OneProduct = React.lazy(() => import('./pages/client/OneProduct.jsx'));
 const Cart = React.lazy(() => import('./pages/client/cart.jsx'));
@@ -121,7 +120,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             {/*<Route path="/loginn" element={<LoginPage />} />*/}
-            <Route path="/admin/*" element={<AdminDashboard />} />
+            <Route path="/admin/*" element={<AdminDash />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/oneProduct/:id" element={<OneProduct />} />

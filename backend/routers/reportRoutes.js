@@ -8,6 +8,11 @@ import {
   getReportStats,
   exportReport
 } from '../controllers/reportController.js';
+import {
+  generateProductReportPDF,
+  getReportCategories,
+  getReportStatus
+} from '../controllers/pdfReportController.js';
 import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -37,5 +42,14 @@ router.get('/stats', authMiddleware, getReportStats);
 
 // Export Reports (PDF, Excel, etc.) - SECURED: Admin only
 router.get('/export', authMiddleware, exportReport);
+
+// Enhanced PDF Product Reports - Available to Admin & FarmStaff
+router.get('/product-pdf', authMiddleware, generateProductReportPDF);
+
+// Get Report Categories - Available to authenticated users
+router.get('/categories', authMiddleware, getReportCategories);
+
+// Get Report Generation Status/History - SECURED: Admin only
+router.get('/status', authMiddleware, getReportStatus);
 
 export default router;

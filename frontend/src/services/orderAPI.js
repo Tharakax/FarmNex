@@ -128,6 +128,52 @@ export const orderAPI = {
     }
   },
 
+  // Cancel an order
+  cancelOrder: async (orderId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/order/status/${orderId}`, {
+        method: 'PUT',
+        headers: createHeaders(),
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to cancel order');
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data
+      };
+    } catch (error) {
+      console.error('Error canceling order:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  },
+
+  // Delete an order (allowed for owner when pending/cancelled)
+  deleteOrder: async (orderId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/order/${orderId}`, {
+        method: 'DELETE',
+        headers: createHeaders(),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete order');
+      }
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   // Calculate user dashboard statistics from orders
   getDashboardStats: async () => {
     try {

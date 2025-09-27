@@ -7,7 +7,9 @@ axios.interceptors.request.use(
     const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
     
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Clean token - remove 'Bearer ' prefix if already present
+      const cleanToken = token.replace('Bearer ', '');
+      config.headers.Authorization = `Bearer ${cleanToken}`;
     }
     
     return config;

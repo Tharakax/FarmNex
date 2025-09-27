@@ -9,6 +9,11 @@ import {
   changePassword,
   loginWithOTPStep1,
   verifyOTP,
+  logoutUser,
+  checkSessionStatus,
+  forceLogoutUser,
+  getActiveSessions,
+  cleanupExpiredSessions,
 } from "../controllers/usercontrol.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -23,6 +28,13 @@ router.delete("/:id", deleteUser); // Delete user - SECURED by global middleware
 // Login routes moved to public routes in main app
 
 router.post("/change-password", authMiddleware, changePassword); // Change password for user
+router.post("/logout", logoutUser); // Logout user - SECURED by global middleware
+router.get("/session/status", checkSessionStatus); // Check session status - SECURED by global middleware
+
+// Admin session management routes - SECURED by global middleware
+router.post("/admin/force-logout/:userId", forceLogoutUser); // Force logout user - Admin only
+router.get("/admin/active-sessions", getActiveSessions); // Get all active sessions - Admin only
+router.post("/admin/cleanup-sessions", cleanupExpiredSessions); // Cleanup expired sessions - Admin only
 
 // Debug endpoint to check if user exists
 router.get("/debug/:email", async (req, res) => {
