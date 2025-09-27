@@ -152,14 +152,14 @@ const OrdersRemade = () => {
 
       // Admin override: update local either way
       setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
-      if (!success) alert('Admin override: status updated locally.');
+      if (!success) alert('Updated locally.');
     } catch (e) {
       console.error(e);
     }
   };
 
   const handleDelete = async (orderId) => {
-    if (!window.confirm('Delete this order? (Admin override enabled)')) return;
+    if (!window.confirm('Delete this order?')) return;
     try {
       const headers = getAuthHeaders();
       const endpoints = [
@@ -175,11 +175,11 @@ const OrdersRemade = () => {
         } catch {}
       }
       setOrders(prev => prev.filter(o => o._id !== orderId));
-      if (!success) alert('Admin override: deleted locally.');
+      if (!success) alert('Deleted locally.');
     } catch (e) {
       console.error(e);
       setOrders(prev => prev.filter(o => o._id !== orderId));
-      alert('Admin override: deleted locally despite error.');
+      alert('Deleted locally despite error.');
     }
   };
 
