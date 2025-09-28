@@ -2,6 +2,7 @@ import axios from "axios";
 import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { FaLeaf } from 'react-icons/fa';
 import { FormValidator, ValidationRules } from '../utils/validation';
 import { showError, showSuccess, showLoading } from '../utils/sweetAlert';
 export default function LoginPage() {
@@ -113,16 +114,17 @@ export default function LoginPage() {
   };
 
  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-gray-100 flex items-center justify-center p-4">
-      <div className="absolute top-6 left-6">
-        <h1 className="text-3xl font-bold text-gray-800">
-          <span className="text-green-600">Crop</span>Cart
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center p-4">
+      <div className="absolute top-6 left-6 flex items-center gap-2">
+        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md">
+          <FaLeaf className="text-white w-6 h-6" />
+        </div>
+        <h1 className="text-3xl font-extrabold text-gray-900">FarmNex</h1>
       </div>
 
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
         {/* Left side - Branding */}
-        <div className="hidden lg:block bg-green-600 p-12 flex flex-col justify-center">
+        <div className="hidden lg:block bg-gradient-to-br from-emerald-600 to-green-500 p-12 flex flex-col justify-center">
           <div className="text-white">
             <h2 className="text-4xl font-bold mb-4">Welcome back!</h2>
             <p className="text-lg opacity-90">
@@ -141,7 +143,7 @@ export default function LoginPage() {
         {/* Right side - Login Form */}
         <div className="p-8 sm:p-12">
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold text-gray-800">Sign In</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Sign In</h2>
             <p className="mt-2 text-gray-600">Enter your details to continue</p>
           </div>
 
@@ -158,7 +160,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 disabled={isSubmitting}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-lg ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-lg ${
                   errors.Email ? 'border-red-500 bg-red-50' : 'border-gray-300'
                 } ${isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="your@email.com"
@@ -182,7 +184,7 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 disabled={isSubmitting}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition text-lg ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-lg ${
                   errors.Password ? 'border-red-500 bg-red-50' : 'border-gray-300'
                 } ${isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="••••••••"
@@ -200,14 +202,14 @@ export default function LoginPage() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  className="h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Remember me
                 </label>
               </div>
 
-              <a href="#" className="text-sm font-medium text-green-600 hover:text-green-500">
+              <a href="#" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
                 Forgot password?
               </a>
             </div>
@@ -218,7 +220,7 @@ export default function LoginPage() {
               className={`mt-6 w-full inline-flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition text-lg ${
                 isSubmitting 
                   ? 'bg-gray-400 text-white cursor-not-allowed' 
-                  : 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
+                  : 'bg-gradient-to-r from-emerald-600 to-green-500 text-white hover:from-emerald-700 hover:to-green-600 focus:ring-emerald-500'
               }`}
             >
               {isSubmitting ? (
@@ -249,7 +251,7 @@ export default function LoginPage() {
 
             <a
               href="#"
-              className="mt-6 w-full inline-flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition text-lg"
+              className="mt-6 w-full inline-flex justify-center py-3 px-4 border border-emerald-200 rounded-lg shadow-sm text-sm font-medium text-emerald-700 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition text-lg"
             >
               Create Account
             </a>
