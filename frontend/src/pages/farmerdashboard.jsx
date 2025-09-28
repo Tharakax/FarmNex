@@ -7,7 +7,7 @@ import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import WeatherWidget from '../components/WeatherWidget';
 import WeatherDashboard from '../components/WeatherDashboard';
 import BackButton from '../components/common/BackButton';
-import NotificationBell from '../components/notifications/NotificationBell';
+import NotificationBell from '../features/notifications/NotificationBell';
 import {
   Home, 
   Wheat, 
@@ -72,7 +72,7 @@ import ErrorFallback from '../components/common/ErrorFallback';
 
 // Lazy load components with error handling
 const ProductManagement = React.lazy(() => 
-  import('../components/products/ProductManagement')
+  import('../features/products/ProductManagement')
     .catch(error => {
       console.error('Failed to load ProductManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Product Management" /> };
@@ -80,7 +80,7 @@ const ProductManagement = React.lazy(() =>
 );
 
 const FarmerInventoryManagement = React.lazy(() => 
-  import('../components/inventory/FarmerInventoryManagement')
+  import('../features/inventory/FarmerInventoryManagement')
     .catch(error => {
       console.error('Failed to load FarmerInventoryManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Inventory Management" /> };
@@ -88,7 +88,7 @@ const FarmerInventoryManagement = React.lazy(() =>
 );
 
 const FarmerSuppliesManagement = React.lazy(() => 
-  import('../components/supplies/FarmerSuppliesManagement')
+  import('../features/supplies/FarmerSuppliesManagement')
     .catch(error => {
       console.error('Failed to load FarmerSuppliesManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Supplies Management" /> };
@@ -104,7 +104,7 @@ const ReportsManagement = React.lazy(() =>
 );
 
 // Import OrdersRemade directly to avoid lazy-loading failures in critical workflow
-import OrdersRemade from '../components/orders/OrdersRemade.jsx';
+import OrdersRemade from '../features/orders/OrdersRemade.jsx';
 
 const ProfessionalReportDashboard = React.lazy(() => 
   import('../features/reports/ProfessionalReportDashboard')
@@ -123,7 +123,7 @@ const TrainingManagementComponent = React.lazy(() =>
 );
 
 const RecipesPanel = React.lazy(() =>
-  import('../components/recipes/RecipesPanel')
+  import('../features/recipes/RecipesPanel')
     .catch(error => {
       console.error('Failed to load RecipesPanel:', error);
       return { default: () => <ErrorFallback error={error} componentName="Recipes" /> };
@@ -132,7 +132,7 @@ const RecipesPanel = React.lazy(() =>
 
 // Use the existing RecipeList component directly in dashboard
 const RecipeListEmbedded = React.lazy(() =>
-  import('../components/recipes/RecipeList.jsx')
+  import('../features/recipes/RecipeList.jsx')
     .catch(error => {
       console.error('Failed to load RecipeList:', error);
       return { default: () => <ErrorFallback error={error} componentName="Recipe List" /> };
@@ -148,7 +148,7 @@ const ProductReport = React.lazy(() =>
 );
 
 const CropLivestockManagement = React.lazy(() => 
-  import('../components/croplivestock/CropLivestockManagement')
+  import('../features/croplivestock/CropLivestockManagement')
     .catch(error => {
       console.error('Failed to load CropLivestockManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Crop & Livestock Management" /> };

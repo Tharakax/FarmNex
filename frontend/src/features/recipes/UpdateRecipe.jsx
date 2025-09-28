@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import Navigation from "../navigation";
+import Navigation from '../../components/navigation';
 import MediaUpload from "../../utils/medialUpload";
 import { Clock, ChevronLeft } from 'lucide-react';
 

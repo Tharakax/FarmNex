@@ -27,13 +27,13 @@ import {
   Mail,
   Clock
 } from 'lucide-react';
-import DashboardFeedbackForm from '../../../components/dashboard/DashboardFeedbackForm';
-import DashboardFeedbackList from '../../../components/dashboard/DashboardFeedbackList';
-import DashboardBrowseProducts from '../../../components/dashboard/DashboardBrowseProducts';
-import DashboardShoppingCart from '../../../components/dashboard/DashboardShoppingCart';
-import PaymentHistory from '../../../components/dashboard/PaymentHistory';
-import ProductStarRatings from '../../../components/dashboard/ProductStarRatings.jsx';
-import NotificationBell from '../../../components/notifications/NotificationBell';
+import DashboardFeedbackForm from '../../../features/dashboard/DashboardFeedbackForm';
+import DashboardFeedbackList from '../../../features/dashboard/DashboardFeedbackList';
+import DashboardBrowseProducts from '../../../features/dashboard/DashboardBrowseProducts';
+import DashboardShoppingCart from '../../../features/dashboard/DashboardShoppingCart';
+import PaymentHistory from '../../../features/dashboard/PaymentHistory';
+import ProductStarRatings from '../../../features/dashboard/ProductStarRatings.jsx';
+import NotificationBell from '../../../features/notifications/NotificationBell';
 import { getLoggedInUser } from '../../../utils/userUtils';
 import { getCart } from '../../../utils/cart';
 import { orderAPI } from '../../../services/orderAPI';

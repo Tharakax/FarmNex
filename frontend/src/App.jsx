@@ -30,9 +30,9 @@ const SoilMoistureDashboard = React.lazy(() => import('./pages/SoilMoistureDashb
 const PaymentSuccess = React.lazy(() => import('./pages/payment/PaymentSuccess.jsx'));
 const PaymentUnsuccess = React.lazy(() => import('./pages/payment/PaymentUnsuccess.jsx'));
 const Recipes = React.lazy(() => import('./pages/Recipes.jsx'));
-const RecipeList = React.lazy(() => import('./components/recipes/RecipeList.jsx'));
-const AddRecipe = React.lazy(() => import('./components/recipes/AddRecipe.jsx'));
-const UpdateRecipe = React.lazy(() => import('./components/recipes/UpdateRecipe.jsx'));
+const RecipeList = React.lazy(() => import('./features/recipes/RecipeList.jsx'));
+const AddRecipe = React.lazy(() => import('./features/recipes/AddRecipe.jsx'));
+const UpdateRecipe = React.lazy(() => import('./features/recipes/UpdateRecipe.jsx'));
 
 // Notification Pages (Lazy Load)
 const NotificationList = React.lazy(() => import('./pages/notifications/NotificationList.jsx'));

@@ -3,7 +3,7 @@ import { ChefHat, Leaf } from 'lucide-react';
 import { FaLeaf } from 'react-icons/fa';
 import Navigation from '../components/navigation';
 import { NavLink } from 'react-router-dom';
-import RecipeList from '../components/recipes/RecipeList.jsx';
+import RecipeList from '../features/recipes/RecipeList.jsx';
 
 const Recipes = () => {
 

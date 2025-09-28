@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
-import NotificationItem from "../../components/notifications/NotificationItem";
+import NotificationItem from "../../features/notifications/NotificationItem";
 import Navigation from "../../components/navigation";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
