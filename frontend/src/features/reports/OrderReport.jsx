@@ -13,6 +13,7 @@ import {
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
 import ExportSplitButton from './ExportSplitButton';
+import { formatLKR } from '../../utils/currencyUtils';
 
 const OrderReport = () => {
   const [loading, setLoading] = useState(true);
@@ -202,10 +203,7 @@ const OrderReport = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+    return formatLKR(amount);
   };
 
   const handleExport = async (format) => {
@@ -215,9 +213,9 @@ const OrderReport = () => {
         'Order ID': order._id?.toString().slice(-8).toUpperCase() || 'N/A',
         'Customer Name': order.contactName || 'N/A',
         'Customer Email': order.contactEmail || 'N/A',
-        'Total Amount': `$${(order.total || 0).toFixed(2)}`,
-        'Refund Amount': order.refundAmount ? `$${order.refundAmount.toFixed(2)}` : '$0.00',
-        'Net Amount': `$${((order.total || 0) - (order.refundAmount || 0)).toFixed(2)}`,
+'Total Amount': formatLKR(order.total || 0),
+        'Refund Amount': order.refundAmount ? formatLKR(order.refundAmount) : formatLKR(0),
+        'Net Amount': formatLKR((order.total || 0) - (order.refundAmount || 0)),
         'Status': (order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1),
         'Payment Method': getFriendlyPaymentMethodName(order.paymentMethod),
         'Payment Completed': order.paymentcompleted ? 'Yes' : 'No',
