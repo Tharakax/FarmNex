@@ -38,7 +38,7 @@ import { getLoggedInUser } from '../../../utils/userUtils';
 import { getCart } from '../../../utils/cart';
 import { orderAPI } from '../../../services/orderAPI';
 import toast from 'react-hot-toast';
-import { FaLeaf } from 'react-icons/fa';
+import BrandLogo from '../../../components/BrandLogo.jsx';
 import { handleImageError, getUserAvatarPlaceholder } from '../../../utils/imageUtils';
 
 const CustomerDashboard = () => {
@@ -402,7 +402,7 @@ const CustomerDashboard = () => {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="flex items-center gap-2">
-                  <FaLeaf className="text-green-600" size={20} />
+                  <BrandLogo size={24} />
                   <h2 className="text-xl font-bold text-green-600">Farm Nex</h2>
                 </div>
               </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Shield, AlertTriangle, Users, Settings, Leaf, BarChart3 } from 'lucide-react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLeaf } from '@fortawesome/free-solid-svg-icons';
+import BrandLogo from '../BrandLogo.jsx';
 
 const RoleBasedAccess = ({ userRole, requiredRole, children, showMessage = true }) => {
   const hasAccess = checkRoleAccess(userRole, requiredRole);
@@ -45,7 +44,7 @@ const RoleBasedAccess = ({ userRole, requiredRole, children, showMessage = true 
             <RoleAccessGuide />
             
             <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-              <FontAwesomeIcon icon={faLeaf} className="h-4 w-4 text-green-600" />
+              <BrandLogo size={16} />
               <span>FarmNex - Secure Farm Management</span>
             </div>
           </div>
@@ -66,8 +65,7 @@ const RoleAccessGuide = () => {
     },
     {
       role: 'FarmStaff',
-      icon: FontAwesomeIcon,
-      iconProps: { icon: faLeaf },
+      brand: true,
       color: 'text-green-600 bg-green-100',
       description: 'Farm operations, products, inventory, reports',
       dashboards: ['Farmer Dashboard', 'Product Management', 'Inventory']
@@ -97,8 +95,10 @@ const RoleAccessGuide = () => {
           return (
             <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
               <div className={`p-2 rounded-lg ${role.color}`}>
-                {role.iconProps ? (
-                  <FontAwesomeIcon {...role.iconProps} className="h-4 w-4" />
+                {role.brand ? (
+                  <BrandLogo size={16} />
+                ) : role.iconProps ? (
+                  null
                 ) : (
                   <IconComponent className="h-4 w-4" />
                 )}

@@ -16,7 +16,8 @@ import {
   MessageSquare, Bell, Heart, BookOpen, Layers, Grid
 } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLeaf, faFilePdf, faChartLine, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faFilePdf, faChartLine, faDownload } from '@fortawesome/free-solid-svg-icons';
+import BrandLogo from '../../components/BrandLogo.jsx';
 import { exportToPDF, exportToExcel, exportProductsToPDFWithImages, getProductsColumns, getInventoryColumns, getInventoryDetailedColumns } from '../../utils/exportUtils';
 import { inventoryAPI } from '../../services/inventoryAPI';
 import { productAPI } from '../../services/productAPI';
@@ -771,8 +772,8 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
         <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-8 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="bg-white/20 p-4 rounded-xl backdrop-blur-sm">
-                <FontAwesomeIcon icon={faLeaf} className="h-10 w-10 text-white" />
+              <div className="backdrop-blur-sm">
+                <BrandLogo size={40} />
               </div>
               <div>
                 <h1 className="text-4xl font-bold">FarmNex Reports</h1>

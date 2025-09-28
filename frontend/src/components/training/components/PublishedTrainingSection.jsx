@@ -115,7 +115,7 @@ const PublishedTrainingSection = () => {
 
   if (loading) {
     return (
-      <section className="py-16 bg-gradient-to-br from-green-50 to-blue-50">
+      <section className="py-16 bg-gradient-to-br from-green-50 to-emerald-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
@@ -134,8 +134,8 @@ const PublishedTrainingSection = () => {
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">No Published Training Materials</h2>
             <p className="text-gray-600 mb-4">There are currently no published training materials available.</p>
-            <div className="bg-blue-50 rounded-lg p-4 max-w-md mx-auto">
-              <p className="text-sm text-blue-800">Debug: Component loaded but no materials found.</p>
+            <div className="bg-green-50 rounded-lg p-4 max-w-md mx-auto">
+              <p className="text-sm text-green-800">Debug: Component loaded but no materials found.</p>
             </div>
           </div>
         </div>
@@ -161,11 +161,11 @@ const PublishedTrainingSection = () => {
   }
 
   return (
-    <section className="py-16 relative bg-gradient-to-br from-green-50 via-blue-50 to-indigo-50">
+    <section className="py-16 relative bg-gradient-to-br from-green-50 via-emerald-50 to-green-100">
       {/* Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-10 left-10 w-20 h-20 bg-green-200/30 rounded-full blur-xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-32 h-32 bg-blue-200/30 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-20 right-20 w-32 h-32 bg-green-200/30 rounded-full blur-xl animate-pulse" style={{animationDelay: '2s'}}></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -185,15 +185,15 @@ const PublishedTrainingSection = () => {
               className="group bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.03] hover:-translate-y-3 relative backdrop-blur-sm"
             >
               {/* Premium Gradient Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 via-blue-50/30 to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 via-emerald-50/30 to-green-100/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
               
               {/* Premium Card Header with Enhanced Gradient */}
-              <div className="relative bg-gradient-to-br from-gray-50 via-blue-50/30 to-green-50/20 p-6 pb-4 border-b border-gray-100">
+              <div className="relative bg-gradient-to-br from-gray-50 via-emerald-50/30 to-green-50/20 p-6 pb-4 border-b border-gray-100">
                 {/* Type Badge - Enhanced */}
                 <div className="flex items-center justify-between mb-4">
                   <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold shadow-lg border-2 backdrop-blur-sm ${
                     material.type === 'Video' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-red-300 shadow-red-200' :
-                    material.type === 'PDF' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-300 shadow-blue-200' :
+                    material.type === 'PDF' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-300 shadow-green-200' :
                     'bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-purple-300 shadow-purple-200'
                   }`}>
                     {getTypeIcon(material.type)}
@@ -316,8 +316,17 @@ const PublishedTrainingSection = () => {
         <div className="text-center">
           <Link 
             to="/training"
-            className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold rounded-lg hover:from-green-700 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
-            style={{ color: '#ffffff' }}
+            className="inline-flex items-center px-8 py-3 text-white font-semibold rounded-lg transition-all transform hover:scale-105 shadow-lg hover:shadow-xl"
+            style={{ 
+              color: '#ffffff',
+              background: 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'linear-gradient(to right, #15803d, #16a34a, #22c55e)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)';
+            }}
           >
             <BookOpen className="h-5 w-5 mr-2 text-white" />
             <span className="text-white font-bold">Explore All Training Materials</span>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NotificationBell from '../../../features/notifications/NotificationBell';
+import BrandLogo from '../../../components/BrandLogo.jsx';
 
 import {
   User,
@@ -279,7 +280,7 @@ function AdminDashboard() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate('/userdetails')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
           >
             <span>User Management</span>
           </button>
@@ -396,7 +397,7 @@ function AdminDashboard() {
       <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-center h-16 px-4 bg-green-600">
-            <Sprout className="h-8 w-8 text-white mr-2" />
+            <BrandLogo size={32} className="mr-2" />
             <h2 className="text-xl font-bold text-white">Farm Nex Admin</h2>
           </div>
 

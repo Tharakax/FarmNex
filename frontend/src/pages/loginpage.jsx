@@ -2,7 +2,7 @@ import axios from "axios";
 import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { FaLeaf } from 'react-icons/fa';
+import BrandLogo from '../components/BrandLogo.jsx';
 import { FormValidator, ValidationRules } from '../utils/validation';
 import { showError, showSuccess, showLoading } from '../utils/sweetAlert';
 export default function LoginPage() {
@@ -114,17 +114,15 @@ export default function LoginPage() {
   };
 
  return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-green-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
       <div className="absolute top-6 left-6 flex items-center gap-2">
-        <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-          <FaLeaf className="text-white w-6 h-6" />
-        </div>
-        <h1 className="text-3xl font-extrabold text-gray-900">FarmNex</h1>
+        <BrandLogo size={40} />
+        <h1 className="text-3xl font-extrabold text-brand">FarmNex</h1>
       </div>
 
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden grid grid-cols-1 lg:grid-cols-2">
         {/* Left side - Branding */}
-        <div className="hidden lg:block bg-gradient-to-br from-emerald-600 to-green-500 p-12 flex flex-col justify-center">
+        <div className="hidden lg:block bg-gradient-to-br from-primary-600 to-secondary-500 p-12 flex flex-col justify-center">
           <div className="text-white">
             <h2 className="text-4xl font-bold mb-4">Welcome back!</h2>
             <p className="text-lg opacity-90">
@@ -160,7 +158,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 disabled={isSubmitting}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-lg ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition text-lg ${
                   errors.Email ? 'border-red-500 bg-red-50' : 'border-gray-300'
                 } ${isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="your@email.com"
@@ -184,7 +182,7 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 disabled={isSubmitting}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-lg ${
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition text-lg ${
                   errors.Password ? 'border-red-500 bg-red-50' : 'border-gray-300'
                 } ${isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="••••••••"
@@ -202,14 +200,14 @@ export default function LoginPage() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-5 w-5 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Remember me
                 </label>
               </div>
 
-              <a href="#" className="text-sm font-medium text-emerald-600 hover:text-emerald-500">
+              <a href="#" className="text-sm font-medium text-primary-600 text-brand hover:text-primary-500">
                 Forgot password?
               </a>
             </div>
@@ -220,7 +218,7 @@ export default function LoginPage() {
               className={`mt-6 w-full inline-flex justify-center py-3 px-4 rounded-lg shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition text-lg ${
                 isSubmitting 
                   ? 'bg-gray-400 text-white cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-emerald-600 to-green-500 text-white hover:from-emerald-700 hover:to-green-600 focus:ring-emerald-500'
+                  : 'bg-brand bg-gradient-to-r from-primary-600 to-secondary-500 text-white hover:from-primary-700 hover:to-secondary-600 focus:ring-primary-500'
               }`}
             >
               {isSubmitting ? (
@@ -251,7 +249,7 @@ export default function LoginPage() {
 
             <a
               href="#"
-              className="mt-6 w-full inline-flex justify-center py-3 px-4 border border-emerald-200 rounded-lg shadow-sm text-sm font-medium text-emerald-700 bg-white hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition text-lg"
+              className="mt-6 w-full inline-flex justify-center py-3 px-4 border border-primary-200 border-brand rounded-lg shadow-sm text-sm font-medium text-primary-700 text-brand bg-white hover:bg-primary-50 hover:bg-brand-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition text-lg"
             >
               Create Account
             </a>

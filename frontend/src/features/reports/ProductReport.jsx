@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLeaf } from '@fortawesome/free-solid-svg-icons';
 import { FileText, FileSpreadsheet } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';

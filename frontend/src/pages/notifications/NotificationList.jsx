@@ -3,8 +3,7 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import NotificationItem from "../../features/notifications/NotificationItem";
 import Navigation from "../../components/navigation";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { exportToPDF } from "../../utils/exportUtils";
 
 const API_URL = "http://localhost:3000/api/notifications";
 
@@ -132,51 +131,71 @@ function NotificationList() {
   const hasActiveFilters = searchTerm || selectedAudiences.length > 0 || 
                           selectedTypes.length > 0 || selectedPriorities.length > 0;
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!filteredNotifications || filteredNotifications.length === 0) {
       alert("No notifications available to download.");
       return;
     }
 
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text("Notification Report", 14, 20);
-    
+    // Build subtitle from active filters
     let filtersInfo = "All notifications";
     if (hasActiveFilters) {
-      filtersInfo = "Filtered notifications: ";
-      const filters = [];
-      
-      if (searchTerm) filters.push(`Search: "${searchTerm}"`);
-      if (selectedAudiences.length > 0) filters.push(`Audience: ${selectedAudiences.join(", ")}`);
-      if (selectedTypes.length > 0) filters.push(`Type: ${selectedTypes.join(", ")}`);
-      if (selectedPriorities.length > 0) filters.push(`Priority: ${selectedPriorities.join(", ")}`);
-      
-      filtersInfo += filters.join("; ");
+      const parts = [];
+      if (searchTerm) parts.push(`Search: "${searchTerm}"`);
+      if (selectedAudiences.length > 0) parts.push(`Audience: ${selectedAudiences.join(", ")}`);
+      if (selectedTypes.length > 0) parts.push(`Type: ${selectedTypes.join(", ")}`);
+      if (selectedPriorities.length > 0) parts.push(`Priority: ${selectedPriorities.join(", ")}`);
+      filtersInfo = parts.join(" • ");
     }
-    
-    doc.setFontSize(10);
-    doc.text(filtersInfo, 14, 30);
 
-    const rows = filteredNotifications.map((notification, index) => [
-      index + 1,
-      notification.title || "Untitled",
-      notification.body || "No content",
-      notification.audience || "N/A",
-      notification.type || "N/A",
-      notification.priority || "N/A",
-      notification.createdAt ? new Date(notification.createdAt).toLocaleDateString() : "N/A",
-    ]);
+    // Normalize data for export
+    const data = filteredNotifications.map((n, idx) => ({
+      no: idx + 1,
+      title: n.title || "Untitled",
+      content: n.body || "-",
+      audience: n.audience || "N/A",
+      type: n.type || "N/A",
+      priority: n.priority || "N/A",
+      created: n.createdAt ? new Date(n.createdAt).toLocaleString() : "N/A",
+    }));
 
-    autoTable(doc, {
-      head: [["#", "Title", "Content", "Audience", "Type", "Priority", "Created"]],
-      body: rows,
-      startY: 40,
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [16, 185, 129] },
-    });
+    const columns = [
+      { header: "#", key: "no" },
+      { header: "Title", key: "title" },
+      { header: "Content", key: "content" },
+      { header: "Audience", key: "audience" },
+      { header: "Type", key: "type" },
+      { header: "Priority", key: "priority" },
+      { header: "Created", key: "created" },
+    ];
 
-    doc.save("notifications_report.pdf");
+    // Build summary metrics similar to other reports
+    const countBy = (arr, key, val) => arr.filter(n => (n[key] || "").toUpperCase() === val).length;
+    const metrics = [
+      { label: "Total", value: data.length },
+      { label: "Farmers", value: countBy(filteredNotifications, "audience", "FARMER") },
+      { label: "Users", value: countBy(filteredNotifications, "audience", "USER") },
+      { label: "Alerts", value: countBy(filteredNotifications, "type", "ALERT") },
+      { label: "Offers", value: countBy(filteredNotifications, "type", "OFFER") },
+      { label: "Updates", value: countBy(filteredNotifications, "type", "UPDATE") },
+    ];
+
+    try {
+      await exportToPDF(
+        data,
+        "Notifications Report",
+        columns,
+        "notifications_report",
+        "reports",
+        {
+          subtitle: filtersInfo,
+          summary: { title: "Overview", metrics },
+        }
+      );
+    } catch (e) {
+      console.error("PDF export failed:", e);
+      alert("PDF export failed. See console for details.");
+    }
   };
 
   return (
@@ -234,8 +253,8 @@ function NotificationList() {
               <button
                 onClick={handleDownloadPDF}
                 className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
-                         bg-blue-600 text-white shadow-sm shadow-blue-200
-                         hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500
+                         bg-emerald-600 text-white shadow-sm shadow-emerald-200
+                         hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
                          active:scale-[0.98] transition"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">

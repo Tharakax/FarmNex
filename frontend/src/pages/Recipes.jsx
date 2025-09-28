@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChefHat, Leaf } from 'lucide-react';
-import { FaLeaf } from 'react-icons/fa';
+import BrandLogo from '../components/BrandLogo.jsx';
 import Navigation from '../components/navigation';
 import { NavLink } from 'react-router-dom';
 import RecipeList from '../features/recipes/RecipeList.jsx';
@@ -38,7 +38,7 @@ const Recipes = () => {
             <div className="text-center">
               <div className="flex justify-center items-center mb-6">
                 <ChefHat className="h-16 w-16 text-orange-400 mr-4" />
-                <FaLeaf className="h-12 w-12 text-green-400" />
+                <BrandLogo size={28} />
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 transform-gpu" style={{
                 textShadow: '0 2px 4px rgba(0,0,0,0.9), 0 4px 8px rgba(0,0,0,0.7), 0 8px 16px rgba(0,0,0,0.5)',
@@ -123,7 +123,7 @@ const Recipes = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <FaLeaf className="h-8 w-8 text-green-400" />
+                  <BrandLogo size={24} />
                   <span className="text-2xl font-bold">FarmNex</span>
                 </div>
                 <p className="text-gray-300">

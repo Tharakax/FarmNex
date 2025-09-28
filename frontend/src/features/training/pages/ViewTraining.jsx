@@ -51,14 +51,14 @@ const ViewTraining = () => {
 
   const getCategoryColor = (category) => {
     const colors = {
-      'Crop Management': 'bg-farmer-green-100 text-farmer-green-800',
-      'Livestock': 'bg-earth-brown-100 text-earth-brown-800',
-      'Equipment': 'bg-blue-100 text-blue-800',
-      'Finance': 'bg-purple-100 text-purple-800',
-      'Marketing': 'bg-pink-100 text-pink-800',
-      'General': 'bg-gray-100 text-gray-800'
+      'Crop Management': 'bg-green-100 text-green-800',
+      'Livestock': 'bg-green-100 text-green-800',
+      'Equipment': 'bg-green-100 text-green-800',
+      'Finance': 'bg-green-100 text-green-800',
+      'Marketing': 'bg-green-100 text-green-800',
+      'General': 'bg-green-100 text-green-800'
     };
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-green-100 text-green-800';
   };
 
   if (loading) {
@@ -66,7 +66,7 @@ const ViewTraining = () => {
       <div>
         <Header />
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-farmer-green-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
         </div>
       </div>
     );
@@ -120,7 +120,9 @@ const ViewTraining = () => {
         {/* Main Content */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-farmer-green-500 to-farmer-green-600 text-white p-8">
+          <div className="text-white p-8" style={{
+            background: 'linear-gradient(to right, #16a34a, #22c55e, #059669)'
+          }}>
             <h1 className="text-3xl font-bold mb-4">{material.title}</h1>
             
             <div className="flex flex-wrap gap-3 mb-4">
@@ -169,9 +171,11 @@ const ViewTraining = () => {
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Resources</h2>
                 <div className="space-y-4">
                   {material.uploadLink && (
-                    <div className="flex items-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center p-4 bg-green-50 rounded-lg border border-green-200">
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white" style={{
+                          backgroundColor: '#16a34a'
+                        }}>
                           🔗
                         </div>
                       </div>
@@ -195,7 +199,9 @@ const ViewTraining = () => {
                   {material.fileName && (
                     <div className="flex items-center p-4 bg-green-50 rounded-lg border border-green-200">
                       <div className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center text-white">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white" style={{
+                          backgroundColor: '#16a34a'
+                        }}>
                           📄
                         </div>
                       </div>

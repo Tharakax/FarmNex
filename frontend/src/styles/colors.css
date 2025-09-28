@@ -151,9 +151,9 @@
   --color-border-focus: #22c55e;
 
   /* Semantic Color Aliases for easier usage */
-  --color-brand: var(--color-primary-500);
-  --color-brand-light: var(--color-primary-100);
-  --color-brand-dark: var(--color-primary-700);
+  --color-brand: #16a34a; /* Tailwind green-600 from Product Report */
+  --color-brand-light: #dcfce7; /* Tailwind green-100 from Product Report */
+  --color-brand-dark: #14532d; /* green-900 for depth */
   
   --color-background: var(--color-background-primary);
   --color-surface: var(--color-background-secondary);

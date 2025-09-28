@@ -21,8 +21,7 @@ import {
   Clock,
   X
 } from 'lucide-react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLeaf } from '@fortawesome/free-solid-svg-icons';
+import BrandLogo from '../../components/BrandLogo.jsx';
 import toast from 'react-hot-toast';
 
 // Import existing components
@@ -552,7 +551,7 @@ const EnhancedProductManagement = () => {
                   // Grid View Card
                   <div key={product._id} className="group bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-200">
                     <div className="aspect-square bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
-                      <FontAwesomeIcon icon={faLeaf} className="h-12 w-12 text-green-500" />
+                      <BrandLogo size={48} />
                     </div>
                     
                     <div className="space-y-2">
@@ -603,7 +602,7 @@ const EnhancedProductManagement = () => {
                   <div key={product._id} className="flex items-center justify-between p-6 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center space-x-4 flex-1">
                       <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <FontAwesomeIcon icon={faLeaf} className="h-6 w-6 text-green-500" />
+                        <BrandLogo size={32} />
                       </div>
                       
                       <div className="flex-1 min-w-0">
@@ -662,7 +661,7 @@ const EnhancedProductManagement = () => {
                 
                 {/* Add Product Form would go here */}
                 <div className="bg-gray-50 rounded-lg p-8 text-center">
-                  <FontAwesomeIcon icon={faLeaf} className="h-12 w-12 text-green-500 mb-4" />
+                  <BrandLogo size={48} className="mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Product Form</h3>
                   <p className="text-gray-600 mb-6">Product form component would be integrated here</p>
                   <button
