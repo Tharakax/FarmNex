@@ -10,9 +10,7 @@ const API_URL = "http://localhost:3000/api/notifications";
 const AUDIENCE_OPTIONS = [
   { value: "FARMER", label: "🌾 Farmer", desc: "FarmStaff & Manager" },
   { value: "USER", label: "🛒 User", desc: "Customer & DeliveryStaff" },
-  { value: "ADMIN", label: "👤 Admin", desc: "Admin role only" },
-  { value: "BOTH", label: "👥 Both", desc: "All except Admin" },
-  { value: "ALL", label: "🌍 All", desc: "Everyone including Admin" }
+  { value: "BOTH", label: "👥 Farmer & User", desc: "" }
 ];
 
 const TYPE_OPTIONS = [

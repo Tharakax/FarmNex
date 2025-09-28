@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navigation from "../../components/navigation";
 
-const AUDIENCE_OPTIONS = ["FARMER", "USER", "ADMIN", "BOTH", "ALL"];
+const AUDIENCE_OPTIONS = ["FARMER", "USER", "BOTH"];
 const TYPE_OPTIONS = ["ALERT", "OFFER", "UPDATE"];
 const PRIORITY_OPTIONS = ["HIGH", "MEDIUM", "LOW"];
 
@@ -210,11 +210,9 @@ export default function AddNotification() {
                   <div className="flex flex-col gap-3">
                     {AUDIENCE_OPTIONS.map((a) => {
                       const audienceInfo = {
-                        'FARMER': { desc: 'FarmStaff & Manager roles', icon: '🌾' },
-                        'USER': { desc: 'Customer & DeliveryStaff roles', icon: '🛒' },
-                        'ADMIN': { desc: 'Admin role only', icon: '👤' },
-                        'BOTH': { desc: 'All users except Admin', icon: '👥' },
-                        'ALL': { desc: 'Everyone including Admin', icon: '🌍' }
+                        'FARMER': { desc: 'FarmStaff & Manager roles', icon: '🌾', label: 'Farmer' },
+                        'USER': { desc: 'Customer & DeliveryStaff roles', icon: '🛒', label: 'User' },
+                        'BOTH': { desc: '', icon: '👥', label: 'Farmer & User' },
                       };
                       return (
                         <label
@@ -231,7 +229,7 @@ export default function AddNotification() {
                           />
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{audienceInfo[a]?.icon} {a}</span>
+                              <span className="font-medium">{audienceInfo[a]?.icon} {audienceInfo[a]?.label || a}</span>
                             </div>
                             <div className="text-xs text-gray-500 mt-0.5">
                               {audienceInfo[a]?.desc}
