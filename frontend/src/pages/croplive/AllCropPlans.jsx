@@ -87,24 +87,11 @@ function AllCropPlans() {
 
   const downloadCropPdf = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/crop/report/pdf", {
-        method: "GET",
-      });
-  
-      if (!response.ok) throw new Error("Failed to download PDF");
-  
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "crop_report.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      const { default: ExportService } = await import('../../services/exportService');
+      ExportService.exportCrops.toPDF(cropPlans);
     } catch (error) {
-      console.error("PDF download failed:", error);
-      addToast("Failed to download Crop PDF report", "error");
+      console.error('PDF generation failed:', error);
+      addToast('Failed to generate Crop PDF report', 'error');
     }
   };
   

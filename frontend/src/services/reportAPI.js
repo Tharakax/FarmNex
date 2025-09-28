@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+import { generateSalesData, generateSalesTrend, generateProductPerformance, getCurrentSeason } from '../utils/salesDataGenerator.js';
+
+const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api` : 'http://localhost:3000/api');
 
 /**
  * Helper function to get authorization headers
@@ -16,61 +18,232 @@ const getAuthHeaders = () => {
  */
 export const reportAPI = {
   // Sales Reports
-  getSalesData: async (dateRange = '30', category = 'all') => {
+  getSalesData: async (dateRange = '30', category = 'all', options = {}) => {
+    const scopePref = (options.scope || import.meta.env.VITE_DEFAULT_REPORT_SCOPE || 'auto').toLowerCase();
+    const token = (localStorage.getItem('token') || localStorage.getItem('authToken') || '').trim();
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': /^Bearer\b/i.test(token) ? token : `Bearer ${token}` })
+    };
+
+    const tryFetch = async (url) => {
+      const res = await fetch(url, { method: 'GET', headers });
+      if (!res.ok) return null;
+      try { return await res.json(); } catch { return null; }
+    };
+
+    const allUrlOverride = import.meta.env.VITE_REPORT_ALL_URL; // full URL if provided
+    const urlsToTry = [];
+
+    // Preferred storewide endpoints (admin) when scope is storewide or auto
+    if (scopePref === 'storewide' || scopePref === 'auto') {
+      if (allUrlOverride) {
+        const u = new URL(allUrlOverride);
+        u.searchParams.set('dateRange', dateRange);
+        u.searchParams.set('category', category);
+        urlsToTry.push(u.toString());
+      }
+      urlsToTry.push(
+        `${API_BASE_URL}/admin/reports/sales?dateRange=${dateRange}&category=${category}`,
+        `${API_BASE_URL}/reports/sales?dateRange=${dateRange}&category=${category}&scope=all`,
+        `${API_BASE_URL}/reports/sales/all?dateRange=${dateRange}&category=${category}`
+      );
+    }
+
+    // Generic reports endpoint (could already be storewide depending on backend)
+    urlsToTry.push(`${API_BASE_URL}/reports/sales?dateRange=${dateRange}&category=${category}`);
+
+    // First try backend endpoints (prefer storewide if available)
     try {
-      const response = await fetch(`${API_BASE_URL}/reports/sales?dateRange=${dateRange}&category=${category}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      for (const url of urlsToTry) {
+        const data = await tryFetch(url);
+        if (data && data.success) {
+          return { ...data, scopeUsed: 'backend' };
+        }
+      }
+    } catch (error) {
+      console.log('Backend sales API not available, generating dynamic data:', error.message);
+    }
+
+    try {
+      // Fallback: Generate realistic sales data using real products
+      const { productAPI } = await import('./productAPI');
+      const productsResponse = await productAPI.getAllProducts();
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch sales data');
+      let currentProducts = [];
+      if (productsResponse.success && productsResponse.data) {
+        currentProducts = productsResponse.data;
+        console.log('🎯 Generating sales data from', currentProducts.length, 'real products');
+      } else {
+        console.log('⚠️ No real products available, using mock product data');
       }
       
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching sales data:', error);
-      // Return mock data for now
+      // Generate dynamic sales data based on current date, seasonality, and real products
+      const salesData = generateSalesData(parseInt(dateRange), category, currentProducts);
+
+      // If we can fetch actual orders for the current user, overlay real metrics so totals match reality
+      try {
+        const { orderAPI } = await import('./orderAPI');
+        const ordersRes = await orderAPI.getMyOrders();
+        if (ordersRes?.success && Array.isArray(ordersRes.data) && ordersRes.data.length > 0) {
+          const orders = ordersRes.data;
+          const parseAmount = (o) => {
+            const gross = Number(o.total ?? o.totalAmount ?? o.amount ?? 0);
+            const refund = Number(o.refundAmount || 0);
+            const net = Math.max(0, (isNaN(gross) ? 0 : gross) - (isNaN(refund) ? 0 : refund));
+            return net;
+          };
+
+          const totalRevenue = orders.reduce((sum, o) => sum + parseAmount(o), 0);
+          const totalOrders = orders.length;
+          const averageOrderValue = Math.round(totalRevenue / Math.max(1, totalOrders));
+
+          // Aggregate daily sales (limit to selected date range, show last up to 7 days)
+          const cutoff = new Date();
+          cutoff.setDate(cutoff.getDate() - parseInt(dateRange));
+          const dailyMap = new Map();
+          orders.forEach((o) => {
+            const d = new Date(o.createdAt || o.orderDate || o.date || o.timestamp || Date.now());
+            if (d < cutoff) return;
+            const key = d.toISOString().split('T')[0];
+            const amt = parseAmount(o);
+            const prev = dailyMap.get(key) || { revenue: 0, orders: 0 };
+            dailyMap.set(key, { revenue: prev.revenue + amt, orders: prev.orders + 1 });
+          });
+          const dailySales = Array.from(dailyMap.entries())
+            .map(([date, v]) => ({ date, revenue: Math.round(v.revenue), orders: v.orders }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .slice(-7);
+
+          // Aggregate products and categories if available on orders
+          const productMap = new Map();
+          const categoryMap = new Map();
+          orders.forEach((o) => {
+            const items = Array.isArray(o.items) ? o.items : [];
+            items.forEach((it) => {
+              const name = it.name || it.productName || `Product-${it.productId || 'N/A'}`;
+              const categoryKey = (it.category || 'uncategorized');
+              const lineRevenue = Math.round((Number(it.price) || 0) * (Number(it.quantity) || 1));
+
+              const prevP = productMap.get(name) || { revenue: 0, orders: 0, category: categoryKey };
+              productMap.set(name, { revenue: prevP.revenue + lineRevenue, orders: prevP.orders + 1, category: categoryKey });
+
+              const prevC = categoryMap.get(categoryKey) || 0;
+              categoryMap.set(categoryKey, prevC + lineRevenue);
+            });
+          });
+          const topProducts = Array.from(productMap.entries())
+            .map(([name, v]) => ({ name, revenue: v.revenue, orders: v.orders, growth: 0, category: v.category }))
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5);
+
+          let totalCatRevenue = 0;
+          const categorySalesRaw = Array.from(categoryMap.entries()).map(([key, revenue]) => {
+            totalCatRevenue += revenue;
+            const label = key.charAt(0).toUpperCase() + key.slice(1).replace('-', ' ');
+            return { category: label, revenue: Math.round(revenue) };
+          });
+          const categorySales = categorySalesRaw
+            .map((c) => ({ ...c, percentage: totalCatRevenue > 0 ? parseFloat(((c.revenue / totalCatRevenue) * 100).toFixed(1)) : 0 }))
+            .sort((a, b) => b.revenue - a.revenue);
+
+          // Derive customer metrics from actual orders
+          const custMap = new Map();
+          const getCustKey = (o) => (
+            o.userId || o.user?.id || o.customer?.id || o.customer?._id || o.customerId || o.contactEmail || o.customer?.email || o.customer?.phone || 'unknown'
+          );
+          orders.forEach((o) => {
+            const key = getCustKey(o);
+            const d = new Date(o.createdAt || o.orderDate || o.date || o.timestamp || Date.now());
+            const amt = parseAmount(o);
+            const entry = custMap.get(key) || {
+              firstDate: d,
+              lastDate: d,
+              totalOrders: 0,
+              totalSpent: 0,
+              withinRangeOrders: 0
+            };
+            entry.firstDate = new Date(Math.min(entry.firstDate.getTime(), d.getTime()));
+            entry.lastDate = new Date(Math.max(entry.lastDate.getTime(), d.getTime()));
+            entry.totalOrders += 1;
+            entry.totalSpent += amt;
+            if (d >= cutoff) entry.withinRangeOrders += 1;
+            custMap.set(key, entry);
+          });
+          const customersWithinRange = Array.from(custMap.values()).filter(c => c.withinRangeOrders > 0);
+          const newCustomersCount = customersWithinRange.filter(c => c.firstDate >= cutoff).length;
+          const returningCustomersCount = customersWithinRange.filter(c => c.firstDate < cutoff).length;
+          const repeatCustomers = customersWithinRange.filter(c => c.totalOrders > 1).length;
+          const retentionRate = customersWithinRange.length > 0
+            ? Math.round((repeatCustomers / customersWithinRange.length) * 1000) / 10
+            : 0;
+          const avgCustomerValue = customersWithinRange.length > 0
+            ? Math.round(totalRevenue / customersWithinRange.length)
+            : averageOrderValue;
+
+          const overlay = {
+            ...salesData,
+            totalRevenue: Math.round(totalRevenue),
+            totalOrders,
+            averageOrderValue,
+            dailySales: dailySales.length ? dailySales : salesData.dailySales,
+            topProducts: topProducts.length ? topProducts : salesData.topProducts,
+            categorySales: categorySales.length ? categorySales : salesData.categorySales,
+            customerMetrics: {
+              newCustomers: newCustomersCount,
+              returningCustomers: returningCustomersCount,
+              customerRetentionRate: retentionRate,
+              averageCustomerValue: avgCustomerValue
+            },
+            dataGenerated: false,
+            realOrders: true,
+          };
+
+          console.log('✅ Using real user orders overlay for sales data:', {
+            totalRevenue: overlay.totalRevenue,
+            totalOrders: overlay.totalOrders,
+            usedOrders: orders.length
+          });
+
+          return {
+            success: true,
+            data: overlay,
+            generated: false,
+            realOrders: true,
+            timestamp: new Date().toISOString()
+          };
+        }
+      } catch (e) {
+        console.log('ℹ️ Could not overlay with real orders:', e.message);
+      }
+      
+      console.log('✅ Generated dynamic sales data:', {
+        totalRevenue: salesData.totalRevenue,
+        totalOrders: salesData.totalOrders,
+        season: salesData.seasonalContext.currentSeason,
+        category: salesData.seasonalContext.category,
+        realProducts: currentProducts.length > 0
+      });
+      
       return {
         success: true,
-        data: {
-          totalRevenue: 85420,
-          totalOrders: 234,
-          averageOrderValue: 365,
-          revenueChange: 12.5,
-          ordersChange: 8.3,
-          topProducts: [
-            { name: 'Organic Tomatoes', revenue: 12500, orders: 45, growth: 15.2 },
-            { name: 'Fresh Spinach', revenue: 8900, orders: 67, growth: 22.1 },
-            { name: 'Bell Peppers', revenue: 7650, orders: 32, growth: -5.2 },
-            { name: 'Organic Carrots', revenue: 6200, orders: 28, growth: 8.7 },
-            { name: 'Mixed Salad Greens', revenue: 5800, orders: 41, growth: 18.9 }
-          ],
-          dailySales: [
-            { date: '2025-08-21', revenue: 2850, orders: 12 },
-            { date: '2025-08-22', revenue: 3200, orders: 14 },
-            { date: '2025-08-23', revenue: 2950, orders: 11 },
-            { date: '2025-08-24', revenue: 4100, orders: 18 },
-            { date: '2025-08-25', revenue: 3650, orders: 15 },
-            { date: '2025-08-26', revenue: 3890, orders: 17 },
-            { date: '2025-08-27', revenue: 4200, orders: 19 }
-          ],
-          categorySales: [
-            { category: 'Vegetables', revenue: 35200, percentage: 41.2 },
-            { category: 'Fruits', revenue: 28900, percentage: 33.8 },
-            { category: 'Leafy Greens', revenue: 12800, percentage: 15.0 },
-            { category: 'Dairy Products', revenue: 6300, percentage: 7.4 },
-            { category: 'Animal Products', revenue: 2220, percentage: 2.6 }
-          ],
-          customerMetrics: {
-            newCustomers: 45,
-            returningCustomers: 189,
-            customerRetentionRate: 78.5,
-            averageCustomerValue: 425
-          }
-        }
+        data: salesData,
+        generated: true,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error generating sales data:', error);
+      
+      // Final fallback: Generate data without real products
+      const fallbackData = generateSalesData(parseInt(dateRange), category, []);
+      console.log('⚠️ Using fallback generated sales data');
+      
+      return {
+        success: true,
+        data: fallbackData,
+        fallback: true,
+        timestamp: new Date().toISOString()
       };
     }
   },

@@ -35,10 +35,24 @@ class ExportService {
   static addPDFHeader(doc, reportTitle, reportSubtitle = '') {
     const pageWidth = (doc.internal?.pageSize?.getWidth ? doc.internal.pageSize.getWidth() : (doc.internal?.pageSize?.width || 210));
 
-    // Branded header drawn inline (logo tile + FarmNex + centered title + contact lines)
+    // Prefer the unified branded header (drawFarmHeader) which includes the leaf logo.
+    try {
+      if (typeof drawFarmHeader === 'function') {
+        const bottom = drawFarmHeader(doc, reportTitle || 'Report', pageWidth, {
+          align: 'center',
+          titleFontSize: 26,
+          tileSize: 18,
+          subtitle: reportSubtitle,
+        });
+        if (Number.isFinite(bottom)) return bottom; // use branded header if successful
+      }
+    } catch (e) {
+      // fall through to inline fallback header below
+    }
+
+    // Fallback inline header (simple tile without icon)
     const styles = (ExportService && ExportService.PDF_STYLES) ? ExportService.PDF_STYLES : {};
     const primary = Array.isArray(styles.headerColor) ? styles.headerColor : [34, 197, 94]; // green
-    const dark = Array.isArray(styles.textColor) ? styles.textColor : [31, 41, 55];
     const gray = [107, 114, 128];
 
     const paddingX = 15;
@@ -90,13 +104,13 @@ class ExportService {
     doc.text('No 8, Temple Road, Beralapanathra, Sri Lanka', pageWidth / 2, contactY, { align: 'center' });
     doc.text('Tel: 0742331740  •  Email: farmnex@gmail.com', pageWidth / 2, contactY + 5, { align: 'center' });
 
-    // Date/time and total records area will be added by callers; draw divider
+    // Divider
     const bottomY = contactY + 15;
     doc.setDrawColor(209, 213, 219); // border
     doc.setLineWidth(0.8);
     doc.line(paddingX, bottomY, pageWidth - paddingX, bottomY);
 
-    return bottomY; // Y where content should start after some spacing
+    return bottomY;
   }
 
   /**
@@ -322,6 +336,106 @@ autoTable(doc, {
   /**
    * Export Products Data
    */
+  static exportCrops = {
+    toPDF: (cropPlans = []) => {
+      try {
+        const rows = Array.isArray(cropPlans) ? cropPlans : [];
+        const doc = new jsPDF();
+        const startY = ExportService.addPDFHeader(
+          doc,
+          'Crop Plans Report',
+          `Total Plans: ${rows.length}`
+        );
+
+        const tableData = rows.map(cp => [
+          cp.planName || cp.name || '-',
+          cp.cropType || '-',
+          cp.variety || '-',
+          cp.plantingDate ? new Date(cp.plantingDate).toLocaleDateString() : '-',
+          cp.harvestDate ? new Date(cp.harvestDate).toLocaleDateString() : '-',
+          (cp.status || 'Active'),
+          (cp.areaSize?.value ? `${cp.areaSize.value} ${cp.areaSize.unit || ''}` : (cp.area || '-')),
+          cp.irrigationMethod || '-',
+          (cp.Litres_of_water ? `${cp.Litres_of_water} (${(cp.Duration || cp.duration || '').toString()})` : '-')
+        ]);
+
+        const STYLES = (ExportService && ExportService.PDF_STYLES) ? ExportService.PDF_STYLES : { headerColor: [34,197,94], alternateRowColor: [249,250,251], fontSize: { body: 10 } };
+        autoTable(doc, {
+          head: [['Plan Name', 'Crop Type', 'Variety', 'Planting', 'Harvest', 'Status', 'Area', 'Irrigation', 'Water/Cycle']],
+          body: tableData,
+          startY,
+          theme: 'grid',
+          headStyles: { fillColor: STYLES.headerColor },
+          alternateRowStyles: { fillColor: STYLES.alternateRowColor },
+          styles: { fontSize: (STYLES.fontSize && STYLES.fontSize.body) ? STYLES.fontSize.body : 10 },
+          margin: { top: 20, bottom: 30 }
+        });
+
+        ExportService.addPDFFooter(doc);
+        doc.save(`crop-plans-${new Date().toISOString().split('T')[0]}.pdf`);
+        toast.success('Crop plans exported as PDF!');
+      } catch (error) {
+        console.error('Error exporting crops to PDF:', error);
+        toast.error('Failed to export crop plans as PDF');
+      }
+    },
+  };
+
+  static exportLivestock = {
+    toPDF: (animals = []) => {
+      try {
+        const rows = Array.isArray(animals) ? animals : [];
+        const doc = new jsPDF();
+        const startY = ExportService.addPDFHeader(
+          doc,
+          'Livestock Report',
+          `Total Animals: ${rows.length}`
+        );
+
+        const getAge = (dob) => {
+          if (!dob) return '-';
+          const birth = new Date(dob);
+          const now = new Date();
+          const diffDays = Math.floor((now - birth) / (1000 * 60 * 60 * 24));
+          const years = Math.floor(diffDays / 365);
+          if (years > 0) return `${years} yr${years > 1 ? 's' : ''}`;
+          const months = Math.floor(diffDays / 30);
+          if (months > 0) return `${months} mo${months > 1 ? 's' : ''}`;
+          return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
+        };
+
+        const tableData = rows.map(a => [
+          a.animalType || a.type || '-',
+          a.breed || '-',
+          a.gender || '-',
+          getAge(a.dob),
+          (a.weight ? `${a.weight} kg` : (a.rearingDetails?.weight ? `${a.rearingDetails.weight} kg` : '-')),
+          a.purpose || a.rearingDetails?.purpose || '-',
+          (Array.isArray(a.healthRecords) && a.healthRecords.length ? (a.healthRecords[a.healthRecords.length - 1].treatment || 'Healthy') : (a.health?.healthStatus || 'Healthy'))
+        ]);
+
+        const STYLES2 = (ExportService && ExportService.PDF_STYLES) ? ExportService.PDF_STYLES : { headerColor: [34,197,94], alternateRowColor: [249,250,251], fontSize: { body: 10 } };
+        autoTable(doc, {
+          head: [['Animal', 'Breed', 'Gender', 'Age', 'Weight', 'Purpose', 'Last Health']],
+          body: tableData,
+          startY,
+          theme: 'grid',
+          headStyles: { fillColor: STYLES2.headerColor },
+          alternateRowStyles: { fillColor: STYLES2.alternateRowColor },
+          styles: { fontSize: (STYLES2.fontSize && STYLES2.fontSize.body) ? STYLES2.fontSize.body : 10 },
+          margin: { top: 20, bottom: 30 }
+        });
+
+        ExportService.addPDFFooter(doc);
+        doc.save(`livestock-${new Date().toISOString().split('T')[0]}.pdf`);
+        toast.success('Livestock exported as PDF!');
+      } catch (error) {
+        console.error('Error exporting livestock to PDF:', error);
+        toast.error('Failed to export livestock as PDF');
+      }
+    },
+  };
+
   static exportProducts = {
     toPDF: (productsData, stats) => {
       try {

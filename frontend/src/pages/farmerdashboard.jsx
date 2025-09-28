@@ -31,7 +31,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sprout,
-  ShoppingCart
+  ShoppingCart,
+  BarChart3
 } from 'lucide-react';
 
 // Current crop yield data (2024 - tons per hectare)
@@ -144,6 +145,14 @@ const ProductReport = React.lazy(() =>
     .catch(error => {
       console.error('Failed to load ProductReport:', error);
       return { default: () => <ErrorFallback error={error} componentName="Product Report" /> };
+    })
+);
+
+const SalesReport = React.lazy(() =>
+  import('../features/reports/SalesReport.jsx')
+    .catch(error => {
+      console.error('Failed to load SalesReport:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Sales Report" /> };
     })
 );
 
@@ -305,6 +314,7 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
     { name: 'Training', icon: BookOpen },
     { name: 'Recipes', icon: ChefHat },
     { name: 'Reports', icon: FileText },
+    { name: 'Sales Report', icon: BarChart3 },
     { name: 'Settings', icon: Settings }
   ];
 
@@ -497,6 +507,8 @@ const FarmerDashboard = () => {
         training: 'Training',
         recipes: 'Recipes',
         reports: 'Reports',
+        'sales-report': 'Sales Report',
+        'salesreport': 'Sales Report',
         crop: 'Crop & Livestock',
         livestock: 'Crop & Livestock',
         'crop & livestock': 'Crop & Livestock',
@@ -555,9 +567,10 @@ const FarmerDashboard = () => {
       'Weather': 'weather',
       'Training': 'training',
       'Recipes': 'recipes',
-      'Reports': 'reports',
-      'Crop & Livestock': 'crop',
-      'Settings': 'settings'
+        'Reports': 'reports',
+        'Sales Report': 'sales-report',
+        'Crop & Livestock': 'crop',
+        'Settings': 'settings'
     };
     return map[name] || 'home';
   };
@@ -602,6 +615,9 @@ const FarmerDashboard = () => {
         case 'Reports':
           console.log('Rendering ProfessionalReportDashboard');
           return <ProfessionalReportDashboard />;
+        case 'Sales Report':
+          console.log('Rendering SalesReport');
+          return <SalesReport dateRange={30} />;
         case 'Recipes':
           console.log('Rendering RecipeList in dashboard');
           return <RecipeListEmbedded showHeader={false} />;

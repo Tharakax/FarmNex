@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -9,12 +9,26 @@ import {
   Download,
   FileText,
   FileSpreadsheet,
-  Filter
+  Filter,
+  RefreshCw,
+  Clock,
+  BarChart3
 } from 'lucide-react';
 import { exportToExcel } from '../../utils/exportUtils';
 import { reportAPI } from '../../services/reportAPI';
+import { realtime } from '../../services/realtime';
+import { orderAPI } from '../../services/orderAPI';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '../../utils/currencyUtils.js';
+
+// getCurrentSeason function 
+const getCurrentSeason = (date = new Date()) => {
+  const month = date.getMonth() + 1; // 1-12
+  if (month >= 3 && month <= 5) return 'spring';
+  if (month >= 6 && month <= 8) return 'summer';
+  if (month >= 9 && month <= 11) return 'autumn';
+  return 'winter';
+};
 
 const SalesReport = ({ dateRange }) => {
   const [salesData, setSalesData] = useState({
@@ -32,62 +46,151 @@ const SalesReport = ({ dateRange }) => {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedDateRange, setSelectedDateRange] = useState(dateRange || 30);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [liveConnected, setLiveConnected] = useState(false);
+  const [liveMode, setLiveMode] = useState('off');
+  const [lastOrdersSig, setLastOrdersSig] = useState(null);
+  const pollIntervalMs = Number(import.meta.env.VITE_REPORT_POLL_INTERVAL_MS || 5000);
 
-  useEffect(() => {
-    loadSalesData();
-  }, [dateRange, selectedCategory]);
-
-  const loadSalesData = async () => {
-    setLoading(true);
+  const loadSalesData = useCallback(async (showRefreshing = false) => {
+    if (showRefreshing) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    
     try {
-      const response = await reportAPI.getSalesData(dateRange, selectedCategory);
+      const response = await reportAPI.getSalesData(selectedDateRange, selectedCategory, { scope: import.meta.env.VITE_DEFAULT_REPORT_SCOPE || 'auto' });
       
       if (response.success) {
         setSalesData(response.data);
+        setLastUpdated(new Date());
+        
+        if (response.generated) {
+          console.log('✨ Using generated sales data with current seasonality');
+        }
       } else {
         throw new Error('Failed to fetch sales data');
       }
     } catch (error) {
       console.error('Error loading sales data:', error);
-      // Fallback to mock data on error
-      setSalesData({
-        totalRevenue: 85420,
-        totalOrders: 234,
-        averageOrderValue: 365,
-        revenueChange: 12.5,
-        ordersChange: 8.3,
-        topProducts: [
-          { name: 'Organic Tomatoes', revenue: 12500, orders: 45, growth: 15.2 },
-          { name: 'Fresh Spinach', revenue: 8900, orders: 67, growth: 22.1 },
-          { name: 'Bell Peppers', revenue: 7650, orders: 32, growth: -5.2 },
-          { name: 'Organic Carrots', revenue: 6200, orders: 28, growth: 8.7 },
-          { name: 'Mixed Salad Greens', revenue: 5800, orders: 41, growth: 18.9 }
-        ],
-        dailySales: [
-          { date: '2025-08-21', revenue: 2850, orders: 12 },
-          { date: '2025-08-22', revenue: 3200, orders: 14 },
-          { date: '2025-08-23', revenue: 2950, orders: 11 },
-          { date: '2025-08-24', revenue: 4100, orders: 18 },
-          { date: '2025-08-25', revenue: 3650, orders: 15 },
-          { date: '2025-08-26', revenue: 3890, orders: 17 },
-          { date: '2025-08-27', revenue: 4200, orders: 19 }
-        ],
-        categorySales: [
-          { category: 'Vegetables', revenue: 35200, percentage: 41.2 },
-          { category: 'Fruits', revenue: 28900, percentage: 33.8 },
-          { category: 'Leafy Greens', revenue: 12800, percentage: 15.0 },
-          { category: 'Dairy Products', revenue: 6300, percentage: 7.4 },
-          { category: 'Animal Products', revenue: 2220, percentage: 2.6 }
-        ],
-        customerMetrics: {
-          newCustomers: 45,
-          returningCustomers: 189,
-          customerRetentionRate: 78.5,
-          averageCustomerValue: 425
-        }
-      });
+      toast.error('⚠️ Failed to load sales data. Please try again.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    setLoading(false);
+  }, [selectedDateRange, selectedCategory]);
+
+  useEffect(() => {
+    loadSalesData();
+  }, [loadSalesData]);
+
+  // Realtime: refresh sales data when order/payment events occur
+  useEffect(() => {
+    // Connect once; the client manages reconnection
+    realtime.connect();
+    const offStatus = realtime.onStatusChange(({ connected, mode }) => { setLiveConnected(connected); setLiveMode(mode || 'off'); });
+    const unsubscribe = realtime.subscribe([
+      'payment.completed',
+      'order.created',
+      'order.updated'
+    ], () => {
+      // Light refresh on realtime events
+      loadSalesData(true);
+    });
+    return () => {
+      offStatus?.();
+      unsubscribe?.();
+    };
+  }, [loadSalesData]);
+
+  // Auto-refresh functionality
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      loadSalesData(true);
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, loadSalesData]);
+
+  // Polling fallback when websocket is offline and auto-refresh is disabled
+  useEffect(() => {
+    if (liveConnected || autoRefresh) return; // Only poll when offline and auto-refresh is off
+
+    let canceled = false;
+    let timer;
+
+    const computeSig = (orders = []) => {
+      const latestTs = orders.reduce((max, o) => {
+        const ts = new Date(o.createdAt || o.orderDate || o.date || o.timestamp || 0).getTime();
+        return Math.max(max, isNaN(ts) ? 0 : ts);
+      }, 0);
+      return `${orders.length}|${latestTs}`;
+    };
+
+    const poll = async () => {
+      try {
+        const res = await orderAPI.getMyOrders();
+        if (res?.success) {
+          const sig = computeSig(res.data || []);
+          if (lastOrdersSig === null) {
+            setLastOrdersSig(sig); // establish baseline without refresh on first poll
+          } else if (sig !== lastOrdersSig) {
+            setLastOrdersSig(sig);
+            await loadSalesData(true);
+          }
+        }
+      } catch (e) {
+        // ignore errors during polling
+      }
+      if (!canceled) {
+        timer = setTimeout(poll, pollIntervalMs);
+      }
+    };
+
+    timer = setTimeout(poll, pollIntervalMs);
+    return () => {
+      canceled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [liveConnected, autoRefresh, lastOrdersSig, pollIntervalMs, loadSalesData]);
+
+  // Date range options
+  const dateRangeOptions = [
+    { value: 7, label: '7 Days' },
+    { value: 30, label: '30 Days' },
+    { value: 90, label: '90 Days' },
+    { value: 180, label: '6 Months' },
+    { value: 365, label: '1 Year' }
+  ];
+
+  // Category options
+  const categoryOptions = [
+    { value: 'all', label: 'All Categories' },
+    { value: 'vegetables', label: 'Vegetables' },
+    { value: 'fruits', label: 'Fruits' },
+    { value: 'leafy-greens', label: 'Leafy Greens' },
+    { value: 'root-vegetables', label: 'Root Vegetables' },
+    { value: 'dairy-products', label: 'Dairy Products' },
+    { value: 'animal-products', label: 'Animal Products' }
+  ];
+
+  const handleManualRefresh = () => {
+    loadSalesData(true);
+    toast.success('🔄 Sales data refreshed!');
+  };
+
+  const currentSeason = getCurrentSeason();
+  const seasonEmojis = {
+    spring: '🌸',
+    summer: '☀️',
+    autumn: '🍂', 
+    winter: '❄️'
   };
 
   const handleExportSalesReport = async (format) => {
@@ -97,7 +200,7 @@ const SalesReport = ({ dateRange }) => {
     try {
       if (format === 'pdf') {
         // Use backend PDF service for professional reports
-        await reportAPI.exportSalesPDF(dateRange, selectedCategory);
+        await reportAPI.exportSalesPDF(selectedDateRange, selectedCategory);
         toast.success('📄 Sales report PDF downloaded successfully!');
       } else {
         // Use client-side Excel export for quick data export
@@ -114,7 +217,7 @@ const SalesReport = ({ dateRange }) => {
           categorySales: salesData.categorySales
         };
 
-        const filename = `sales_report_${dateRange}days_${new Date().toISOString().split('T')[0]}`;
+        const filename = `sales_report_${selectedDateRange}days_${new Date().toISOString().split('T')[0]}`;
         
         await exportToExcel(
           exportData.topProducts,
@@ -151,36 +254,111 @@ const SalesReport = ({ dateRange }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Sales Analytics</h2>
-          <p className="text-gray-600 mt-1">Revenue trends and sales performance for the last {dateRange} days</p>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-xl font-semibold text-gray-900">Sales Analytics</h2>
+              <span className="text-lg">{seasonEmojis[currentSeason]}</span>
+              <span className="text-sm text-gray-500 capitalize">({currentSeason})</span>
+            </div>
+            <p className="text-gray-600 mt-1">
+              Revenue trends and sales performance for the last {selectedDateRange} days
+              {lastUpdated && (
+                <span className="ml-2 text-xs text-gray-500">
+                  • Updated {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleManualRefresh}
+              disabled={refreshing || loading}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+            <button
+              onClick={() => handleExportSalesReport('pdf')}
+              disabled={exporting}
+              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+            >
+              {exporting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+              ) : (
+                <FileText className="h-4 w-4 mr-1" />
+              )}
+              {exporting ? 'Generating...' : 'PDF'}
+            </button>
+            <button
+              onClick={() => handleExportSalesReport('excel')}
+              disabled={exporting}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+            >
+              {exporting ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+              ) : (
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
+              )}
+              {exporting ? 'Exporting...' : 'Excel'}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => handleExportSalesReport('pdf')}
-            disabled={exporting}
-            className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-          >
-            {exporting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
-            ) : (
-              <FileText className="h-4 w-4 mr-1" />
-            )}
-            {exporting ? 'Generating...' : 'PDF'}
-          </button>
-          <button
-            onClick={() => handleExportSalesReport('excel')}
-            disabled={exporting}
-            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
-          >
-            {exporting ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
-            ) : (
-              <FileSpreadsheet className="h-4 w-4 mr-1" />
-            )}
-            {exporting ? 'Exporting...' : 'Excel'}
-          </button>
+
+        {/* Filters and Controls */}
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <select
+                value={selectedDateRange}
+                onChange={(e) => setSelectedDateRange(Number(e.target.value))}
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                {dateRangeOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                {categoryOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <label className="flex items-center space-x-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+              />
+              <Clock className="h-4 w-4" />
+              <span>Auto-refresh</span>
+            </label>
+            
+            <div className={`flex items-center space-x-1 text-xs px-2 py-1 rounded ${liveConnected ? 'text-green-700 bg-green-50' : (autoRefresh ? 'text-blue-700 bg-blue-50' : 'text-amber-700 bg-amber-50')}`}>
+              <BarChart3 className="h-3 w-3" />
+              <span>
+                {liveConnected
+                  ? (liveMode === 'ws' ? 'Live (WS)' : liveMode === 'sse' ? 'Live (SSE)' : 'Live')
+                  : (autoRefresh ? 'Auto (60s)' : `Polling (${Math.max(1, Math.round(pollIntervalMs/1000))}s)`)
+                }
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -309,25 +487,60 @@ const SalesReport = ({ dateRange }) => {
 
       {/* Daily Sales Trend */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Sales Trend</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Daily Sales Trend</h3>
+          {salesData.seasonalContext && (
+            <div className="text-sm text-gray-500">
+              {seasonEmojis[salesData.seasonalContext.currentSeason]} {salesData.seasonalContext.currentSeason} season impact
+            </div>
+          )}
+        </div>
         <div className="space-y-4">
           <div className="grid grid-cols-7 gap-2 text-center">
-            {salesData.dailySales.map((day, index) => (
-              <div key={day.date} className="space-y-2">
-                <div className="text-xs text-gray-600 font-medium">
-                  {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+            {salesData.dailySales.map((day, index) => {
+              const isWeekend = new Date(day.date).getDay() % 6 === 0;
+              return (
+                <div key={day.date} className="space-y-2">
+                  <div className={`text-xs font-medium ${
+                    isWeekend ? 'text-blue-600' : 'text-gray-600'
+                  }`}>
+                    {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                  </div>
+                  <div 
+                    className={`rounded-md flex items-end justify-center text-white text-xs font-medium transition-colors ${
+                      isWeekend ? 'bg-blue-500' : 'bg-green-500'
+                    }`}
+                    style={{ 
+                      height: `${Math.max(20, (day.revenue / Math.max(...salesData.dailySales.map(d => d.revenue))) * 100)}px` 
+                    }}
+                  >
+                    {formatCurrency(day.revenue / 1000, 0)}k
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {day.orders} orders
+                    <br />
+                    <span className="text-gray-400">
+                      {formatCurrency(day.revenue / Math.max(1, day.orders), 0)} avg
+                    </span>
+                  </div>
                 </div>
-                <div 
-                  className="bg-green-500 rounded-md flex items-end justify-center text-white text-xs font-medium"
-                  style={{ 
-                    height: `${Math.max(20, (day.revenue / Math.max(...salesData.dailySales.map(d => d.revenue))) * 100)}px` 
-                  }}
-                >
-                  ${(day.revenue / 1000).toFixed(1)}k
-                </div>
-                <div className="text-xs text-gray-600">{day.orders} orders</div>
+              );
+            })}
+          </div>
+          <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span>Weekdays</span>
               </div>
-            ))}
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                <span>Weekends</span>
+              </div>
+            </div>
+            <div>
+              Total: {formatCurrency(salesData.dailySales.reduce((sum, day) => sum + day.revenue, 0))}
+            </div>
           </div>
         </div>
       </div>

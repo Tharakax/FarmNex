@@ -47,10 +47,14 @@ export const formatLKR = (amount, options = {}) => {
 /**
  * Legacy formatCurrency function for backward compatibility
  * @param {number} amount - The amount to format
+ * @param {number} decimals - Number of decimal places (optional)
  * @returns {string} - Formatted currency string
  */
-export const formatCurrency = (amount) => {
-  return formatLKR(amount);
+export const formatCurrency = (amount, decimals = 2) => {
+  return formatLKR(amount, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
 };
 
 /**
