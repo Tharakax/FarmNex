@@ -81,6 +81,7 @@ const NotificationBell = ({ className = "" }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [readNotifications, setReadNotifications] = useState(new Set());
+  const [seenNotifications, setSeenNotifications] = useState(new Set());
   const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
   const [usingMockData, setUsingMockData] = useState(false);
   const dropdownRef = useRef(null);
@@ -88,6 +89,8 @@ const NotificationBell = ({ className = "" }) => {
   const currentUser = getLoggedInUser();
   const userRole = currentUser?.role?.toLowerCase();
   const userId = currentUser?.id;
+  const STORAGE_READ = `notif:read:${userId || 'guest'}`;
+  const STORAGE_SEEN = `notif:seen:${userId || 'guest'}`;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -102,6 +105,31 @@ const NotificationBell = ({ className = "" }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Load persisted read/seen on mount or user change
+  useEffect(() => {
+    try {
+      const r = JSON.parse(localStorage.getItem(STORAGE_READ) || '[]');
+      const s = JSON.parse(localStorage.getItem(STORAGE_SEEN) || '[]');
+      setReadNotifications(new Set(Array.isArray(r) ? r : []));
+      setSeenNotifications(new Set(Array.isArray(s) ? s : []));
+    } catch (_) {
+      setReadNotifications(new Set());
+      setSeenNotifications(new Set());
+    }
+  }, [STORAGE_READ, STORAGE_SEEN]);
+
+  // Persist read/seen changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_READ, JSON.stringify(Array.from(readNotifications)));
+    } catch (_) {}
+  }, [readNotifications, STORAGE_READ]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_SEEN, JSON.stringify(Array.from(seenNotifications)));
+    } catch (_) {}
+  }, [seenNotifications, STORAGE_SEEN]);
 
   // Fetch notifications based on user role
   const fetchNotifications = async () => {
@@ -131,16 +159,14 @@ const NotificationBell = ({ className = "" }) => {
         setNotifications(recentNotifications);
         setUsingMockData(false);
         
-        // Count actual unread notifications
-        const actualUnread = recentNotifications.filter(n => 
-          !n.isRead && !readNotifications.has(n._id || n.id)
-        ).length;
-        
-        // If no backend read status, treat non-locally-read as unread
-        const unread = actualUnread > 0 ? actualUnread : 
-          recentNotifications.filter(n => !readNotifications.has(n._id || n.id)).length;
-        
-        setUnreadCount(unread);
+        // Count unseen notifications for badge (seen OR read will not count)
+        const unseen = recentNotifications.filter(n => {
+          const id = n._id || n.id;
+          const isRead = n.isRead || readNotifications.has(id);
+          const isSeen = seenNotifications.has(id);
+          return !isRead && !isSeen;
+        }).length;
+        setUnreadCount(unseen);
       } else {
         // If audience-specific fetch fails, try getting all notifications
         const allResult = await notificationAPI.getAllNotifications();
@@ -151,19 +177,21 @@ const NotificationBell = ({ className = "" }) => {
           const recentNotifications = sortedNotifications.slice(0, 10);
           setNotifications(recentNotifications);
           
-          // Count unread notifications
-          const unread = recentNotifications.filter(n => 
-            !n.isRead && !readNotifications.has(n._id || n.id)
-          ).length;
-          setUnreadCount(unread > 0 ? unread : 
-            recentNotifications.filter(n => !readNotifications.has(n._id || n.id)).length
-          );
+          // Count unseen for badge
+          const unseen = recentNotifications.filter(n => {
+            const id = n._id || n.id;
+            const isRead = n.isRead || readNotifications.has(id);
+            const isSeen = seenNotifications.has(id);
+            return !isRead && !isSeen;
+          }).length;
+          setUnreadCount(unseen);
         } else {
           // If both API calls fail, use mock data
           console.warn('API unavailable, using mock notifications');
           const mockNotifications = getMockNotifications(userRole);
           setNotifications(mockNotifications);
-          setUnreadCount(mockNotifications.length);
+          const unseen = mockNotifications.filter(n => !seenNotifications.has(n._id || n.id)).length;
+          setUnreadCount(unseen);
           setUsingMockData(true);
         }
       }
@@ -175,7 +203,8 @@ const NotificationBell = ({ className = "" }) => {
         console.warn('Network unavailable, using mock notifications');
         const mockNotifications = getMockNotifications(userRole);
         setNotifications(mockNotifications);
-        setUnreadCount(mockNotifications.length);
+        const unseen = mockNotifications.filter(n => !seenNotifications.has(n._id || n.id)).length;
+        setUnreadCount(unseen);
         setUsingMockData(true);
         setError(null);
       } else {
@@ -183,7 +212,8 @@ const NotificationBell = ({ className = "" }) => {
         console.warn('API error, falling back to mock notifications');
         const mockNotifications = getMockNotifications(userRole);
         setNotifications(mockNotifications);
-        setUnreadCount(mockNotifications.length);
+        const unseen = mockNotifications.filter(n => !seenNotifications.has(n._id || n.id)).length;
+        setUnreadCount(unseen);
         setUsingMockData(true);
         setError(null);
       }
@@ -238,6 +268,15 @@ const NotificationBell = ({ className = "" }) => {
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
     return date.toLocaleDateString();
+  };
+
+  // Locally mark all current as seen (badge clears) — no API call
+  const markAllAsSeenLocal = () => {
+    try {
+      const currentIds = notifications.map(n => n._id || n.id);
+      setSeenNotifications(prev => new Set([...prev, ...currentIds]));
+      setUnreadCount(0);
+    } catch (_) {}
   };
 
   // Mark notification as read
@@ -308,6 +347,8 @@ const NotificationBell = ({ className = "" }) => {
     setIsOpen(!isOpen);
     if (!isOpen) {
       fetchNotifications(); // Refresh when opening
+      // Mark visible notifications as seen for badge
+      markAllAsSeenLocal();
     }
   };
 
