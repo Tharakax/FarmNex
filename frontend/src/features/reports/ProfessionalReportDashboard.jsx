@@ -172,24 +172,6 @@ const ProfessionalReportDashboard = () => {
           status: 'completed',
           size: '2.4 MB',
           downloads: Math.floor(Math.random() * 20) + 10
-        },
-        {
-          id: 2,
-          name: 'Inventory Overview',
-          type: 'Inventory',
-          date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: 'completed',
-          size: '1.8 MB',
-          downloads: Math.floor(Math.random() * 15) + 5
-        },
-        {
-          id: 3,
-          name: 'Sales Performance',
-          type: 'Sales',
-          date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: 'completed',
-          size: '3.1 MB',
-          downloads: Math.floor(Math.random() * 30) + 15
         }
       ]);
 
