@@ -24,7 +24,7 @@ import { reportAPI } from '../../services/reportAPI';
 import ExportSplitButton from './ExportSplitButton';
 import OrderReport from './OrderReport';
 import { formatLKR } from '../../utils/currencyUtils';
-import { getHistory as getReportHistory, addEntry as addReportHistoryEntry } from '../../utils/reportHistory';
+import { getHistory as getReportHistory, addEntry as addReportHistoryEntry, clearHistory as clearReportHistory } from '../../utils/reportHistory';
 
 const ProfessionalReportDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -951,6 +951,28 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
           <button className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             <Filter className="h-4 w-4 mr-2" />
             Filter
+          </button>
+          <button
+            onClick={() => {
+              if (recentReports.length === 0) return;
+              if (window.confirm('Clear all report history?')) {
+                try {
+                  clearReportHistory();
+                  setRecentReports([]);
+                } catch (e) {
+                  console.error('Failed to clear history', e);
+                }
+              }
+            }}
+            disabled={recentReports.length === 0}
+            className={`flex items-center px-4 py-2 rounded-lg transition-colors border ${
+              recentReports.length === 0
+                ? 'text-gray-400 border-gray-200 cursor-not-allowed'
+                : 'text-red-600 border-red-300 hover:text-white hover:bg-red-600'
+            }`}
+            title="Clear History"
+          >
+            Clear History
           </button>
         </div>
       </div>
