@@ -23,6 +23,7 @@ import { productAPI } from '../../services/productAPI';
 import { reportAPI } from '../../services/reportAPI';
 import ExportSplitButton from './ExportSplitButton';
 import OrderReport from './OrderReport';
+import { formatLKR } from '../../utils/currencyUtils';
 
 const ProfessionalReportDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -96,7 +97,7 @@ const ProfessionalReportDashboard = () => {
     },
     {
       label: 'Inventory Value',
-      value: `$${dashboardMetrics.totalValue.toLocaleString()}`,
+      value: formatLKR(dashboardMetrics.totalValue),
       change: `+${dashboardMetrics.revenueGrowth}%`,
       icon: DollarSign,
       color: 'text-emerald-600',

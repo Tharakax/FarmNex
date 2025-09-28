@@ -15,6 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
 import { reportAPI } from '../../services/reportAPI';
+import { formatLKR } from '../../utils/currencyUtils';
 
 const InventoryReport = ({ dateRange }) => {
   const [inventoryData, setInventoryData] = useState({
@@ -195,7 +196,7 @@ const InventoryReport = ({ dateRange }) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Total Inventory Value</p>
-              <p className="text-2xl font-bold text-gray-900">${inventoryData.totalValue.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatLKR(inventoryData.totalValue)}</p>
             </div>
             <BarChart3 className="h-8 w-8 text-green-500" />
           </div>
@@ -268,7 +269,7 @@ const InventoryReport = ({ dateRange }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-yellow-700">{item.current}/{item.minimum}</p>
-                  <p className="text-sm text-gray-600">${item.value}</p>
+                  <p className="text-sm text-gray-600">{formatLKR(item.value)}</p>
                 </div>
               </div>
             ))}
@@ -313,7 +314,7 @@ const InventoryReport = ({ dateRange }) => {
                 </div>
                 <div className="text-right">
                   <span className="text-gray-900 font-semibold">
-                    ${category.value.toLocaleString()}
+                    {formatLKR(category.value)}
                   </span>
                   <span className="text-gray-600 text-sm ml-2">
                     {category.percentage}%
@@ -390,7 +391,7 @@ const InventoryReport = ({ dateRange }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-blue-700">{item.current}/{item.maximum}</p>
-                  <p className="text-sm text-gray-600">${item.value}</p>
+                  <p className="text-sm text-gray-600">{formatLKR(item.value)}</p>
                 </div>
               </div>
             ))}
