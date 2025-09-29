@@ -84,13 +84,19 @@ const NotificationBell = ({ className = "" }) => {
   const [seenNotifications, setSeenNotifications] = useState(new Set());
   const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
   const [usingMockData, setUsingMockData] = useState(false);
+  const [manuallyCleared, setManuallyCleared] = useState(false);
   const dropdownRef = useRef(null);
+  // Guard to preserve manual unread count changes during immediate refetch
+  const skipUnreadOverrideRef = useRef(false);
+  // Persisted timestamp: after clicking the bell, treat all notifications created at/before this time as seen
+  const lastClearedAtRef = useRef(0);
 
   const currentUser = getLoggedInUser();
   const userRole = currentUser?.role?.toLowerCase();
   const userId = currentUser?.id;
   const STORAGE_READ = `notif:read:${userId || 'guest'}`;
   const STORAGE_SEEN = `notif:seen:${userId || 'guest'}`;
+  const STORAGE_CLEARED = `notif:cleared:${userId || 'guest'}`;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -118,6 +124,14 @@ const NotificationBell = ({ className = "" }) => {
       setSeenNotifications(new Set());
     }
   }, [STORAGE_READ, STORAGE_SEEN]);
+
+  // Load last cleared timestamp
+  useEffect(() => {
+    try {
+      const c = parseInt(localStorage.getItem(STORAGE_CLEARED) || '0', 10);
+      if (!isNaN(c) && c > 0) lastClearedAtRef.current = c;
+    } catch (_) {}
+  }, [STORAGE_CLEARED]);
 
   // Persist read/seen changes
   useEffect(() => {
@@ -159,14 +173,23 @@ const NotificationBell = ({ className = "" }) => {
         setNotifications(recentNotifications);
         setUsingMockData(false);
         
-        // Count unseen notifications for badge (seen OR read will not count)
-        const unseen = recentNotifications.filter(n => {
+        // Count unread notifications for badge (read OR seen status matters for count)
+        const clearedAt = lastClearedAtRef.current || 0;
+        const unread = recentNotifications.filter(n => {
           const id = n._id || n.id;
-          const isRead = n.isRead || readNotifications.has(id);
-          const isSeen = seenNotifications.has(id);
+          const isRead = n.isRead || readNotifications.has(id) || (n.readBy && n.readBy.some(r => r.userId === userId));
+          const createdTime = new Date(n.createdAt).getTime();
+          const isClearedByBell = clearedAt > 0 && createdTime <= clearedAt;
+          const isSeen = seenNotifications.has(id) || isClearedByBell;
           return !isRead && !isSeen;
         }).length;
-        setUnreadCount(unseen);
+        // Respect manual clear just triggered by bell click
+        if (skipUnreadOverrideRef.current) {
+          // Preserve current count (likely 0) and reset the guard
+          skipUnreadOverrideRef.current = false;
+        } else {
+          setUnreadCount(unread);
+        }
       } else {
         // If audience-specific fetch fails, try getting all notifications
         const allResult = await notificationAPI.getAllNotifications();
@@ -177,21 +200,40 @@ const NotificationBell = ({ className = "" }) => {
           const recentNotifications = sortedNotifications.slice(0, 10);
           setNotifications(recentNotifications);
           
-          // Count unseen for badge
-          const unseen = recentNotifications.filter(n => {
+          // Count unread for badge (read OR seen status matters)
+          const clearedAt = lastClearedAtRef.current || 0;
+          const unread = recentNotifications.filter(n => {
             const id = n._id || n.id;
-            const isRead = n.isRead || readNotifications.has(id);
-            const isSeen = seenNotifications.has(id);
+            const isRead = n.isRead || readNotifications.has(id) || (n.readBy && n.readBy.some(r => r.userId === userId));
+            const createdTime = new Date(n.createdAt).getTime();
+            const isClearedByBell = clearedAt > 0 && createdTime <= clearedAt;
+            const isSeen = seenNotifications.has(id) || isClearedByBell;
             return !isRead && !isSeen;
           }).length;
-          setUnreadCount(unseen);
+          if (skipUnreadOverrideRef.current) {
+            skipUnreadOverrideRef.current = false;
+          } else {
+            setUnreadCount(unread);
+          }
         } else {
           // If both API calls fail, use mock data
           console.warn('API unavailable, using mock notifications');
           const mockNotifications = getMockNotifications(userRole);
           setNotifications(mockNotifications);
-          const unseen = mockNotifications.filter(n => !seenNotifications.has(n._id || n.id)).length;
-          setUnreadCount(unseen);
+          const clearedAt = lastClearedAtRef.current || 0;
+          const unread = mockNotifications.filter(n => {
+            const id = n._id || n.id;
+            const isRead = n.isRead || readNotifications.has(id);
+            const createdTime = new Date(n.createdAt).getTime();
+            const isClearedByBell = clearedAt > 0 && createdTime <= clearedAt;
+            const isSeen = seenNotifications.has(id) || isClearedByBell;
+            return !isRead && !isSeen;
+          }).length;
+          if (skipUnreadOverrideRef.current) {
+            skipUnreadOverrideRef.current = false;
+          } else {
+            setUnreadCount(unread);
+          }
           setUsingMockData(true);
         }
       }
@@ -203,8 +245,20 @@ const NotificationBell = ({ className = "" }) => {
         console.warn('Network unavailable, using mock notifications');
         const mockNotifications = getMockNotifications(userRole);
         setNotifications(mockNotifications);
-        const unseen = mockNotifications.filter(n => !seenNotifications.has(n._id || n.id)).length;
-        setUnreadCount(unseen);
+        const clearedAt = lastClearedAtRef.current || 0;
+        const unread = mockNotifications.filter(n => {
+          const id = n._id || n.id;
+          const isRead = n.isRead || readNotifications.has(id);
+          const createdTime = new Date(n.createdAt).getTime();
+          const isClearedByBell = clearedAt > 0 && createdTime <= clearedAt;
+          const isSeen = seenNotifications.has(id) || isClearedByBell;
+          return !isRead && !isSeen;
+        }).length;
+        if (skipUnreadOverrideRef.current) {
+          skipUnreadOverrideRef.current = false;
+        } else {
+          setUnreadCount(unread);
+        }
         setUsingMockData(true);
         setError(null);
       } else {
@@ -212,8 +266,20 @@ const NotificationBell = ({ className = "" }) => {
         console.warn('API error, falling back to mock notifications');
         const mockNotifications = getMockNotifications(userRole);
         setNotifications(mockNotifications);
-        const unseen = mockNotifications.filter(n => !seenNotifications.has(n._id || n.id)).length;
-        setUnreadCount(unseen);
+        const clearedAt = lastClearedAtRef.current || 0;
+        const unread = mockNotifications.filter(n => {
+          const id = n._id || n.id;
+          const isRead = n.isRead || readNotifications.has(id);
+          const createdTime = new Date(n.createdAt).getTime();
+          const isClearedByBell = clearedAt > 0 && createdTime <= clearedAt;
+          const isSeen = seenNotifications.has(id) || isClearedByBell;
+          return !isRead && !isSeen;
+        }).length;
+        if (skipUnreadOverrideRef.current) {
+          skipUnreadOverrideRef.current = false;
+        } else {
+          setUnreadCount(unread);
+        }
         setUsingMockData(true);
         setError(null);
       }
@@ -270,13 +336,21 @@ const NotificationBell = ({ className = "" }) => {
     return date.toLocaleDateString();
   };
 
-  // Locally mark all current as seen (badge clears) — no API call
+  // Locally mark all current as seen (persist to storage)
   const markAllAsSeenLocal = () => {
     try {
       const currentIds = notifications.map(n => n._id || n.id);
-      setSeenNotifications(prev => new Set([...prev, ...currentIds]));
-      setUnreadCount(0);
-    } catch (_) {}
+      const newSeenSet = new Set([...seenNotifications, ...currentIds]);
+      setSeenNotifications(newSeenSet);
+      
+      // Persist to localStorage
+      const storageKey = `notif:seen:${userId || 'guest'}`;
+      localStorage.setItem(storageKey, JSON.stringify(Array.from(newSeenSet)));
+      
+      console.log(`✅ Marked ${currentIds.length} notifications as seen in storage`);
+    } catch (error) {
+      console.error('Error marking notifications as seen:', error);
+    }
   };
 
   // Mark notification as read
@@ -284,9 +358,17 @@ const NotificationBell = ({ className = "" }) => {
     try {
       const result = await notificationAPI.markAsRead(notificationId, userId);
       if (result.success) {
+        // Add to local read notifications
         setReadNotifications(prev => new Set([...prev, notificationId]));
-        // Update unread count
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        // Recalculate unread count from current notifications
+        const updatedUnreadCount = notifications.filter(n => {
+          const id = n._id || n.id;
+          const isRead = n.isRead || readNotifications.has(id) || id === notificationId || (n.readBy && n.readBy.some(r => r.userId === userId));
+          return !isRead;
+        }).length;
+        
+        setUnreadCount(updatedUnreadCount);
       }
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -313,6 +395,11 @@ const NotificationBell = ({ className = "" }) => {
         // Mark all current notifications as read locally
         const allIds = notifications.map(n => n._id || n.id);
         setReadNotifications(prev => new Set([...prev, ...allIds]));
+        // Persist clear timestamp to prevent re-count
+        const now = Date.now();
+        lastClearedAtRef.current = now;
+        try { localStorage.setItem(STORAGE_CLEARED, String(now)); } catch (_) {}
+        // Set count to 0 since all are now read
         setUnreadCount(0);
       }
     } catch (error) {
@@ -342,13 +429,39 @@ const NotificationBell = ({ className = "" }) => {
     navigate('/notifications');
   };
 
-  // Handle bell click
+  // Handle bell click with immediate count decrementing
   const handleBellClick = () => {
-    setIsOpen(!isOpen);
-    if (!isOpen) {
-      fetchNotifications(); // Refresh when opening
-      // Mark visible notifications as seen for badge
-      markAllAsSeenLocal();
+    const wasOpen = isOpen;
+    setIsOpen(!wasOpen);
+    
+    if (!wasOpen) {
+      // Opening the dropdown
+      // Immediately decrement count for instant feedback
+      if (unreadCount > 0) {
+        const previousCount = unreadCount;
+        console.log(`🔔 Bell clicked - decrementing count from ${previousCount} to 0`);
+        
+        // Record a persisted clear timestamp so older notifications don't re-count
+        const now = Date.now();
+        lastClearedAtRef.current = now;
+        try { localStorage.setItem(STORAGE_CLEARED, String(now)); } catch (_) {}
+
+        // Mark all current notifications as seen FIRST
+        markAllAsSeenLocal();
+        
+        // Then immediately decrement count
+        setUnreadCount(0);
+      }
+      
+      // Refresh notifications after a small delay to ensure seen state is updated
+      // Set guard so the incoming fetch won't override manual badge clear
+      skipUnreadOverrideRef.current = true;
+      setTimeout(() => {
+        fetchNotifications();
+      }, 50);
+    } else {
+      // Closing the dropdown - no action needed, count stays at 0
+      console.log('🔔 Bell dropdown closed - count remains decremented');
     }
   };
 
@@ -358,11 +471,11 @@ const NotificationBell = ({ className = "" }) => {
       <button
         onClick={handleBellClick}
         className="relative p-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
-        title="Notifications"
+        title={unreadCount > 0 ? `${unreadCount} new notifications - click to view` : "Notifications"}
       >
-        <Bell className="w-5 h-5 text-gray-600" />
+        <Bell className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${isOpen ? 'scale-110' : 'scale-100'}`} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+          <span className={`absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 transition-all duration-300 ${isOpen ? 'animate-pulse' : ''}`}>
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -417,7 +530,7 @@ const NotificationBell = ({ className = "" }) => {
               <div className="divide-y divide-gray-100">
                 {notifications.map((notification) => {
                   const notificationId = notification._id || notification.id;
-                  const isRead = notification.isRead || readNotifications.has(notificationId);
+                  const isRead = notification.isRead || readNotifications.has(notificationId) || (notification.readBy && notification.readBy.some(r => r.userId === userId));
                   
                   return (
                     <div

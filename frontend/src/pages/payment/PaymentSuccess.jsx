@@ -3,6 +3,7 @@ import { CheckCircle, Package, Truck, Calendar, ArrowLeft, Home, Mail, Download,
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
@@ -152,10 +153,10 @@ export default function PaymentSuccess() {
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex items-center">
                           <img
-                            src={(item.image && (item.image.startsWith('http') ? item.image : `${(import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000')}${item.image.startsWith('/') ? '' : '/uploads/'}${item.image.startsWith('/') ? item.image : item.image}`)) || 'https://via.placeholder.com/40x40?text=No+Image'}
+                            src={resolveProductImage(item.image, item.name)}
                             alt={item.name}
                             className="w-10 h-10 object-cover rounded"
-                            onError={(e) => { e.target.src = 'https://via.placeholder.com/40x40?text=No+Image'; }}
+                            onError={(e) => handleImageError(e, 40, 40, item.name)}
                           />
                           <div className="ml-4">
                             <p className="text-sm font-medium text-gray-900">{item.name}</p>

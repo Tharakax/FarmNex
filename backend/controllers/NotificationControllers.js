@@ -281,6 +281,124 @@ const getNotificationStats = async (req, res) => {
   }
 };
 
+// Mark notification as read for a specific user
+const markNotificationAsRead = async (req, res) => {
+  const id = req.params.NotificationId;
+  const { userId } = req.body;
+
+  try {
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const notification = await Notification.findById(id);
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    // Check if user has already read this notification
+    const alreadyRead = notification.readBy.some(read => read.userId === userId);
+    if (alreadyRead) {
+      return res.status(200).json({ 
+        message: "Notification already marked as read",
+        notification 
+      });
+    }
+
+    // Add user to readBy array
+    notification.readBy.push({ userId, readAt: new Date() });
+    await notification.save();
+
+    return res.status(200).json({ 
+      message: "Notification marked as read", 
+      notification 
+    });
+  } catch (err) {
+    console.error("markNotificationAsRead error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Mark all notifications as read for a user
+const markAllNotificationsAsRead = async (req, res) => {
+  const { userId, audience } = req.body;
+
+  try {
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Build audience filter
+    let audienceFilter = {};
+    if (audience && audience !== 'ALL') {
+      if (audience === 'FARMER') {
+        audienceFilter = { audience: { $in: ['FARMER', 'BOTH', 'ALL'] } };
+      } else if (audience === 'USER') {
+        audienceFilter = { audience: { $in: ['USER', 'BOTH', 'ALL'] } };
+      } else if (audience === 'ADMIN') {
+        audienceFilter = { audience: { $in: ['ADMIN', 'ALL'] } };
+      }
+    }
+
+    // Find all notifications that the user hasn't read yet
+    const notifications = await Notification.find({
+      ...audienceFilter,
+      'readBy.userId': { $ne: userId }
+    });
+
+    // Mark all as read
+    for (const notification of notifications) {
+      notification.readBy.push({ userId, readAt: new Date() });
+      await notification.save();
+    }
+
+    return res.status(200).json({ 
+      message: `${notifications.length} notifications marked as read`,
+      count: notifications.length
+    });
+  } catch (err) {
+    console.error("markAllNotificationsAsRead error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Get unread count for a user
+const getUnreadCount = async (req, res) => {
+  try {
+    const { userId, audience } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Build audience filter
+    let audienceFilter = {};
+    if (audience && audience !== 'ALL') {
+      if (audience === 'FARMER') {
+        audienceFilter = { audience: { $in: ['FARMER', 'BOTH', 'ALL'] } };
+      } else if (audience === 'USER') {
+        audienceFilter = { audience: { $in: ['USER', 'BOTH', 'ALL'] } };
+      } else if (audience === 'ADMIN') {
+        audienceFilter = { audience: { $in: ['ADMIN', 'ALL'] } };
+      }
+    }
+
+    // Count notifications that the user hasn't read
+    const unreadCount = await Notification.countDocuments({
+      ...audienceFilter,
+      'readBy.userId': { $ne: userId }
+    });
+
+    return res.status(200).json({ 
+      count: unreadCount,
+      unreadCount // For backward compatibility
+    });
+  } catch (err) {
+    console.error("getUnreadCount error:", err);
+    return res.status(500).json({ message: "Server error", count: 0 });
+  }
+};
+
 export {
   getAllNotifications,
   addNotifications,
@@ -289,4 +407,7 @@ export {
   deleteNotification,
   getNotificationsByRole,
   getNotificationStats,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getUnreadCount,
 };

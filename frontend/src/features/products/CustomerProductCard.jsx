@@ -10,6 +10,7 @@ import {
   Minus
 } from 'lucide-react';
 import StockDisplay from '../StockDisplay';
+import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
 
 const CustomerProductCard = ({ product, onAddToCart, onToggleFavorite, isFavorite = false }) => {
   const [quantity, setQuantity] = React.useState(1);
@@ -39,7 +40,7 @@ const CustomerProductCard = ({ product, onAddToCart, onToggleFavorite, isFavorit
 
   const stockStatus = getStockStatus();
   const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop';
-  const productImage = product.images && product.images.length > 0 ? product.images[0] : defaultImage;
+  const productImage = resolveProductImage((product.images && product.images[0]) || null, product.name);
   
   // Calculate discounted price
   const originalPrice = product.price || 0;
@@ -54,9 +55,7 @@ const CustomerProductCard = ({ product, onAddToCart, onToggleFavorite, isFavorit
           src={productImage} 
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          onError={(e) => {
-            e.target.src = defaultImage;
-          }}
+          onError={(e) => handleImageError(e, 300, 224, product.name)}
         />
         
         {/* Featured Badge */}

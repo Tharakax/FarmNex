@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import NotificationBell from '../../../features/notifications/NotificationBell';
 import BrandLogo from '../../../components/BrandLogo.jsx';
 
 import {
@@ -198,8 +197,6 @@ function AdminDashboard() {
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
         <div className="flex items-center space-x-3">
-          <NotificationBell />
-          <div className="h-8 w-px bg-gray-300"></div>
           <span className="text-sm text-gray-600">Welcome back, {adminData.name}</span>
         </div>
       </div>

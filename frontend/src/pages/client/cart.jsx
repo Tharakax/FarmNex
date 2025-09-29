@@ -5,21 +5,14 @@ import { addToCart , removeFromCart , getCart , updateQuantity } from '../../uti
 import { useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { handleImageError, getProductPlaceholder } from '../../utils/imageUtils';
+import { handleImageError, resolveProductImage } from '../../utils/imageUtils';
 import { getLoggedInUser } from '../../utils/userUtils';
 
 // Configure axios defaults
 axios.defaults.timeout = 10000; // 10 second timeout
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
-// Resolve image URL to absolute path if needed
-const resolveImage = (src, productName = 'Product') => {
-  if (!src) return getProductPlaceholder(productName);
-  if (src.startsWith('http')) return src;
-  const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-  if (src.startsWith('/')) return `${base}${src}`;
-  return `${base}/uploads/${src}`;
-};
+// Using shared resolver from imageUtils
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
@@ -367,7 +360,7 @@ const navigate = useNavigate();
                       <div className="flex items-start space-x-4">
                         <div className="flex-shrink-0">
                           <img
-                            src={resolveImage(item.image, item.name)}
+                            src={resolveProductImage(item.image, item.name)}
                             alt={item.name}
                             className="w-24 h-24 object-cover rounded-lg bg-gray-100"
                             onError={(e) => handleImageError(e, 96, 96, item.name || 'Product')}
@@ -453,7 +446,7 @@ const navigate = useNavigate();
                       {savedItems.map((item) => (
                         <div key={item.productId} className="border rounded-lg p-4">
                           <img
-                            src={resolveImage(item.image, item.name)}
+                            src={resolveProductImage(item.image, item.name)}
                             alt={item.name}
                             className="w-full h-32 object-cover rounded-md mb-3"
                             onError={(e) => handleImageError(e, 200, 128, item.name || 'Product')}

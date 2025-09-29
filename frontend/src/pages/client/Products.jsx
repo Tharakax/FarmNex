@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { addToCart } from "../../utils/cart.js";
 import { productAPI } from "../../services/productAPI";
 import toast , { Toaster } from "react-hot-toast";
+import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
 
 export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
@@ -262,11 +263,9 @@ export default function ProductsPage() {
                                             {product.images && product.images.length > 0 ? (
                                                 <img 
                                                     className="h-56 w-full object-cover group-hover:scale-110 transition-transform duration-300" 
-                                                    src={product.images[0]} 
+                                                    src={resolveProductImage(product.images && product.images[0], product.name)} 
                                                     alt={product.name}
-                                                    onError={(e) => {
-                                                        e.target.src = '/placeholder-image.png';
-                                                    }}
+                                                    onError={(e) => handleImageError(e, 320, 224, product.name)}
                                                 />
                                             ) : (
                                                 <div className="h-56 w-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">

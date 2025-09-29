@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, Settings, User, ChevronDown, Sprout, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import NotificationBell from '../features/notifications/NotificationBell';
 
 const AdminHeader = ({ 
   title = "Admin Dashboard", 
@@ -124,9 +123,6 @@ const AdminHeader = ({
                 <Search className="w-5 h-5" />
               </button>
             )}
-
-            {/* Notifications */}
-            <NotificationBell />
 
             {/* Settings */}
             <button 

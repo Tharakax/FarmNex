@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Truck, MapPin, User, Phone, Mail, FileText, CreditCard } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
 
 export default function ShippingDetails() {
   const navigate = useNavigate();
@@ -927,9 +928,10 @@ export default function ShippingDetails() {
                     <div key={index} className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
                         <img
-                          src={item.image}
+                          src={resolveProductImage(item.image, item.name)}
                           alt={item.name}
                           className="w-12 h-12 object-cover rounded bg-gray-100"
+                          onError={(e) => handleImageError(e, 48, 48, item.name)}
                         />
                       </div>
                       <div className="flex-1 min-w-0">

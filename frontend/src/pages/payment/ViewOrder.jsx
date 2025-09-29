@@ -16,48 +16,9 @@ import {
   Copy,
   StickyNote
 } from 'lucide-react';
-import { handleImageError, getProductPlaceholder } from '../../utils/imageUtils';
+import { handleImageError, resolveProductImage } from '../../utils/imageUtils';
 
-// Resolve image URL to handle malformed data URLs
-const resolveImage = (src, itemName = 'Product') => {
-  if (!src) return getProductPlaceholder(itemName);
-  
-  // Handle malformed data URLs that have URL prefixes
-  if (src.includes('data:image')) {
-    const dataUrlIndex = src.indexOf('data:image');
-    if (dataUrlIndex > 0) {
-      // Extract just the data URL part
-      const cleanDataUrl = src.substring(dataUrlIndex);
-      
-      // Check if the data URL is corrupted (too short to be valid)
-      if (cleanDataUrl.length < 500) {
-        console.log(`Corrupted short data URL for ${itemName}, using placeholder`);
-        return getProductPlaceholder(itemName);
-      }
-      
-      return cleanDataUrl;
-    }
-    
-    // Check if it's a corrupted short data URL without prefix
-    if (src.length < 500) {
-      console.log(`Corrupted short data URL for ${itemName}, using placeholder`);
-      return getProductPlaceholder(itemName);
-    }
-    
-    return src; // It's already a proper data URL
-  }
-  
-  // Handle external via.placeholder URLs - replace with local placeholders
-  if (src.includes('via.placeholder.com')) {
-    return getProductPlaceholder(itemName);
-  }
-  
-  if (src.startsWith('http')) return src;
-  const base = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-  if (src.startsWith('/')) return `${base}${src}`;
-  // assume it's an uploads-relative path
-  return `${base}/uploads/${src}`;
-};
+// Using shared resolver from imageUtils
 
 const ViewOrder = ({ orderId }) => {
   const [order, setOrder] = useState(null);
@@ -324,7 +285,7 @@ const ViewOrder = ({ orderId }) => {
 {order.items.map((item, index) => (
                   <div key={index} className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
                     <img 
-                      src={resolveImage(item.image, item.name)} 
+                      src={resolveProductImage(item.image, item.name)} 
                       alt={item.name}
                       className="w-16 h-16 rounded-lg object-cover bg-green-200"
                       onError={(e) => handleImageError(e, 64, 64, item.name || 'Product')}

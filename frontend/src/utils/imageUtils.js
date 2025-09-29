@@ -88,3 +88,48 @@ export const getUserAvatarPlaceholder = (userName = "User") => {
   
   return generatePlaceholder(150, 150, initials, "#e5e7eb", "#1f2937");
 };
+
+/**
+ * Resolve a product image source into a usable URL with graceful fallbacks.
+ * Handles:
+ * - null/empty src -> placeholder with product name
+ * - malformed data URLs (prefixed paths or too short) -> placeholder
+ * - proper data URLs -> returned as-is
+ * - external via.placeholder.com -> replaced with local placeholder
+ * - absolute http(s) URLs -> returned as-is
+ * - relative paths -> resolved against VITE_BACKEND_URL (uploads/ fallback)
+ */
+export const resolveProductImage = (src, productName = 'Product') => {
+  if (!src) return getProductPlaceholder(productName);
+
+  try {
+    // Malformed data URL that includes a path before data:image
+    if (typeof src === 'string' && src.includes('data:image')) {
+      const idx = src.indexOf('data:image');
+      const dataUrl = idx >= 0 ? src.substring(idx) : src;
+      // Too short -> corrupted
+      if (!dataUrl || dataUrl.length < 500) return getProductPlaceholder(productName);
+      return dataUrl;
+    }
+
+    // Replace external placeholder
+    if (src.includes && src.includes('via.placeholder.com')) {
+      return getProductPlaceholder(productName);
+    }
+
+    // Absolute URL
+    if (src.startsWith && (src.startsWith('http://') || src.startsWith('https://'))) {
+      return src;
+    }
+
+    const base = (typeof window !== 'undefined' && import.meta?.env?.VITE_BACKEND_URL) || 'http://localhost:3000';
+    if (src.startsWith && src.startsWith('/')) {
+      return `${base}${src}`;
+    }
+
+    // Assume uploads-relative
+    return `${base}/uploads/${src}`;
+  } catch (e) {
+    return getProductPlaceholder(productName);
+  }
+};

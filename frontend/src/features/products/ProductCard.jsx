@@ -14,6 +14,7 @@ import {
 import toast from 'react-hot-toast';
 import { productAPI } from '../../services/productAPI';
 import { showDeleteConfirm } from '../../utils/sweetAlert';
+import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
 
 const ProductCard = ({ product, onEdit, onDelete, onView, isPublicView = false }) => {
   const [loading, setLoading] = useState(false);
@@ -53,7 +54,7 @@ const ProductCard = ({ product, onEdit, onDelete, onView, isPublicView = false }
 
   const stockStatus = getStockStatus();
   const defaultImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=200&fit=crop';
-  const productImage = product.images && product.images.length > 0 ? product.images[0] : defaultImage;
+  const productImage = resolveProductImage((product.images && product.images[0]) || null, product.name);
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
@@ -63,9 +64,7 @@ const ProductCard = ({ product, onEdit, onDelete, onView, isPublicView = false }
           src={productImage} 
           alt={product.name}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            e.target.src = defaultImage;
-          }}
+          onError={(e) => handleImageError(e, 300, 200, product.name)}
         />
         
         {/* Featured Badge */}
