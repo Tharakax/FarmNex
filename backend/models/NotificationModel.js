@@ -57,7 +57,6 @@ const notificationSchema = new mongoose.Schema(
     emailSentAt: {
       type: Date,
     },
-    // Track which users have read this notification
     readBy: {
       type: [{
         userId: String,
@@ -68,7 +67,6 @@ const notificationSchema = new mongoose.Schema(
       }],
       default: []
     },
-    // General read status (for backward compatibility)
     isRead: {
       type: Boolean,
       default: false
