@@ -68,7 +68,7 @@ const PaymentSchema = new mongoose.Schema({
   },
   fingerprint: {
     type: String,
-    select: false // Don't include in query results by default
+    select: false 
   },
   createdAt: {
     type: Date,
@@ -83,38 +83,32 @@ const PaymentSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for faster querying
+
 PaymentSchema.index({ user: 1 });
 PaymentSchema.index({ isDefault: 1 });
 PaymentSchema.index({ paymentMethodId: 1 }, { unique: true });
 
-// Update the updatedAt field before saving
 PaymentSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
-// Static method to get user's default payment method
 PaymentSchema.statics.getDefault = async function(userId) {
   return this.findOne({ user: userId, isDefault: true });
 };
 
-// Static method to get all payment methods for a user
 PaymentSchema.statics.getForUser = async function(userId) {
   return this.find({ user: userId }).sort('-isDefault -createdAt');
 };
 
-// Virtual for formatted expiration date
 PaymentSchema.virtual('expDate').get(function() {
   return `${this.expMonth.toString().padStart(2, '0')}/${this.expYear.toString().slice(-2)}`;
 });
 
-// Virtual for masked card number
 PaymentSchema.virtual('maskedNumber').get(function() {
   return `•••• •••• •••• ${this.last4}`;
 });
 
-// Validate that a user only has one default payment method
 PaymentSchema.pre('save', async function(next) {
   if (this.isDefault) {
     await this.constructor.updateMany(
