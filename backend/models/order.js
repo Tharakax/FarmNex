@@ -8,7 +8,7 @@ const orderSchema = new mongoose.Schema({
   },
   items: [{
     productId: {
-      type: mongoose.Schema.Types.Mixed, // Allow both ObjectId and String
+      type: mongoose.Schema.Types.Mixed, 
       required: true,
     },
     name: {
@@ -30,7 +30,6 @@ const orderSchema = new mongoose.Schema({
     description: {
       type: String,
     },
-    // Any other product details you want to preserve at time of purchase
   }],
   subtotal: {
     type: Number,
@@ -110,7 +109,7 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  // Add this to your order schema
+
   emailSent: {
     type: Boolean,
     default: false,
@@ -122,7 +121,7 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  // Refund tracking
+
   refundStatus: {
     type: String,
     enum: ['none', 'pending', 'processed', 'partial', 'failed'],
@@ -144,18 +143,18 @@ const orderSchema = new mongoose.Schema({
   refundNote: {
     type: String,
   },
-  // Stripe payment integration
+
   paymentDetails: {
     paymentIntentId: String,
     stripePaymentIntentId: String,
     chargeId: String,
     cardBrand: String,
     last4: String,
-    source: String, // 'stripe', 'manual_fix', etc.
-    error: String // For failed payments
+    source: String, 
+    error: String 
   },
 }, {
-  timestamps: true, // This automatically adds createdAt and updatedAt fields
+  timestamps: true, 
 });
 const Order = mongoose.model('Order', orderSchema);
 
