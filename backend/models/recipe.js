@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-// Counter collection to support auto-incrementing numeric IDs
 const counterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
   seq: { type: Number, default: 0 }
@@ -8,7 +7,6 @@ const counterSchema = new mongoose.Schema({
 const Counter = mongoose.models.Counter || mongoose.model('Counter', counterSchema);
 
 const recipeSchema = new mongoose.Schema({
-  // Auto-incrementing recipe id (numeric)
   recipeId: { type: Number, unique: true, index: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
@@ -20,7 +18,6 @@ const recipeSchema = new mongoose.Schema({
   rating: { type: Number, default: 0, min: 0, max: 5 },
 }, { timestamps: true });
 
-// Auto-increment hook
 recipeSchema.pre('save', async function(next) {
   if (this.isNew && (this.recipeId == null)) {
     const counter = await Counter.findByIdAndUpdate(
