@@ -168,7 +168,7 @@ const FeedbackDetail = () => {
               ({feedback.rating} out of 5 stars)
             </span>
           </div>
-
+      
           {/* Message */}
           <div className="mb-6">
             <h4 className="text-lg font-semibold text-gray-900 mb-3">Message</h4>

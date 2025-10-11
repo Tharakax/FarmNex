@@ -410,6 +410,57 @@ const getFeedbackStats = async (req, res, next) => {
   }
 };
 
+const toggleApproval = async (req, res, next) => {
+  try {
+    const { isApproved } = req.body;
+    
+    const feedback = await Feedback.findByIdAndUpdate(
+      req.params.id,
+      { isApproved, updatedAt: Date.now() },
+      { new: true, runValidators: true }
+    );
+
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feedback not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Feedback ${isApproved ? 'approved' : 'unapproved'} successfully`,
+      data: feedback
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin: Delete feedback (no date restrictions)
+// @route   DELETE /api/feedback/:id/admin
+// @access  Admin only
+const adminDeleteFeedback = async (req, res, next) => {
+  try {
+    const feedback = await Feedback.findByIdAndDelete(req.params.id);
+
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feedback not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Feedback deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 export {
   getFeedback,
   getFeedbackById,
@@ -417,5 +468,7 @@ export {
   updateFeedback,
   deleteFeedback,
   exportFeedback,
-  getFeedbackStats
+  getFeedbackStats,
+  toggleApproval,        // Add this
+  adminDeleteFeedback    // Add this
 };

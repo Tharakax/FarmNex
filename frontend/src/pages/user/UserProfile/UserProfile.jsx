@@ -154,9 +154,11 @@ const UserProfile = () => {
               </button>
               <div className="h-6 border-l border-gray-300"></div>
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">🌱</span>
+               
+                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-green-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm"></span>
                 </div>
+                
                 <span className="text-xl font-bold text-gray-800">Farm Nex</span>
               </div>
             </div>
@@ -180,7 +182,7 @@ const UserProfile = () => {
         {/* Profile Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-green-500 to-blue-600 px-8 py-6">
+          <div className="bg-gradient-to-r from-green-500 to-green-600 px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
@@ -264,7 +266,7 @@ const UserProfile = () => {
                 <div className="flex justify-center">
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                   >
                     <Edit3 className="w-5 h-5 mr-2" />
                     Edit Profile
@@ -351,7 +353,7 @@ const UserProfile = () => {
                   <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:transform-none"
+                    className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-600 to-green-600 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:transform-none"
                   >
                     <Save className="w-5 h-5 mr-2" />
                     {saving ? 'Saving...' : 'Save Changes'}

@@ -32,7 +32,8 @@ import {
   ChevronRight,
   Sprout,
   ShoppingCart,
-  BarChart3
+  BarChart3,
+  MessageSquare
 } from 'lucide-react';
 
 // Current crop yield data (2024 - tons per hectare)
@@ -129,6 +130,13 @@ const RecipesPanel = React.lazy(() =>
       console.error('Failed to load RecipesPanel:', error);
       return { default: () => <ErrorFallback error={error} componentName="Recipes" /> };
     })
+);
+
+const AskQuestionForm = React.lazy(() =>
+  import('./user/QAManagement/UserQA.jsx').catch(error => {
+    console.error('Failed to load AskQuestionForm:', error);
+    return { default: () => <ErrorFallback error={error} componentName="Ask Question Form" /> };
+  })
 );
 
 // Use the existing RecipeList component directly in dashboard
@@ -315,7 +323,10 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
     { name: 'Recipes', icon: ChefHat },
     { name: 'Reports', icon: FileText },
     { name: 'Sales Report', icon: BarChart3 },
+    { name: 'Ask Question', icon: MessageSquare, path: '/userqa' },
     { name: 'Settings', icon: Settings }
+   
+
   ];
 
   return (
@@ -456,7 +467,10 @@ const Header = ({ toggleSidebar }) => {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">{currentUser.name}</h1>
+          <h4 className="text-xl sm:text-2xl font-semibold text-gray-800">
+           <span className="text-green-600 font-bold">Welcome, </span>{' '}
+           <span className="text-gray-700">{currentUser.name} 🎉 </span>
+          </h4>
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
@@ -512,6 +526,9 @@ const FarmerDashboard = () => {
         crop: 'Crop & Livestock',
         livestock: 'Crop & Livestock',
         'crop & livestock': 'Crop & Livestock',
+
+        'ask-question': 'Ask Question',
+        userqa: 'Ask Question',
       };
       return map[t] || 'Home';
     } catch { return 'Home'; }
@@ -570,7 +587,8 @@ const FarmerDashboard = () => {
         'Reports': 'reports',
         'Sales Report': 'sales-report',
         'Crop & Livestock': 'crop',
-        'Settings': 'settings'
+        'Settings': 'settings',
+        'Ask Question': 'userqa',
     };
     return map[name] || 'home';
   };
@@ -624,7 +642,11 @@ const FarmerDashboard = () => {
         case 'Settings':
           console.log('Rendering Settings');
           return <div className="p-6 bg-white rounded-lg shadow"><h2 className="text-xl font-semibold mb-4">Settings</h2><p>Settings panel is under development.</p></div>;
-        case 'Home':
+        case 'Ask Question':
+          console.log('Rendering AskQuestionForm');
+          return <AskQuestionForm />;
+        
+          case 'Home':
         default:
           return (
             <div>

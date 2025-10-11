@@ -162,34 +162,35 @@ const DashboardFeedbackEdit = ({ isOpen, onClose, onUpdateSuccess, feedback, use
             {/* Customer Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="customerName"
-                  value={formData.customerName}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Your full name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Your email address"
-                />
-              </div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Name <span className="text-red-500">*</span>
+  </label>
+  <input
+    type="text"
+    name="customerName"
+    value={formData.customerName}
+    disabled
+    required
+    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+    placeholder="Your full name"
+  />
+</div>
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Email <span className="text-red-500">*</span>
+  </label>
+  <input
+    type="email"
+    name="email"
+    value={formData.email}
+    disabled
+    required
+    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+    placeholder="Your email address"
+  />
+</div>
+
             </div>
 
             {/* Category and Rating */}

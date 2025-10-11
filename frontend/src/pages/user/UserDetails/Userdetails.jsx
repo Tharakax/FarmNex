@@ -221,152 +221,446 @@ function SmartFarmingUserDetails() {
     }
   };
 
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Farm Nex User Report</title>
-          <style>
-           body {
-              font-family: Arial, sans-serif;
-              margin: 20px;
-              color: #333;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 30px;
-              border-bottom: 2px solid #10b981;
-              padding-bottom: 20px;
-            }
-            .header h1 {
-              color: #10b981;
-              margin: 0;
-              font-size: 28px;
-            }
-            .header p {
-              margin: 5px 0 0 0;
-              color: #666;
-            }
-            .user-card {
-              border: 1px solid #e5e7eb;
-              border-radius: 8px;
-              padding: 20px;
-              margin-bottom: 20px;
-              background: #f9fafb;
-              page-break-inside: avoid;
-            }
-            .user-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 15px;
-              border-bottom: 1px solid #e5e7eb;
-              padding-bottom: 10px;
-            }
-            .user-name {
-              font-size: 18px;
-              font-weight: bold;
-              color: #1f2937;
-            }
-            .user-role {
-              background: #10b981;
-              color: white;
-              padding: 4px 12px;
-              border-radius: 20px;
-              font-size: 12px;
-              font-weight: bold;
-            }
-            .user-details {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              gap: 10px;
-            }
-            .detail-item {
-              display: flex;
-              justify-content: space-between;
-            }
-            .detail-label {
-              font-weight: bold;
-              color: #4b5563;
-            }
-            .detail-value {
-              color: #1f2937;
-            }
-            @media print {
-              body { margin: 0; }
-              .no-print { display: none !important; }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>🌱 Smart Farm User Report</h1>
-            <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-            <p>Total Users: ${filteredUsers.length}</p>
+const handlePrint = () => {
+  const printWindow = window.open('', '_blank');
+
+  const totalUsers = filteredUsers.length;
+  const activeUsers = filteredUsers.filter(u => u.status === 'Active').length;
+  
+  // Calculate new users in last 7 days
+  const newUsersLast7Days = filteredUsers.filter(u => {
+    const joinDate = new Date(u.joinDate || u.createdAt || Date.now());
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return joinDate >= sevenDaysAgo;
+  }).length;
+
+  // Calculate role distribution
+  const roleCounts = filteredUsers.reduce((acc, user) => {
+    const role = user.role || 'Customer';
+    acc[role] = (acc[role] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Calculate average age
+  const validAges = filteredUsers.filter(u => u.age && !isNaN(u.age)).map(u => parseInt(u.age));
+  const averageAge = validAges.length > 0 
+    ? (validAges.reduce((a, b) => a + b, 0) / validAges.length).toFixed(1)
+    : 'N/A';
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>FarmNex User Analytics Report</title>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+      <style>
+        * { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+        }
+        
+        body { 
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+          background: #ffffff; 
+          color: #2d3748; 
+          line-height: 1.5; 
+          font-size: 12px;
+        }
+        
+        :root {
+          --primary: #10b981;
+          --primary-dark: #059669;
+          --success: #16a34a; 
+          --warning: #f59e0b;
+          --danger: #ef4444;
+          --dark: #1f2937; 
+          --gray: #6b7280; 
+          --gray-light: #9ca3af;
+          --border: #e5e7eb; 
+          --green-light: #d1fae5;
+          --green-lighter: #ecfdf5;
+        }
+
+        /* HEADER STYLES */
+        .pdf-header { 
+          width: 100%; 
+          padding: 15px 25px 10px 25px; 
+          background: linear-gradient(135deg, var(--green-lighter) 0%, #ffffff 100%);
+          border-bottom: 2px solid var(--primary);
+          position: fixed; 
+          top: 0; 
+          left: 0; 
+          height: 130px;
+          z-index: 1000;
+        }
+        
+        .brand-row { 
+          display: flex; 
+          align-items: center; 
+          gap: 12px; 
+          margin-bottom: 8px; 
+        }
+        
+        .logo-tile { 
+          width: 32px; 
+          height: 32px; 
+          background: var(--primary); 
+          border-radius: 6px; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .logo-tile .fa-leaf { 
+          color: white; 
+          font-size: 18px; 
+        }
+        
+        .brand-name { 
+          font-size: 26px; 
+          font-weight: 800; 
+          color: var(--primary-dark);
+          letter-spacing: -0.5px;
+        }
+        
+        .title-section { 
+          text-align: center; 
+          margin: 8px 0; 
+        }
+        
+        .report-title { 
+          font-size: 20px; 
+          font-weight: 700; 
+          color: var(--dark);
+          margin-bottom: 4px;
+        }
+        
+        .report-subtitle { 
+          font-size: 12px; 
+          color: var(--gray); 
+        }
+        
+        .contact-details { 
+          text-align: center; 
+          font-size: 10px; 
+          color: var(--gray-light);
+          margin-top: 6px;
+        }
+        
+        .header-divider { 
+          width: 100%; 
+          height: 1px; 
+          background: linear-gradient(90deg, transparent 0%, var(--border) 50%, transparent 100%);
+          margin-top: 10px; 
+          border: none; 
+        }
+
+        /* METRICS SECTION */
+        .metrics-section { 
+          margin: 140px 25px 15px 25px; 
+        }
+        
+        .metrics-grid { 
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          margin-bottom: 15px;
+        }
+        
+        .metric-card { 
+          background: white;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          padding: 12px 10px;
+          text-align: center;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .metric-card.primary { 
+          border-top: 3px solid var(--primary);
+        }
+        
+        .metric-card.warning { 
+          border-top: 3px solid var(--warning);
+        }
+        
+        .metric-value { 
+          color: var(--dark); 
+          font-size: 20px; 
+          font-weight: 700;
+          margin-bottom: 4px;
+        }
+        
+        .metric-label { 
+          color: var(--gray); 
+          font-size: 11px; 
+          font-weight: 500;
+        }
+
+        /* SUMMARY SECTION */
+        .summary-section {
+          background: var(--green-lighter);
+          border-radius: 8px;
+          padding: 12px 15px;
+          margin: 0 25px 15px 25px;
+          border: 1px solid var(--border);
+        }
+        
+        .summary-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--dark);
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        
+        .summary-title i {
+          color: var(--primary);
+        }
+        
+        .summary-content {
+          font-size: 11px;
+          color: var(--gray);
+          line-height: 1.5;
+        }
+
+        /* TABLE STYLES */
+        .content { 
+          margin: 0 25px 50px 25px; 
+        }
+        
+        .table-container {
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .user-table { 
+          width: 100%; 
+          border-collapse: collapse;
+          font-size: 10px;
+        }
+        
+        .user-table th, .user-table td { 
+          border-bottom: 1px solid var(--border); 
+          padding: 8px 10px; 
+          text-align: left;
+        }
+        
+        .user-table th { 
+          background: var(--green-lighter); 
+          color: var(--dark);
+          font-weight: 600;
+          font-size: 10px;
+          padding: 10px;
+        }
+        
+        .user-table tr:nth-child(even) { 
+          background: #fcfdfd; 
+        }
+        
+        .user-table tr:hover { 
+          background: #f3f4f6; 
+        }
+        
+        .status-active {
+          color: var(--success);
+          font-weight: 600;
+        }
+        
+        .role-badge {
+          display: inline-block;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 600;
+        }
+        
+        .role-admin {
+          background: #fef3c7;
+          color: #92400e;
+        }
+        
+        .role-customer {
+          background: #d1fae5;
+          color: #065f46;
+        }
+        
+        .role-farmstaff {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        /* FOOTER STYLES */
+        .pdf-footer { 
+          width: 100%; 
+          height: 30px; 
+          background: var(--green-lighter); 
+          border-top: 1px solid var(--border); 
+          padding: 0 25px; 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          position: fixed; 
+          bottom: 0;
+          font-size: 9px;
+          color: var(--gray);
+        }
+
+        /* PRINT STYLES */
+        @media print {
+          .pdf-header, .pdf-footer { 
+            position: fixed; 
+          }
+          
+          .metrics-section {
+            margin-top: 140px;
+          }
+          
+          .content {
+            margin-bottom: 50px;
+          }
+          
+          body {
+            font-size: 10px;
+          }
+        }
+
+        /* UTILITY CLASSES */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: 700; }
+        .text-primary { color: var(--primary); }
+        .text-gray { color: var(--gray); }
+      </style>
+    </head>
+    <body>
+      <!-- HEADER -->
+      <header class="pdf-header">
+        <div class="brand-row">
+          <div class="logo-tile"><i class="fas fa-leaf"></i></div>
+          <h2 class="brand-name">FarmNex</h2>
+        </div>
+        <div class="title-section">
+          <h3 class="report-title">User Analytics & Engagement Report</h2>
+          <p class="report-subtitle">Comprehensive overview of platform users and activity metrics</p>
+        </div>
+        <div class="contact-details">
+          <p>No 8, Temple Road, Beralapanathra, Sri Lanka | Tel: 0742331740 | Email: farmnex@gmail.com</p>
+        </div>
+        <hr class="header-divider">
+      </header>
+
+      <!-- METRICS -->
+      <section class="metrics-section">
+        <div class="metrics-grid">
+          <div class="metric-card primary">
+            <div class="metric-value">${totalUsers}</div>
+            <div class="metric-label">Total Users</div>
           </div>
-          ${filteredUsers.map(user => `
-            <div class="user-card">
-              <div class="user-header">
-                <div class="user-name">${user.fullName}</div>
-                <div class="user-role">${user.role}</div>
-              </div>
+          <div class="metric-card primary">
+            <div class="metric-value">${activeUsers}</div>
+            <div class="metric-label">Active Users</div>
+          </div>
+          <div class="metric-card warning">
+            <div class="metric-value">${newUsersLast7Days}</div>
+            <div class="metric-label">New Users (7 Days)</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">${averageAge}</div>
+            <div class="metric-label">Average Age</div>
+          </div>
+        </div>
 
-              <div class="user-details">
-                <div class="detail-item">
-                  <span class="detail-label">Email:</span>
-                  <span class="detail-value">${user.email}</span>
-                </div>
+        <!-- SUMMARY -->
+        <div class="summary-section">
+          <div class="summary-title">
+            <i class="fas fa-chart-line"></i>
+            <span>Report Summary</span>
+          </div>
+          <div class="summary-content">
+            The platform currently has ${totalUsers} registered users with ${activeUsers} active accounts. 
+            ${newUsersLast7Days > 0 ? `There were ${newUsersLast7Days} new sign-ups in the last 7 days, showing ${newUsersLast7Days > 5 ? 'strong' : 'steady'} growth.` : 'No new users joined in the last 7 days.'}
+            User roles are distributed as: ${Object.entries(roleCounts).map(([role, count]) => `${count} ${role}`).join(', ')}.
+          </div>
+        </div>
+      </section>
 
-                <div class="detail-item">
-                  <span class="detail-label">Phone:</span>
-                  <span class="detail-value">${user.phone}</span>
-                </div>
+      <!-- MAIN CONTENT -->
+      <main class="content">
+        <div class="table-container">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Username</th>
+                <th>Age</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Join Date</th>
+                <th>Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredUsers.map((user, index) => `
+                <tr>
+                  <td class="text-center">${index + 1}</td>
+                  <td class="font-bold">${user.fullName || 'N/A'}</td>
+                  <td>${user.email || 'N/A'}</td>
+                  <td>${user.phone || 'N/A'}</td>
+                  <td>${user.username || 'N/A'}</td>
+                  <td class="text-center">${user.age || 'N/A'}</td>
+                  <td>
+                    <span class="role-badge role-${(user.role || 'customer').toLowerCase()}">
+                      ${user.role || 'Customer'}
+                    </span>
+                  </td>
+                  <td class="status-active">${user.status || 'Active'}</td>
+                  <td>${user.joinDate || new Date(user.createdAt || Date.now()).toLocaleDateString()}</td>
+                  <td>${user.address || 'N/A'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </main>
 
-                <div class="detail-item">
-                  <span class="detail-label">Username:</span>
-                  <span class="detail-value">${user.username}</span>
-                </div>
-                
-                <div class="detail-item">
-                  <span class="detail-label">Age:</span>
-                  <span class="detail-value">${user.age}</span>
-                </div>
+      <!-- FOOTER -->
+      <footer class="pdf-footer">
+        <div>FarmNex Farm Management System</div>
+        <div>Page 1 of 1</div>
+        <div>Generated: ${new Date().toLocaleString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}</div>
+      </footer>
+    </body>
+    </html>
+  `);
 
-                <div class="detail-item">
-                  <span class="detail-label">Status:</span>
-                  <span class="detail-value">${user.status || 'Active'}</span>
-                </div>
+  printWindow.document.close();
+  printWindow.focus();
 
-                <div class="detail-item">
-                  <span class="detail-label">Join Date:</span>
-                  <span class="detail-value">${user.joinDate || new Date(user.createdAt || Date.now()).toLocaleDateString()}</span>
-                </div>
-
-                <div class="detail-item">
-                  <span class="detail-label">Address:</span>
-                  <span class="detail-value">${user.address}</span>
-                </div>
-
-              </div>
-            </div>
-          `).join('')}
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-    
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-      //alert("User Report Successfully Downloaded!");
-      toast.success("User Report Successfully Downloaded!");
-    }, 250);
-  };
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+   
+  }, 500);
+};
 
   const handleBackToAdmin = () => {
     navigate('/admin');

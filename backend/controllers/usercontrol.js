@@ -14,7 +14,7 @@ const isAdmin = (userRole) => {
 // Get all users - SECURED: Admin only
 export const getAllUsers = async (req, res, next) => {
   try {
-    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    //  CRITICAL SECURITY CHECK: Authentication required
     if (!req.user) {
       return res.status(401).json({ 
         success: false,
@@ -22,7 +22,7 @@ export const getAllUsers = async (req, res, next) => {
       });
     }
 
-    // 🔒 CRITICAL SECURITY CHECK: Admin only access
+    // CRITICAL SECURITY CHECK: Admin only access
     if (!isAdmin(req.user.role)) {
       return res.status(403).json({ 
         success: false,

@@ -45,7 +45,7 @@ const UpdateUser = React.lazy(() => import('./pages/user/UpdateUser/UpdateUser.j
 const DeleteUser = React.lazy(() => import('./pages/user/DeleteUser/DeleteUser.jsx'));
 const Register = React.lazy(() => import('./pages/user/Register/Register.jsx'));
 const Login = React.lazy(() => import('./pages/user/Login/Login.jsx'));
-const UserDetails = React.lazy(() => import('./pages/user/UserDetails/UserDetails.jsx'));
+const UserDetails = React.lazy(() => import('./pages/user/UserDetails/Userdetails.jsx'));
 const UserProfile = React.lazy(() => import('./pages/user/UserProfile/UserProfile.jsx'));
 const ChangePassword = React.lazy(() => import('./pages/user/UserProfile/ChangePassword.jsx'));
 const OTPVerifyPage = React.lazy(() => import('./pages/user/Login/OTPVerifyPage.jsx'));
@@ -66,6 +66,9 @@ const AddLiveStockPlan = React.lazy(() => import('./pages/croplive/AddLiveStockP
 const AllLiveStockPlan = React.lazy(() => import('./pages/croplive/AllLiveStockPlan.jsx'));
 const UpdateLiveStockPlan = React.lazy(() => import('./pages/croplive/UpdateLiveStockPlan.jsx'));
 const DeleteLiveStockPlan = React.lazy(() => import('./pages/croplive/DeleteLiveStockPlan.jsx'));
+
+
+const AdminViewFeedback = React.lazy(() => import('./features/dashboard/AdminViewFeedback.jsx'));
 
 // Loading component
 const Loading = () => (
@@ -156,8 +159,7 @@ function App() {
             <Route path="/customerdash" element={<CustomerDashboard />} />
             <Route path="/test-images" element={<ImageTest />} />
 
-            {/* Feedback functionality is integrated into customer dashboard */}
-            {/* Standalone feedback routes removed - use /customerdash instead */}
+            
 
             {/* Q&A Management Routes */}
             <Route path="/userqa" element={<UserQA />} />
@@ -197,6 +199,9 @@ function App() {
             <Route path="/livestock/add" element={<AddLiveStockPlan />} />
             <Route path="/livestock/update/:id" element={<UpdateLiveStockPlan />} />
             <Route path="/livestock/delete/:id" element={<DeleteLiveStockPlan />} />
+
+             <Route path="/admin/feedback" element={<AdminViewFeedback />} />
+             <Route path="/admin/*" element={<AdminDash />} />
 
             {/* Fallback route */}
             <Route

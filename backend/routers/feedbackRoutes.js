@@ -6,7 +6,9 @@ import {
   updateFeedback,
   deleteFeedback,
   exportFeedback,
-  getFeedbackStats
+  getFeedbackStats,
+  toggleApproval,
+  adminDeleteFeedback
 } from '../controllers/feedbackController.js';
 
 // Note: validation middleware not implemented yet
@@ -53,4 +55,6 @@ router.put('/:id', updateFeedback);
 // @access  Public
 router.delete('/:id', deleteFeedback);
 
+router.patch('/:id/approve', toggleApproval);
+router.delete('/:id/admin', adminDeleteFeedback);
 export default router;

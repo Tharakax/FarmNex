@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo.jsx';
 import Navigation from '../components/navigation';
 import SimpleChatbot from '../components/chatbot/SimpleChatbot';
 import PublishedTrainingSection from '../components/training/components/PublishedTrainingSection';
 import { NavLink } from 'react-router-dom';
+import TestimonialsSection from '../components/TestimonialsSection'; // Adjust path as needed
 
 
 
@@ -38,7 +39,7 @@ const HomePage = () => {
     }
   ];
 
-  const testimonials = [
+  /*const testimonials = [
     {
       name: "Sarah Johnson",
       text: "The freshest farm products I've ever purchased! FarmNex has become my go-to for all farm produce.",
@@ -53,8 +54,8 @@ const HomePage = () => {
       name: "Emma Rodriguez",
       text: "Amazing selection of both crops and animal products. Everything stays fresh for weeks!",
       rating: 5
-    }
-  ];
+    } 
+  ];*/
 
   const trainingHighlights = [
     {
@@ -515,45 +516,8 @@ const HomePage = () => {
         </section>
 
         {/* Testimonials with Background Image */}
-        <section 
-          className="py-16 relative"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95)), url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1920&h=1080&fit=crop&crop=center')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed'
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
-              <p className="text-gray-600">Join thousands of satisfied customers who trust FarmNex</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, index) => (
-                <div key={index} className="p-6 rounded-xl hover:shadow-2xl transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(34, 197, 94, 0.03) 100%)',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 10px 40px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
-                  transform: 'perspective(600px) rotateX(-2deg)'
-                }}>
-                  <div className="flex items-center mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 mb-4 italic">"{testimonial.text}"</p>
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3 shadow-md">
-                      <Users className="h-5 w-5 text-green-600" />
-                    </div>
-                    <span className="font-semibold text-gray-900">{testimonial.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <section >
+          <TestimonialsSection />
         </section>
 
         {/* CTA Section with Dynamic Background */}

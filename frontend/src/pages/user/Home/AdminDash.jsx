@@ -21,7 +21,9 @@ import {
   Activity,
   MessageSquare,
   Megaphone,
-  ShoppingCart
+  ShoppingCart,
+  MessageCircle 
+  
 } from 'lucide-react';
  import axios from 'axios';
 
@@ -420,7 +422,7 @@ function AdminDashboard() {
               activeTab === 'users' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
             }`}>
               <Users className="mr-3 h-5 w-5" />
-              User Management
+              Manage User
             </button>
 
 
@@ -429,10 +431,6 @@ function AdminDashboard() {
               Add User
             </button>
 
-            <button onClick={() => navigate('/settings')} className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 transition-colors">
-              <Settings className="mr-3 h-5 w-5" />
-              Settings
-            </button>
             
             <button
              onClick={() => navigate('/adminqa')}
@@ -440,6 +438,14 @@ function AdminDashboard() {
             <MessageSquare  className="mr-3 h-5 w-5" />
                  Q&A Inbox
               </button>
+
+           <button
+  onClick={() => navigate('/admin/feedback')}
+  className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 transition-colors"
+>
+  <MessageCircle className="mr-3 h-5 w-5" />
+  Feedbacks
+</button>
             
             <button
              onClick={() => navigate('/notifications')}
@@ -455,6 +461,11 @@ function AdminDashboard() {
                   <BarChart className="mr-3 h-5 w-5" />
               Analytics
           </button>
+
+          <button onClick={() => navigate('/settings')} className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:text-gray-900 hover:bg-gray-100 transition-colors">
+              <Settings className="mr-3 h-5 w-5" />
+              Settings
+            </button>
 
 
           </nav>

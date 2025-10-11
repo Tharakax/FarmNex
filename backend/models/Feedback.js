@@ -59,6 +59,10 @@ const feedbackSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  isApproved: {
+    type: Boolean,
+    default: false  // Important: defaults to false
   }
 }, {
   timestamps: true

@@ -9,11 +9,7 @@ import { fileURLToPath } from "url";
 
 dotenv.config();
 
-
-
 //import 
-
-
 import productRouter from './routers/productRouter.js';
 import orderRouter from './routers/orderRouter.js';
 import trainingRouter from './routers/trainingRoutes.js';
