@@ -272,8 +272,6 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
           status,
           image: p.images?.[0] || p.image || null,
           revenue: price * Math.max(currentStock / 2, 1),
-          rating: 4.3,
-          reviews: 12,
         };
       });
 

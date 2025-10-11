@@ -31,7 +31,6 @@ function RecipeList({ showHeader = true, publicView = false }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedMeals, setSelectedMeals] = useState([]);
-  const [minRating, setMinRating] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const fetchRecipes = async () => {
@@ -95,12 +94,9 @@ function RecipeList({ showHeader = true, publicView = false }) {
       });
     }
 
-    if (minRating > 0) {
-      results = results.filter((recipe) => Number(recipe.rating) >= minRating);
-    }
 
     setFilteredRecipes(results);
-  }, [recipes, searchTerm, selectedTypes, selectedMeals, minRating]);
+  }, [recipes, searchTerm, selectedTypes, selectedMeals]);
 
   const handleDelete = async (id) => {
     try {
@@ -127,14 +123,12 @@ function RecipeList({ showHeader = true, publicView = false }) {
     setSearchTerm("");
     setSelectedTypes([]);
     setSelectedMeals([]);
-    setMinRating(0);
   };
 
   const hasActiveFilters =
     searchTerm ||
     selectedTypes.length > 0 ||
-    selectedMeals.length > 0 ||
-    minRating > 0;
+    selectedMeals.length > 0;
 
   // Helper: convert inline SVG string to PNG data URL for jsPDF headers
   const svgToPngDataUrl = (svgString, width = 64, height = 64) => {
@@ -386,7 +380,6 @@ function RecipeList({ showHeader = true, publicView = false }) {
                 <span className="bg-emerald-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                   {selectedTypes.length +
                     selectedMeals.length +
-                    (minRating > 0 ? 1 : 0) +
                     (searchTerm ? 1 : 0)}
                 </span>
               )}
@@ -528,43 +521,6 @@ function RecipeList({ showHeader = true, publicView = false }) {
                   </div>
                 </div>
 
-                {/* Rating filter */}
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-3">
-                    Minimum Rating
-                  </h3>
-                  <div className="space-y-2">
-                    {[1, 2, 3, 4, 5].map((rating) => (
-                      <label
-                        key={rating}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <input
-                          type="radio"
-                          name="rating"
-                          checked={minRating === rating}
-                          onChange={() =>
-                            setMinRating(minRating === rating ? 0 : rating)
-                          }
-                          className="text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span className="text-sm text-gray-700 flex items-center">
-                          {Array.from({ length: rating }).map((_, i) => (
-                            <svg
-                              key={i}
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              className="h-4 w-4 fill-yellow-400"
-                            >
-                              <path d="M12 17.27l6.18 3.73-1.64-7.03 5-4.73-7.19-.62L12 2 9.65 8.62 2.5 9.24l5 4.73-1.64 7.03z" />
-                            </svg>
-                          ))}
-                          <span className="ml-1">& up</span>
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </div>

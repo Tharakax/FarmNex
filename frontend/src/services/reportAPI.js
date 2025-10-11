@@ -483,8 +483,6 @@ export const reportAPI = {
               revenue: 15420, 
               unitsSold: 245, 
               profitMargin: 35.2, 
-              rating: 4.8, 
-              reviews: 89, 
               growth: 22.5,
               category: 'vegetables' 
             },
@@ -493,8 +491,6 @@ export const reportAPI = {
               revenue: 12890, 
               unitsSold: 189, 
               profitMargin: 42.1, 
-              rating: 4.6, 
-              reviews: 67, 
               growth: 18.7,
               category: 'leafy-greens' 
             },
@@ -503,8 +499,6 @@ export const reportAPI = {
               revenue: 9650, 
               unitsSold: 156, 
               profitMargin: 28.9, 
-              rating: 4.4, 
-              reviews: 45, 
               growth: 15.3,
               category: 'vegetables' 
             },
@@ -513,8 +507,6 @@ export const reportAPI = {
               revenue: 8200, 
               unitsSold: 134, 
               profitMargin: 38.5, 
-              rating: 4.7, 
-              reviews: 56, 
               growth: 12.8,
               category: 'root-vegetables' 
             },
@@ -523,8 +515,6 @@ export const reportAPI = {
               revenue: 7850, 
               unitsSold: 112, 
               profitMargin: 45.2, 
-              rating: 4.5, 
-              reviews: 38, 
               growth: 20.1,
               category: 'leafy-greens' 
             }
@@ -535,8 +525,6 @@ export const reportAPI = {
               revenue: 450, 
               unitsSold: 8, 
               profitMargin: 12.1, 
-              rating: 3.2, 
-              reviews: 5, 
               growth: -15.2,
               category: 'vegetables' 
             },
@@ -545,8 +533,6 @@ export const reportAPI = {
               revenue: 320, 
               unitsSold: 6, 
               profitMargin: 8.5, 
-              rating: 3.8, 
-              reviews: 3, 
               growth: -8.7,
               category: 'fruits' 
             },
@@ -555,8 +541,6 @@ export const reportAPI = {
               revenue: 280, 
               unitsSold: 12, 
               profitMargin: 15.3, 
-              rating: 3.5, 
-              reviews: 8, 
               growth: -5.2,
               category: 'vegetables' 
             }
@@ -573,7 +557,6 @@ export const reportAPI = {
               category: 'Vegetables', 
               totalRevenue: 45200, 
               unitsSold: 567, 
-              averageRating: 4.5, 
               growthRate: 18.5,
               profitability: 32.1 
             },
@@ -581,7 +564,6 @@ export const reportAPI = {
               category: 'Leafy Greens', 
               totalRevenue: 28900, 
               unitsSold: 389, 
-              averageRating: 4.6, 
               growthRate: 25.2,
               profitability: 41.8 
             },
@@ -589,7 +571,6 @@ export const reportAPI = {
               category: 'Fruits', 
               totalRevenue: 22100, 
               unitsSold: 234, 
-              averageRating: 4.3, 
               growthRate: 12.8,
               profitability: 28.9 
             },
@@ -605,8 +586,6 @@ export const reportAPI = {
           productMetrics: {
             totalProductsListed: 156,
             activeProducts: 142,
-            averageRating: 4.4,
-            totalReviews: 892
           }
         }
       };
@@ -673,7 +652,6 @@ export const reportAPI = {
               totalOrders: 24, 
               totalSpent: 15600, 
               onTimeDelivery: 95.8, 
-              qualityRating: 4.7, 
               categories: ['fertilizers', 'soil-amendments'] 
             },
             { 
@@ -681,7 +659,6 @@ export const reportAPI = {
               totalOrders: 18, 
               totalSpent: 7800, 
               onTimeDelivery: 88.9, 
-              qualityRating: 4.4, 
               categories: ['seeds'] 
             },
             { 
@@ -689,7 +666,6 @@ export const reportAPI = {
               totalOrders: 12, 
               totalSpent: 5200, 
               onTimeDelivery: 91.7, 
-              qualityRating: 4.6, 
               categories: ['irrigation'] 
             },
             { 
@@ -697,7 +673,6 @@ export const reportAPI = {
               totalOrders: 8, 
               totalSpent: 3400, 
               onTimeDelivery: 100, 
-              qualityRating: 4.8, 
               categories: ['tools', 'equipment'] 
             }
           ],

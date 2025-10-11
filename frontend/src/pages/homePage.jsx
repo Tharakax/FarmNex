@@ -476,17 +476,6 @@ const HomePage = () => {
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
-                    <div className="flex items-center mb-2">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-gray-600 text-sm ml-2">({product.rating})</span>
-                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-2xl font-bold text-green-600">{product.price}</span>
                       <button className="text-white px-4 py-2 rounded-lg hover:shadow-xl transition-all transform hover:scale-105 hover:-rotate-1 transform-gpu" style={{

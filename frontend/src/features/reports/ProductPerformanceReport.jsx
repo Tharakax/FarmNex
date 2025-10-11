@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   TrendingDown,
-  Star,
   ShoppingCart,
   DollarSign,
   Package,
@@ -26,9 +25,7 @@ const ProductPerformanceReport = ({ dateRange }) => {
     categoryPerformance: [],
     productMetrics: {
       totalProductsListed: 0,
-      activeProducts: 0,
-      averageRating: 0,
-      totalReviews: 0
+      activeProducts: 0
     },
     revenueByProduct: [],
     stockTurnoverByProduct: []
@@ -61,8 +58,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 15420, 
             unitsSold: 245, 
             profitMargin: 35.2, 
-            rating: 4.8, 
-            reviews: 89, 
             growth: 22.5,
             category: 'vegetables' 
           },
@@ -71,8 +66,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 12890, 
             unitsSold: 189, 
             profitMargin: 42.1, 
-            rating: 4.6, 
-            reviews: 67, 
             growth: 18.7,
             category: 'leafy-greens' 
           },
@@ -81,8 +74,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 9650, 
             unitsSold: 156, 
             profitMargin: 28.9, 
-            rating: 4.4, 
-            reviews: 45, 
             growth: 15.3,
             category: 'vegetables' 
           },
@@ -91,8 +82,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 8200, 
             unitsSold: 134, 
             profitMargin: 38.5, 
-            rating: 4.7, 
-            reviews: 56, 
             growth: 12.8,
             category: 'root-vegetables' 
           },
@@ -101,8 +90,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 7850, 
             unitsSold: 112, 
             profitMargin: 45.2, 
-            rating: 4.5, 
-            reviews: 38, 
             growth: 20.1,
             category: 'leafy-greens' 
           }
@@ -113,8 +100,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 450, 
             unitsSold: 8, 
             profitMargin: 12.1, 
-            rating: 3.2, 
-            reviews: 5, 
             growth: -15.2,
             category: 'vegetables' 
           },
@@ -123,8 +108,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 320, 
             unitsSold: 6, 
             profitMargin: 8.5, 
-            rating: 3.8, 
-            reviews: 3, 
             growth: -8.7,
             category: 'fruits' 
           },
@@ -133,8 +116,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             revenue: 280, 
             unitsSold: 12, 
             profitMargin: 15.3, 
-            rating: 3.5, 
-            reviews: 8, 
             growth: -5.2,
             category: 'vegetables' 
           }
@@ -151,7 +132,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             category: 'Vegetables', 
             totalRevenue: 45200, 
             unitsSold: 567, 
-            averageRating: 4.5, 
             growthRate: 18.5,
             profitability: 32.1 
           },
@@ -159,7 +139,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             category: 'Leafy Greens', 
             totalRevenue: 28900, 
             unitsSold: 389, 
-            averageRating: 4.6, 
             growthRate: 25.2,
             profitability: 41.8 
           },
@@ -167,7 +146,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
             category: 'Fruits', 
             totalRevenue: 22100, 
             unitsSold: 234, 
-            averageRating: 4.3, 
             growthRate: 12.8,
             profitability: 28.9 
           },
@@ -175,16 +153,13 @@ const ProductPerformanceReport = ({ dateRange }) => {
             category: 'Root Vegetables', 
             totalRevenue: 15600, 
             unitsSold: 178, 
-            averageRating: 4.4, 
             growthRate: 15.7,
             profitability: 35.4 
           }
         ],
         productMetrics: {
           totalProductsListed: 156,
-          activeProducts: 142,
-          averageRating: 4.4,
-          totalReviews: 892
+          activeProducts: 142
         }
       });
     }
@@ -198,8 +173,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
       revenue: product.revenue,
       unitsSold: product.unitsSold,
       profitMargin: `${product.profitMargin}%`,
-      rating: product.rating,
-      reviews: product.reviews,
       growth: `${product.growth > 0 ? '+' : ''}${product.growth}%`
     }));
 
@@ -211,8 +184,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
       { header: 'Revenue', dataKey: 'revenue' },
       { header: 'Units Sold', dataKey: 'unitsSold' },
       { header: 'Profit Margin', dataKey: 'profitMargin' },
-      { header: 'Rating', dataKey: 'rating' },
-      { header: 'Reviews', dataKey: 'reviews' },
       { header: 'Growth', dataKey: 'growth' }
     ];
 
@@ -249,7 +220,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
               <option value="revenue">Sort by Revenue</option>
               <option value="units">Sort by Units Sold</option>
               <option value="profit">Sort by Profit Margin</option>
-              <option value="rating">Sort by Rating</option>
             </select>
             <button
               onClick={() => handleExportProductReport('pdf')}
@@ -282,32 +252,17 @@ const ProductPerformanceReport = ({ dateRange }) => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm">Average Rating</p>
-              <p className="text-2xl font-bold">{performanceData.productMetrics.averageRating}</p>
-              <div className="flex items-center mt-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`h-3 w-3 ${i < Math.floor(performanceData.productMetrics.averageRating) ? 'text-yellow-300 fill-current' : 'text-green-200'}`} />
-                ))}
-              </div>
-            </div>
-            <Star className="h-8 w-8 text-green-200" />
-          </div>
-        </div>
-
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm">Total Reviews</p>
-              <p className="text-2xl font-bold">{performanceData.productMetrics.totalReviews}</p>
+              <p className="text-purple-100 text-sm">Total Products</p>
+              <p className="text-2xl font-bold">{performanceData.productMetrics.totalProductsListed}</p>
               <div className="flex items-center mt-1 text-purple-100">
-                <ThumbsUp className="h-3 w-3 mr-1" />
-                <span className="text-xs">94% positive</span>
+                <Package className="h-3 w-3 mr-1" />
+                <span className="text-xs">{performanceData.productMetrics.activeProducts} active</span>
               </div>
             </div>
-            <Eye className="h-8 w-8 text-purple-200" />
+            <Package className="h-8 w-8 text-purple-200" />
           </div>
         </div>
 
@@ -345,14 +300,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
                     <div>
                       <h4 className="font-medium text-gray-900">{product.name}</h4>
                       <p className="text-sm text-gray-600 capitalize">{product.category.replace('-', ' ')}</p>
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`h-3 w-3 ${i < Math.floor(product.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} />
-                          ))}
-                        </div>
-                        <span className="text-xs text-gray-600 ml-1">({product.reviews})</span>
-                      </div>
                     </div>
                   </div>
                   <div className="text-right">
@@ -384,11 +331,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
                     <p className="text-sm text-gray-600 capitalize">{product.category.replace('-', ' ')}</p>
                     <div className="flex items-center mt-1">
                       <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`h-3 w-3 ${i < Math.floor(product.rating) ? 'text-yellow-500 fill-current' : 'text-gray-300'}`} />
-                        ))}
-                      </div>
-                      <span className="text-xs text-gray-600 ml-1">({product.reviews})</span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -443,7 +385,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Category</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Revenue</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Units Sold</th>
-                <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Avg Rating</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Growth Rate</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Profitability</th>
               </tr>
@@ -454,12 +395,6 @@ const ProductPerformanceReport = ({ dateRange }) => {
                   <td className="py-3 px-3 text-sm font-medium text-gray-900">{category.category}</td>
                   <td className="py-3 px-3 text-sm text-gray-900">${category.totalRevenue.toLocaleString()}</td>
                   <td className="py-3 px-3 text-sm text-gray-900">{category.unitsSold}</td>
-                  <td className="py-3 px-3">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current mr-1" />
-                      <span className="text-sm text-gray-900">{category.averageRating}</span>
-                    </div>
-                  </td>
                   <td className="py-3 px-3">
                     <div className={`inline-flex items-center text-sm ${
                       category.growthRate >= 0 ? 'text-green-600' : 'text-red-600'
@@ -504,7 +439,7 @@ const ProductPerformanceReport = ({ dateRange }) => {
             </div>
             <div className="flex items-center text-green-700">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Leafy greens have highest customer satisfaction
+              Leafy greens have highest profit margins
             </div>
             <div className="flex items-center text-green-700">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -525,7 +460,7 @@ const ProductPerformanceReport = ({ dateRange }) => {
             </div>
             <div className="flex items-center text-red-700">
               <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
-              Some products have low review scores
+              Some products have low sales volumes
             </div>
             <div className="flex items-center text-red-700">
               <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>

@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Function to generate unique notification ID
 function generateNotificationId() {
   const timestamp = Date.now().toString();
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -58,7 +57,6 @@ const notificationSchema = new mongoose.Schema(
     emailSentAt: {
       type: Date,
     },
-    // Track which users have read this notification
     readBy: {
       type: [{
         userId: String,
@@ -69,7 +67,6 @@ const notificationSchema = new mongoose.Schema(
       }],
       default: []
     },
-    // General read status (for backward compatibility)
     isRead: {
       type: Boolean,
       default: false

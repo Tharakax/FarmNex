@@ -80,55 +80,6 @@ const productSchema = new mongoose.Schema({
     default: 'kg'
   },
   images: [],
-  ratings: {
-    type: Number,
-    default: 0
-  },
-  numOfReviews: {
-    type: Number,
-    default: 0
-  },
-  reviews: [
-    {
-      user: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'User',
-        required: true
-      },
-      name: {
-        type: String,
-        required: true
-      },
-      rating: {
-        type: Number,
-        required: true
-      },
-      comment: {
-        type: String,
-        required: true
-      }
-    }
-  ],
-  // Simple per-user star ratings (no comments)
-  userRatings: [
-    {
-      user: {
-        type: mongoose.Schema.ObjectId,
-        ref: 'User',
-        required: true
-      },
-      rating: {
-        type: Number,
-        min: 1,
-        max: 5,
-        required: true
-      },
-      updatedAt: {
-        type: Date,
-        default: Date.now
-      }
-    }
-  ],
   createdAt: {
     type: Date,
     default: Date.now

@@ -30,7 +30,6 @@ export const createRecipe = async (req, res) => {
       type: payload.type || 'Vegetarian',
       meal: Array.isArray(payload.meal) ? payload.meal : String(payload.meal || '').split(',').map(s=>s.trim()).filter(Boolean),
       time: String(payload.time || ''),
-      rating: payload.rating != null ? Number(payload.rating) : 0,
     });
     res.status(201).json({ success: true, recipe });
   } catch (error) {

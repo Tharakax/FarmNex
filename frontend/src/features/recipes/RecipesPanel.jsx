@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Filter, Clock, Users, Star, ChefHat, Leaf } from 'lucide-react';
+import { Search, Filter, Clock, Users, ChefHat, Leaf } from 'lucide-react';
 
 const sampleRecipes = [
   {
@@ -10,7 +10,6 @@ const sampleRecipes = [
     category: 'vegetables',
     cookTime: '30 mins',
     servings: 4,
-    rating: 4.8,
     featured: true,
   },
   {
@@ -21,7 +20,6 @@ const sampleRecipes = [
     category: 'dairy',
     cookTime: '10 mins',
     servings: 2,
-    rating: 4.9,
     featured: true,
   },
   {
@@ -32,7 +30,6 @@ const sampleRecipes = [
     category: 'vegetables',
     cookTime: '45 mins',
     servings: 6,
-    rating: 4.7,
   },
   {
     id: 4,
@@ -42,7 +39,6 @@ const sampleRecipes = [
     category: 'fruits',
     cookTime: '15 mins',
     servings: 2,
-    rating: 4.6,
   },
 ];
 
@@ -71,7 +67,6 @@ export default function RecipesPanel() {
     image: '',
     type: 'Vegetarian',
     meal: '', // comma separated
-    rating: 0,
   });
   const [addError, setAddError] = useState('');
   const [addSuccess, setAddSuccess] = useState('');
@@ -108,7 +103,6 @@ export default function RecipesPanel() {
           image: addForm.image,
           type: addForm.type,
           meal: addForm.meal,
-          rating: Number(addForm.rating) || 0,
           ingredients: '',
         }),
       });
@@ -117,7 +111,7 @@ export default function RecipesPanel() {
         throw new Error(data.message || 'Failed to add recipe');
       }
       setAddSuccess('Recipe added successfully. Open Recipe Manager to see it.');
-      setAddForm({ recipeId: '', title: '', description: '', image: '', type: 'Vegetarian', meal: '', rating: 0 });
+      setAddForm({ recipeId: '', title: '', description: '', image: '', type: 'Vegetarian', meal: '' });
     } catch (err) {
       setAddError(err.message);
     } finally {
@@ -161,9 +155,8 @@ export default function RecipesPanel() {
               </select>
             </div>
             <input className="border rounded-lg px-3 py-2" placeholder="Meals (comma separated)" value={addForm.meal} onChange={(e)=>setAddForm({...addForm, meal:e.target.value})} />
-            <input className="border rounded-lg px-3 py-2" type="number" min="0" max="5" step="0.1" placeholder="Rating" value={addForm.rating} onChange={(e)=>setAddForm({...addForm, rating:e.target.value})} />
             <div className="md:col-span-2 flex justify-end gap-2 mt-1">
-              <button type="button" onClick={()=>{setAddForm({ recipeId:'', title:'', description:'', image:'', type:'Vegetarian', meal:'', rating:0}); setAddError(''); setAddSuccess('');}} className="px-3 py-2 border rounded-lg">Reset</button>
+              <button type="button" onClick={()=>{setAddForm({ recipeId:'', title:'', description:'', image:'', type:'Vegetarian', meal:''}); setAddError(''); setAddSuccess('');}} className="px-3 py-2 border rounded-lg">Reset</button>
               <button type="submit" disabled={adding} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60">{adding? 'Adding...' : 'Add Recipe'}</button>
             </div>
           </form>
@@ -216,10 +209,6 @@ export default function RecipesPanel() {
             <div className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-gray-900 line-clamp-1">{r.title}</h3>
-                <div className="flex items-center gap-1 text-amber-500">
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <span className="text-sm">{r.rating}</span>
-                </div>
               </div>
               <p className="text-sm text-gray-600 line-clamp-2">{r.description}</p>
               <div className="flex items-center justify-between">
