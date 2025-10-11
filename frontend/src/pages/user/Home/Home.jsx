@@ -32,7 +32,7 @@ import DashboardFeedbackList from '../../../features/dashboard/DashboardFeedback
 import DashboardBrowseProducts from '../../../features/dashboard/DashboardBrowseProducts';
 import DashboardShoppingCart from '../../../features/dashboard/DashboardShoppingCart';
 import PaymentHistory from '../../../features/dashboard/PaymentHistory';
-import ProductStarRatings from '../../../features/dashboard/ProductStarRatings.jsx';
+//import ProductStarRatings from '../../../features/dashboard/ProductStarRatings.jsx';
 import NotificationBell from '../../../features/notifications/NotificationBell';
 import { getLoggedInUser } from '../../../utils/userUtils';
 import { getCart } from '../../../utils/cart';
@@ -324,7 +324,7 @@ const CustomerDashboard = () => {
       case 'payments': return <PaymentHistory />;
       case 'feedback': return (
         <div>
-          <ProductStarRatings />
+         
           <DashboardFeedbackList 
             user={user} 
             onNewFeedback={() => setShowFeedbackForm(true)}
