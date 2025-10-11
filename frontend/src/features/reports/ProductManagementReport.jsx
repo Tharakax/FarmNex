@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   TrendingUp,
   TrendingDown,
-  Star,
   ShoppingCart,
   DollarSign,
   Package,
@@ -45,8 +44,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       totalRevenue: 0,
       totalUnitsSold: 0,
       averageOrderValue: 0,
-      averageRating: 0,
-      totalReviews: 0,
       conversionRate: 0
     },
     
@@ -120,10 +117,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       // Remove overstock category - all high stock items are now 'good' (in-stock)
       // else if (currentStock > minimumStock * 3) stockLevel = 'overstock';
       
-      // Generate realistic ratings
-      const rating = 3.5 + (Math.random() * 1.5);
-      const reviews = Math.floor(Math.random() * 100) + 10;
-      
       return {
         name: product.name,
         category: product.category,
@@ -134,8 +127,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
         unitsSold: unitsSold,
         revenue: revenue,
         profitMargin: Math.random() * 40 + 10, // Mock profit margin 10-50%
-        rating: parseFloat(rating.toFixed(1)),
-        reviews: reviews,
         growth: (Math.random() - 0.5) * 40, // Growth between -20% to +20%
         unit: product.unit || 'kg',
         currentStock: currentStock,
@@ -154,8 +145,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     const totalRevenue = transformedProducts.reduce((sum, product) => sum + product.revenue, 0);
     const totalUnitsSold = transformedProducts.reduce((sum, product) => sum + product.unitsSold, 0);
     const averageOrderValue = totalUnitsSold > 0 ? totalRevenue / totalUnitsSold : 0;
-    const averageRating = transformedProducts.reduce((sum, product) => sum + product.rating, 0) / transformedProducts.length;
-    const totalReviews = transformedProducts.reduce((sum, product) => sum + product.reviews, 0);
     
     // Calculate inventory status - overstock items are now counted as in-stock
     const inStock = transformedProducts.filter(p => p.stockLevel === 'good' || p.stockLevel === 'overstock').length;
@@ -168,8 +157,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       totalProducts: transformedProducts.length,
       bestSellers: bestSellers.length,
       worstPerformers: worstPerformers.length,
-      totalRevenue,
-      averageRating
+      totalRevenue
     });
     
     return {
@@ -179,8 +167,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
         totalRevenue: totalRevenue,
         totalUnitsSold: totalUnitsSold,
         averageOrderValue: parseFloat(averageOrderValue.toFixed(2)),
-        averageRating: parseFloat(averageRating.toFixed(1)),
-        totalReviews: totalReviews,
         conversionRate: 3.2 // Mock conversion rate
       },
       
@@ -225,33 +211,21 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
               category: category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' '),
               totalRevenue: 0,
               unitsSold: 0,
-              ratings: [],
               count: 0
             };
           }
           acc[category].totalRevenue += product.revenue;
           acc[category].unitsSold += product.unitsSold;
-          acc[category].ratings.push(product.rating);
           acc[category].count++;
           return acc;
         }, {})
       ).map(cat => ({
         ...cat,
-        averageRating: parseFloat((cat.ratings.reduce((a, b) => a + b, 0) / cat.ratings.length).toFixed(1)),
         growthRate: (Math.random() - 0.3) * 40, // Mock growth rate
         profitability: Math.random() * 30 + 15, // Mock profitability
         marketShare: (cat.totalRevenue / totalRevenue * 100)
       })),
       
-      topRatedProducts: [...transformedProducts]
-        .sort((a, b) => b.rating - a.rating)
-        .slice(0, 5)
-        .map(p => ({
-          name: p.name,
-          rating: p.rating,
-          reviews: p.reviews,
-          category: p.category
-        })),
       
       profitabilityAnalysis: bestSellers.map(p => ({
         name: p.name,
@@ -342,23 +316,21 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
       totalRevenue: 125420,
       totalUnitsSold: 2847,
       averageOrderValue: 44.07,
-      averageRating: 4.4,
-      totalReviews: 892,
       conversionRate: 3.2
     },
     
     bestSellers: [
-      { name: 'Organic Tomatoes', revenue: 15420, unitsSold: 245, profitMargin: 35.2, rating: 4.8, reviews: 89, growth: 22.5, category: 'vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1546094096-0df4bcaaa337?w=300&h=200&fit=crop', description: 'Fresh, organic tomatoes packed with nutrients and flavor' },
-      { name: 'Fresh Spinach', revenue: 12890, unitsSold: 189, profitMargin: 42.1, rating: 4.6, reviews: 67, growth: 18.7, category: 'leafy-greens', stockLevel: 'low', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300&h=200&fit=crop', description: 'Crisp, fresh spinach leaves perfect for salads and cooking' },
-      { name: 'Bell Peppers', revenue: 9650, unitsSold: 156, profitMargin: 28.9, rating: 4.4, reviews: 45, growth: 15.3, category: 'vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1525607551316-4a8e16d1f9ba?w=300&h=200&fit=crop', description: 'Colorful bell peppers with sweet taste and crunchy texture' },
-      { name: 'Organic Carrots', revenue: 8200, unitsSold: 134, profitMargin: 38.5, rating: 4.7, reviews: 56, growth: 12.8, category: 'root-vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300&h=200&fit=crop', description: 'Sweet, crunchy organic carrots rich in beta-carotene' },
-      { name: 'Mixed Salad Greens', revenue: 7850, unitsSold: 112, profitMargin: 45.2, rating: 4.5, reviews: 38, growth: 20.1, category: 'leafy-greens', stockLevel: 'critical', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&h=200&fit=crop', description: 'Premium mixed greens perfect for healthy salads' }
+      { name: 'Organic Tomatoes', revenue: 15420, unitsSold: 245, profitMargin: 35.2, growth: 22.5, category: 'vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1546094096-0df4bcaaa337?w=300&h=200&fit=crop', description: 'Fresh, organic tomatoes packed with nutrients and flavor' },
+      { name: 'Fresh Spinach', revenue: 12890, unitsSold: 189, profitMargin: 42.1, growth: 18.7, category: 'leafy-greens', stockLevel: 'low', image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300&h=200&fit=crop', description: 'Crisp, fresh spinach leaves perfect for salads and cooking' },
+      { name: 'Bell Peppers', revenue: 9650, unitsSold: 156, profitMargin: 28.9, growth: 15.3, category: 'vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1525607551316-4a8e16d1f9ba?w=300&h=200&fit=crop', description: 'Colorful bell peppers with sweet taste and crunchy texture' },
+      { name: 'Organic Carrots', revenue: 8200, unitsSold: 134, profitMargin: 38.5, growth: 12.8, category: 'root-vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=300&h=200&fit=crop', description: 'Sweet, crunchy organic carrots rich in beta-carotene' },
+      { name: 'Mixed Salad Greens', revenue: 7850, unitsSold: 112, profitMargin: 45.2, growth: 20.1, category: 'leafy-greens', stockLevel: 'critical', image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&h=200&fit=crop', description: 'Premium mixed greens perfect for healthy salads' }
     ],
     
     worstPerformers: [
-      { name: 'Exotic Mushrooms', revenue: 450, unitsSold: 8, profitMargin: 12.1, rating: 3.2, reviews: 5, growth: -15.2, category: 'vegetables', stockLevel: 'overstock', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=300&h=200&fit=crop', description: 'Specialty exotic mushrooms with unique flavors' },
-      { name: 'Dragon Fruit', revenue: 320, unitsSold: 6, profitMargin: 8.5, rating: 3.8, reviews: 3, growth: -8.7, category: 'fruits', stockLevel: 'overstock', image: 'https://images.unsplash.com/photo-1565281845370-1381c1b62181?w=300&h=200&fit=crop', description: 'Tropical dragon fruit with mild sweet taste' },
-      { name: 'Purple Cabbage', revenue: 280, unitsSold: 12, profitMargin: 15.3, rating: 3.5, reviews: 8, growth: -5.2, category: 'vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1594736797933-d0e3c6b6db42?w=300&h=200&fit=crop', description: 'Nutrient-dense purple cabbage with vibrant color' }
+      { name: 'Exotic Mushrooms', revenue: 450, unitsSold: 8, profitMargin: 12.1, growth: -15.2, category: 'vegetables', stockLevel: 'overstock', image: 'https://images.unsplash.com/photo-1509358271058-acd22cc93898?w=300&h=200&fit=crop', description: 'Specialty exotic mushrooms with unique flavors' },
+      { name: 'Dragon Fruit', revenue: 320, unitsSold: 6, profitMargin: 8.5, growth: -8.7, category: 'fruits', stockLevel: 'overstock', image: 'https://images.unsplash.com/photo-1565281845370-1381c1b62181?w=300&h=200&fit=crop', description: 'Tropical dragon fruit with mild sweet taste' },
+      { name: 'Purple Cabbage', revenue: 280, unitsSold: 12, profitMargin: 15.3, growth: -5.2, category: 'vegetables', stockLevel: 'good', image: 'https://images.unsplash.com/photo-1594736797933-d0e3c6b6db42?w=300&h=200&fit=crop', description: 'Nutrient-dense purple cabbage with vibrant color' }
     ],
     
     inventoryStatus: {
@@ -382,21 +354,14 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     ],
     
     categoryPerformance: [
-      { category: 'Vegetables', totalRevenue: 45200, unitsSold: 567, averageRating: 4.5, growthRate: 18.5, profitability: 32.1, marketShare: 35.2 },
-      { category: 'Leafy Greens', totalRevenue: 28900, unitsSold: 389, averageRating: 4.6, growthRate: 25.2, profitability: 41.8, marketShare: 22.8 },
-      { category: 'Fruits', totalRevenue: 22100, unitsSold: 234, averageRating: 4.3, growthRate: 12.8, profitability: 28.9, marketShare: 17.6 },
-      { category: 'Root Vegetables', totalRevenue: 15600, unitsSold: 178, averageRating: 4.4, growthRate: 15.7, profitability: 35.4, marketShare: 12.4 },
-      { category: 'Berries', totalRevenue: 8900, unitsSold: 145, averageRating: 4.2, growthRate: 8.3, profitability: 22.1, marketShare: 7.1 },
-      { category: 'Dairy Products', totalRevenue: 4720, unitsSold: 89, averageRating: 4.1, growthRate: 5.2, profitability: 18.7, marketShare: 3.8 }
+      { category: 'Vegetables', totalRevenue: 45200, unitsSold: 567, growthRate: 18.5, profitability: 32.1, marketShare: 35.2 },
+      { category: 'Leafy Greens', totalRevenue: 28900, unitsSold: 389, growthRate: 25.2, profitability: 41.8, marketShare: 22.8 },
+      { category: 'Fruits', totalRevenue: 22100, unitsSold: 234, growthRate: 12.8, profitability: 28.9, marketShare: 17.6 },
+      { category: 'Root Vegetables', totalRevenue: 15600, unitsSold: 178, growthRate: 15.7, profitability: 35.4, marketShare: 12.4 },
+      { category: 'Berries', totalRevenue: 8900, unitsSold: 145, growthRate: 8.3, profitability: 22.1, marketShare: 7.1 },
+      { category: 'Dairy Products', totalRevenue: 4720, unitsSold: 89, growthRate: 5.2, profitability: 18.7, marketShare: 3.8 }
     ],
     
-    topRatedProducts: [
-      { name: 'Organic Tomatoes', rating: 4.8, reviews: 89, category: 'vegetables' },
-      { name: 'Organic Carrots', rating: 4.7, reviews: 56, category: 'root-vegetables' },
-      { name: 'Fresh Spinach', rating: 4.6, reviews: 67, category: 'leafy-greens' },
-      { name: 'Mixed Salad Greens', rating: 4.5, reviews: 38, category: 'leafy-greens' },
-      { name: 'Bell Peppers', rating: 4.4, reviews: 45, category: 'vegetables' }
-    ],
     
     profitabilityAnalysis: [
       { name: 'Mixed Salad Greens', profitMargin: 45.2, grossProfit: 3548, netProfit: 2835 },
@@ -427,7 +392,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     { id: 'performance', label: 'Performance', icon: TrendingUp },
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'categories', label: 'Categories', icon: PieChart },
-    { id: 'quality', label: 'Quality', icon: Star },
     { id: 'financial', label: 'Financial', icon: DollarSign },
     { id: 'insights', label: 'Insights', icon: Target }
   ];
@@ -465,9 +429,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           status: getStatusText(product.stockLevel),
           image: product.image || null, // Keep original image URL for PDF embedding
           imageUrl: (product.image || 'No image available').substring(0, 500), // Limit URL length
-          revenue: revenue, // Keep as number for PDF
-          rating: product.rating || 0, // Keep as number for PDF
-          reviews: product.reviews || 0
+          revenue: revenue // Keep as number for PDF
         };
       });
 
@@ -488,8 +450,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           unit: product.unit,
           status: product.status,
           revenue: product.revenue, // Keep as number for calculations
-          rating: product.rating, // Keep as number for calculations
-          reviews: product.reviews,
           image: product.image // Include image URL for embedding
         }));
         
@@ -518,8 +478,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           { header: 'Stock Quantity', key: 'stockQuantity' },
           { header: 'Unit', key: 'unit' },
           { header: 'Status', key: 'status' },
-          { header: 'Rating', key: 'rating' },
-          { header: 'Reviews', key: 'reviews' },
           { header: 'Image URL', key: 'imageUrl' }
         ];
         
@@ -527,8 +485,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           try {
             return {
               ...item,
-              revenue: `LKR ${(item.revenue || 0).toLocaleString()}`,
-              rating: `${(item.rating || 0)}/5.0 (${item.reviews || 0} reviews)`
+              revenue: `LKR ${(item.revenue || 0).toLocaleString()}`
             };
           } catch (err) {
             console.error('Error processing item for Excel:', item, err);
@@ -624,12 +581,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           value={reportData.performanceMetrics.totalUnitsSold.toLocaleString()}
           icon={ShoppingCart}
           change="+8.3%"
-        />
-        <MetricCard
-          title="Average Rating"
-          value={reportData.performanceMetrics.averageRating}
-          icon={Star}
-          description={`${reportData.performanceMetrics.totalReviews} reviews`}
         />
       </div>
 
@@ -1077,7 +1028,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Category</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Revenue</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Units Sold</th>
-                <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Avg Rating</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Growth Rate</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Profitability</th>
                 <th className="text-left py-2 px-3 text-sm font-medium text-gray-700">Market Share</th>
@@ -1089,12 +1039,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
                   <td className="py-3 px-3 text-sm font-medium text-gray-900">{category.category}</td>
                   <td className="py-3 px-3 text-sm text-gray-900">LKR {category.totalRevenue.toLocaleString()}</td>
                   <td className="py-3 px-3 text-sm text-gray-900">{category.unitsSold.toLocaleString()}</td>
-                  <td className="py-3 px-3">
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current mr-1" />
-                      <span className="text-sm text-gray-900">{category.averageRating}</span>
-                    </div>
-                  </td>
                   <td className="py-3 px-3">
                     <div className={`inline-flex items-center text-sm ${
                       category.growthRate >= 0 ? 'text-green-600' : 'text-red-600'
@@ -1138,58 +1082,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
     </div>
   );
 
-  const renderQualityTab = () => (
-    <div className="space-y-6">
-      {/* Top Rated Products */}
-      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <Star className="h-5 w-5 text-yellow-600 mr-2" />
-          Top Rated Products
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {reportData.topRatedProducts.map((product, index) => (
-            <div key={product.name} className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-lg font-bold text-yellow-700">#{index + 1}</span>
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 text-yellow-500 fill-current mr-1" />
-                  <span className="font-bold text-yellow-700">{product.rating}</span>
-                </div>
-              </div>
-              <h4 className="font-medium text-gray-900">{product.name}</h4>
-              <p className="text-sm text-gray-600 capitalize">{product.category.replace('-', ' ')}</p>
-              <p className="text-xs text-yellow-600 mt-1">{product.reviews} reviews</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quality Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard
-          title="Overall Rating"
-          value={reportData.performanceMetrics.averageRating}
-          icon={Star}
-          change="+0.2 from last period"
-          description="Across all products"
-        />
-        <MetricCard
-          title="Total Reviews"
-          value={reportData.performanceMetrics.totalReviews}
-          icon={Users}
-          change="+145 new reviews"
-          description="Customer feedback"
-        />
-        <MetricCard
-          title="Customer Satisfaction"
-          value="94.2%"
-          icon={ThumbsUp}
-          change="+2.1% improvement"
-          description="Positive feedback rate"
-        />
-      </div>
-    </div>
-  );
 
   const renderInsightsTab = () => (
     <div className="space-y-6">
@@ -1207,7 +1099,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
             </div>
             <div className="flex items-center text-green-700">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Leafy greens have highest customer satisfaction (4.6★)
+              Leafy greens have highest customer satisfaction
             </div>
             <div className="flex items-center text-green-700">
               <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -1228,7 +1120,7 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
           <div className="space-y-2 text-sm">
             <div className="flex items-center text-yellow-700">
               <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
-              Exotic products underperforming (avg 3.5★)
+              Exotic products underperforming
             </div>
             <div className="flex items-center text-yellow-700">
               <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
@@ -1384,7 +1276,6 @@ const ProductManagementReport = ({ dateRange = '30' }) => {
         {activeTab === 'performance' && renderPerformanceTab()}
         {activeTab === 'inventory' && renderInventoryTab()}
         {activeTab === 'categories' && renderCategoriesTab()}
-        {activeTab === 'quality' && renderQualityTab()}
         {activeTab === 'financial' && renderPerformanceTab()}
         {activeTab === 'insights' && renderInsightsTab()}
       </div>

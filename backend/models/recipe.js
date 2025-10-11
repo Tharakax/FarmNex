@@ -15,7 +15,6 @@ const recipeSchema = new mongoose.Schema({
   type: { type: String, enum: ['Vegetarian', 'Non-Vegetarian'], default: 'Vegetarian' },
   meal: { type: [String], default: [] },
   time: { type: String, default: '' }, // e.g., "30 mins"
-  rating: { type: Number, default: 0, min: 0, max: 5 },
 }, { timestamps: true });
 
 recipeSchema.pre('save', async function(next) {

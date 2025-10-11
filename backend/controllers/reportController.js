@@ -345,8 +345,6 @@ export const getProductPerformanceReport = async (req, res) => {
         revenue: Math.round(perf.revenue),
         unitsSold: perf.unitsSold,
         profitMargin: product ? Math.round(((product.price - (product.cost || product.price * 0.6)) / product.price) * 100 * 10) / 10 : 30,
-        rating: product ? (product.rating || 4.0) : 4.0,
-        reviews: product ? (product.reviewCount || Math.floor(Math.random() * 100)) : 0,
         growth: Math.round((Math.random() * 40) - 10), // TODO: Calculate actual growth
         category: product ? product.category : 'uncategorized'
       };
@@ -367,21 +365,18 @@ export const getProductPerformanceReport = async (req, res) => {
         categoryPerformance[category] = {
           totalRevenue: 0,
           unitsSold: 0,
-          products: [],
-          totalRating: 0
+          products: []
         };
       }
       categoryPerformance[category].totalRevenue += product.revenue;
       categoryPerformance[category].unitsSold += product.unitsSold;
       categoryPerformance[category].products.push(product);
-      categoryPerformance[category].totalRating += product.rating;
     });
 
     const categoryPerformanceArray = Object.entries(categoryPerformance).map(([category, data]) => ({
       category,
       totalRevenue: Math.round(data.totalRevenue),
       unitsSold: data.unitsSold,
-      averageRating: data.products.length > 0 ? Math.round((data.totalRating / data.products.length) * 10) / 10 : 0,
       growthRate: Math.round((Math.random() * 30) - 5), // TODO: Calculate actual growth
       profitability: data.products.length > 0 ? Math.round(data.products.reduce((sum, p) => sum + p.profitMargin, 0) / data.products.length * 10) / 10 : 0
     })).sort((a, b) => b.totalRevenue - a.totalRevenue);
@@ -394,8 +389,6 @@ export const getProductPerformanceReport = async (req, res) => {
       productMetrics: {
         totalProductsListed: await Product.countDocuments(),
         activeProducts: await Product.countDocuments({ status: 'active' }),
-        averageRating: 4.4, // TODO: Calculate actual average
-        totalReviews: 892   // TODO: Calculate actual total
       }
     };
 

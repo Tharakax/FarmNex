@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Star, Filter, Search, Grid, List, Eye } from 'lucide-react';
+import { ShoppingCart, Filter, Search, Grid, List, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { productAPI } from '../../services/productAPI';
 import { addToCart, getCart } from '../../utils/cart';
@@ -356,10 +356,6 @@ const DashboardBrowseProducts = () => {
                           Rs. {product.price}
                         </span>
                         <span className="text-gray-500 text-sm">/{product.unit}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm text-gray-600">{product.ratings ? Number(product.ratings).toFixed(1) : '0.0'}</span>
                       </div>
                     </div>
 

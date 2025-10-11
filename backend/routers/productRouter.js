@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { getAllProducts, saveProduct, getProductById, deleteProduct, editProduct, rateProduct } from '../controllers/productController.js';
+import { getAllProducts, saveProduct, getProductById, deleteProduct, editProduct } from '../controllers/productController.js';
 
 const router = express.Router();
 
@@ -41,9 +41,6 @@ router.get("/", getAllProducts);
 router.get("/:id", getProductById);
 router.delete("/:id", deleteProduct);
 router.put("/:id", upload.single('image'), editProduct);
-
-// Rate a product (star-only)
-router.post("/:id/rating", rateProduct);
 
 
 

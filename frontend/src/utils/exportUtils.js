@@ -1851,13 +1851,6 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report with I
         pdf.text(`Stock: ${product.stockQuantity} ${product.unit || 'units'}`, infoStartX, yPosition + 45);
       }
       
-      // Rating (if available)
-      if (product.rating) {
-        pdf.setFontSize(10);
-        pdf.setTextColor(...BRAND_COLORS.warning);
-        const ratingText = typeof product.rating === 'string' ? product.rating : `${product.rating}/5.0`;
-        pdf.text(`Rating: ${ratingText}`, infoStartX + 80, yPosition + 45);
-      }
       
       // Status with color coding
       if (product.status) {

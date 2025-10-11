@@ -178,20 +178,6 @@ export const productAPI = {
     }
   },
 
-  // Submit a star rating for a product
-  rateProduct: async (productId, rating) => {
-    try {
-      const response = await api.post(`/api/product/${productId}/rating`, { rating });
-      return { success: true, data: response.data };
-    } catch (error) {
-      console.error('Error rating product:', error);
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Failed to rate product',
-        errorStatus: error.response?.status,
-      };
-    }
-  },
 
   // Delete product
   deleteProduct: async (id) => {
