@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from 'react-router-dom'; // 
+import { useNavigate } from 'react-router-dom'; 
+import Swal from "sweetalert2";
 import {
   ShoppingCart, 
   Package, 
@@ -137,18 +138,32 @@ const CustomerDashboard = () => {
   // Removed mock data - now using real data from APIs
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
+  Swal.fire({
+    title: "Are you sure?",
+    text: "You will be logged out of your account!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Yes, logout!",
+    cancelButtonText: "Cancel",
+  }).then((result) => {
+    if (result.isConfirmed) {
       // Clear authentication data
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('pendingUserEmail');
-      localStorage.removeItem('pendingUserId');
-      localStorage.removeItem('pendingUserRole');
-      
+      localStorage.removeItem("token");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("pendingUserEmail");
+      localStorage.removeItem("pendingUserId");
+      localStorage.removeItem("pendingUserRole");
+
       // Navigate to home page
-      navigate('/'); 
+      navigate("/");
+
+      // Optional: Show success alert
+      Swal.fire("Logged out!", "You have been logged out successfully.", "success");
     }
-  };
+  });
+};
 
   const addToCart = (productId) => {
     // This function is now handled by the DashboardBrowseProducts component

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import moment from 'moment';
 import DashboardFeedbackEdit from './DashboardFeedbackEdit';
 import DashboardFeedbackView from './DashboardFeedbackView';
-
+import Swal from "sweetalert2";
 const DashboardFeedbackList = ({ user, onNewFeedback }) => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,24 +64,46 @@ const DashboardFeedbackList = ({ user, onNewFeedback }) => {
     }
   }, [user?.email]);
 
-  // Handle delete feedback
   const handleDelete = async (feedbackId) => {
-    if (!window.confirm('Are you sure you want to delete this feedback?')) {
-      return;
+  try {
+    // Step 1: Show confirmation popup
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you really want to delete this feedback? This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    // Step 2: Stop if user cancels
+    if (!result.isConfirmed) return;
+
+    // Step 3: Optional loading popup while deleting
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    // Step 4: Delete feedback from backend
+    const response = await axios.delete(`http://localhost:3000/api/feedback/${feedbackId}`);
+
+    // Step 5: Stop loading and show success
+    if (response.data.success) {
+      Swal.fire("Deleted!", "Feedback has been deleted successfully.", "success");
+      fetchUserFeedback(); // Refresh the list
+    } else {
+      Swal.fire("Error!", "Failed to delete feedback.", "error");
     }
 
-    try {
-      const response = await axios.delete(`http://localhost:3000/api/feedback/${feedbackId}`);
-      if (response.data.success) {
-        toast.success('Feedback deleted successfully');
-        fetchUserFeedback(); // Refresh the list
-      }
-    } catch (error) {
-      console.error('Error deleting feedback:', error);
-      toast.error('Failed to delete feedback. It may be too old to delete.');
-    }
-  };
-
+  } catch (error) {
+    console.error("Error deleting feedback:", error);
+    Swal.fire("Error!", "Failed to delete feedback. It may be too old to delete.", "error");
+  }
+};
   // Handle edit feedback
   const handleEdit = (feedback) => {
     setSelectedFeedback(feedback);

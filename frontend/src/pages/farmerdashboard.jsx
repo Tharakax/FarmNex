@@ -8,6 +8,7 @@ import WeatherWidget from '../components/WeatherWidget';
 import WeatherDashboard from '../components/WeatherDashboard';
 import BackButton from '../components/common/BackButton';
 import NotificationBell from '../features/notifications/NotificationBell';
+import Swal from "sweetalert2";
 import {
   Home, 
   Wheat, 

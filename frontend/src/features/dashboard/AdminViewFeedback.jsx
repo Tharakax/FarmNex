@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Eye, Trash2, CheckCircle, XCircle, Search, Filter, ArrowLeft } from 'lucide-react';
-
+import Swal from "sweetalert2";
+import axios from "axios";
 const AdminViewFeedback = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -100,49 +101,70 @@ const AdminViewFeedback = () => {
   };
 
   const handleDelete = async (feedbackId) => {
-    if (!window.confirm('Are you sure you want to delete this feedback?')) return;
+  try {
+    // Step 1: Show confirmation popup
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you really want to delete this feedback? This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
 
-    try {
-      const response = await fetch(`http://localhost:3000/api/feedback/${feedbackId}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      if (data.success) {
-        alert('Feedback deleted successfully');
-        
-        // Remove the deleted feedback from state immediately
-        setFeedbacks(prevFeedbacks => 
-          prevFeedbacks.filter(feedback => feedback._id !== feedbackId)
-        );
-        
-        // Update stats
-        setStats(prevStats => {
-          const deletedFeedback = feedbacks.find(f => f._id === feedbackId);
-          const wasApproved = deletedFeedback?.isApproved === true;
-          
-          return {
-            total: prevStats.total - 1,
-            approved: wasApproved ? prevStats.approved - 1 : prevStats.approved,
-            pending: wasApproved ? prevStats.pending : prevStats.pending - 1
-          };
-        });
-        
-      } else {
-        alert(data.message || 'Failed to delete feedback.');
-      }
-    } catch (error) {
-      console.error('Error deleting feedback:', error);
-      alert(`Failed to delete feedback: ${error.message}`);
+    // Step 2: Stop if user cancels
+    if (!result.isConfirmed) return;
+
+    // Step 3: Optional loading popup while deleting
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    // Step 4: Perform DELETE request
+    const response = await fetch(`http://localhost:3000/api/feedback/${feedbackId}`, {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Step 5: Update state
+      setFeedbacks((prevFeedbacks) =>
+        prevFeedbacks.filter((feedback) => feedback._id !== feedbackId)
+      );
+
+      setStats((prevStats) => {
+        const deletedFeedback = feedbacks.find((f) => f._id === feedbackId);
+        const wasApproved = deletedFeedback?.isApproved === true;
+
+        return {
+          total: prevStats.total - 1,
+          approved: wasApproved ? prevStats.approved - 1 : prevStats.approved,
+          pending: wasApproved ? prevStats.pending : prevStats.pending - 1,
+        };
+      });
+
+      // Step 6: Show success popup
+      Swal.fire("Deleted!", "Feedback has been deleted successfully.", "success");
+    } else {
+      Swal.fire("Error!", data.message || "Failed to delete feedback.", "error");
+    }
+  } catch (error) {
+    console.error("Error deleting feedback:", error);
+    Swal.fire("Error!", `Failed to delete feedback: ${error.message}`, "error");
+  }
+};
 
   const handleView = (feedback) => {
     setSelectedFeedback(feedback);

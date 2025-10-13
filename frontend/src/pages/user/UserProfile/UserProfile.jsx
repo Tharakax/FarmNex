@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Edit3, User, Mail, Phone, Calendar, MapPin, Shield, UserCheck, Package, Truck, Save, X, } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const UserProfile = () => {
   const [user, setUser] = useState(null);
@@ -79,10 +80,10 @@ const UserProfile = () => {
 
       setUser(response.data.user || response.data);
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('Failed to update profile. Please try again.');
+      toast.success('Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }

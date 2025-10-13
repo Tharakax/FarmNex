@@ -1,6 +1,7 @@
 // frontend/src/pages/AdminQA.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from "sweetalert2";
 import { getQuestions, replyToQuestion, updateQuestion, deleteQuestion, generateReport } 
  from "../../../api/questionApi";
 
@@ -120,14 +121,45 @@ const AdminQA = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) return;
-    try {
-      await deleteQuestion(id);
-      fetchQuestions();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  try {
+    // Step 1: Confirmation popup
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you really want to delete this question? This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    // Step 2: If user cancels, stop
+    if (!result.isConfirmed) return;
+
+    // Step 3: Optional loading popup
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    // Step 4: Delete the question
+    await deleteQuestion(id);
+
+    // Step 5: Refresh questions
+    fetchQuestions();
+
+    // Step 6: Success alert
+    Swal.fire("Deleted!", "The question has been deleted.", "success");
+
+  } catch (err) {
+    console.error(err);
+
+    // Step 7: Error alert
+    Swal.fire("Error!", err.message || "Failed to delete question.", "error");
+  }
+};
 
   const handleDownloadReport = async (format) => {
     try {

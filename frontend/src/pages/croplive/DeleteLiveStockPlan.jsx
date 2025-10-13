@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getLivestockById, deleteLivestock } from "../../services/livestockService";
 import { useToast } from "./ToastProvider.jsx";
-
+import Swal from "sweetalert2";
 
 function DeleteLivestockPlan() {
   const { id } = useParams();
@@ -19,15 +19,44 @@ function DeleteLivestockPlan() {
   }, [id]);
 
   const handleDelete = async () => {
-    try {
-      await deleteLivestock(id);
-      addToast('Livestock plan deleted successfully', 'deleted');
-      navigate('/livestock');
-    } catch (err) {
-      console.error(err);
-      addToast('Failed to delete livestock plan', 'error');
-    }
-  };
+  // Step 1: Show confirmation popup
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this livestock plan? This action cannot be undone.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#3085d6",
+    cancelButtonColor: "#d33",
+    confirmButtonText: "Yes, delete it!",
+    cancelButtonText: "Cancel",
+  });
+
+  // Step 2: Stop if user cancels
+  if (!result.isConfirmed) return;
+
+  try {
+    // Step 3: Optional loading popup while deleting
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    // Step 4: Perform deletion
+    await deleteLivestock(id);
+
+    // Step 5: Show success popup
+    Swal.fire("Deleted!", "Livestock plan has been deleted successfully.", "success");
+
+    // Step 6: Navigate after deletion
+    navigate("/livestock");
+  } catch (err) {
+    console.error(err);
+
+    // Step 7: Show error popup
+    Swal.fire("Error!", "Failed to delete livestock plan.", "error");
+  }
+};
 
   const handleCancel = () => {
     navigate("/livestock");

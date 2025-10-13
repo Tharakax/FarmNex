@@ -7,7 +7,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AdminHeader from '../../../components/AdminHeader';
-
+import Swal from "sweetalert2";
 // User Card Component
 const UserCard = ({ user, onEdit, onDelete }) => {
   const getRoleIcon = (role) => {
@@ -203,23 +203,47 @@ function SmartFarmingUserDetails() {
   };
 
   const handleDelete = async (user) => {
-    const confirmDelete = window.confirm(`Delete ${user.fullName}?`);
-    if (!confirmDelete) return;
+  try {
+    // Step 1: Show confirmation popup
+    const result = await Swal.fire({
+      title: `Delete ${user.fullName}?`,
+      text: "This action cannot be undone!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
 
-    try {
-      // Get JWT token for authentication
-      const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      
-      await axios.delete(`http://localhost:3000/users/${user._id}`, { headers });
-      setAllUsers(allUsers.filter(u => u._id !== user._id));
-      //alert("User deleted successfully!");
-      toast.success("User deleted successfully!");
-    } catch (err) {
-     // alert("Delete failed");
-      toast.success("Delete failed!");
-    }
-  };
+    // Step 2: If user cancels, do nothing
+    if (!result.isConfirmed) return;
+
+    // Step 3: Optional loading alert while deleting
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    // Step 4: Perform delete request
+    const token = localStorage.getItem("token") || sessionStorage.getItem("authToken");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    await axios.delete(`http://localhost:3000/users/${user._id}`, { headers });
+
+    // Step 5: Update UI
+    setAllUsers(allUsers.filter(u => u._id !== user._id));
+
+    // Step 6: Show success popup
+    Swal.fire("Deleted!", `${user.fullName} has been deleted.`, "success");
+
+  } catch (err) {
+    console.error("Delete failed:", err);
+    // Step 7: Show error popup
+    Swal.fire("Error!", "Failed to delete user. Try again later.", "error");
+  }
+};
 
 const handlePrint = () => {
   const printWindow = window.open('', '_blank');

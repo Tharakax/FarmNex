@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BrandLogo from '../../../components/BrandLogo.jsx';
-
+import Swal from 'sweetalert2';
 import {
   User,
   Users,
@@ -158,35 +158,69 @@ function AdminDashboard() {
 
   // Handlers
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        // Get JWT token for authentication
-        const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        
-        await axios.delete(`http://localhost:3000/users/${userId}`, { headers });
-        setUsers(users.filter(user => user._id !== userId));
-        // Update stats after deletion
-        setDashboardStats(prev => ({
-          ...prev,
-          totalUsers: prev.totalUsers - 1
-        }));
-      } catch (err) {
-        alert("Delete failed");
-      }
+  // Step 1: Show confirmation popup
+  const result = await Swal.fire({
+    title: 'Are you sure?',
+    text: "You won't be able to revert this!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Yes, delete it!',
+  });
+
+  // Step 2: If user confirmed, continue deletion
+  if (result.isConfirmed) {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      await axios.delete(`http://localhost:3000/users/${userId}`, { headers });
+
+      // Remove user from UI
+      setUsers(users.filter((user) => user._id !== userId));
+      setDashboardStats((prev) => ({
+        ...prev,
+        totalUsers: prev.totalUsers - 1,
+      }));
+
+      // Step 3: Show success message
+      Swal.fire('Deleted!', 'User has been deleted successfully.', 'success');
+    } catch (err) {
+      // Step 4: Show error alert if something goes wrong
+      Swal.fire('Error!', 'Failed to delete the user.', 'error');
     }
-  };
+  }
+};
 
   const handleViewUser = (user) => {
     setSelectedUser(user);
     setShowUserModal(true);
   };
 
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
+ const handleLogout = () => {
+  Swal.fire({
+    title: 'Are you sure?',
+    text: 'You will be logged out of your account!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Yes, logout!',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // Optional: clear tokens or session
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('authToken');
+
+      // Navigate to home/login page
       navigate('/');
+
+      // Show success alert after logout
+      Swal.fire('Logged out!', 'You have been logged out successfully.', 'success');
     }
-  };
+  });
+};
 
   const filteredUsers = users.filter(user =>
   (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
