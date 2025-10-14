@@ -22,7 +22,8 @@ const DashboardFeedbackForm = ({ isOpen, onClose, onSubmitSuccess, user }) => {
     'Website',
     'General',
     'Bug Report',
-    'Feature Request'
+    'Feature Request',
+    'Other'
   ];
 
   const handleInputChange = (e) => {
