@@ -217,4 +217,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server has started, running on port ${PORT}`);
     console.log(`Health check available at: http://localhost:${PORT}/api/health`);
     console.log(`Order API available at: http://localhost:${PORT}/api/order`);
+    console.log(`LLM provider: ${process.env.LLM_PROVIDER || 'none'} (model: ${process.env.LLM_MODEL || 'default'})`);
 });

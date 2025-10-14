@@ -16,8 +16,8 @@ router.post('/chat', async (req, res) => {
       });
     }
 
-    // Generate intelligent response
-    const result = await chatbotService.generateResponse(message, userId);
+    // Generate intelligent response (pass conversation context for better answers)
+    const result = await chatbotService.generateResponse(message, userId, context || {});
 
     res.json({
       success: true,
@@ -206,6 +206,38 @@ router.get('/health', (req, res) => {
       timestamp: new Date().toISOString()
     }
   });
+});
+
+// LLM diagnostics endpoint
+router.get('/llm-status', (req, res) => {
+  try {
+    const llm = chatbotService.llmService;
+    res.json({
+      success: true,
+      data: {
+        enabled: !!(llm && llm.isEnabled && llm.isEnabled()),
+        provider: llm?.provider || 'none',
+        model: llm?.model || null
+      }
+    });
+  } catch (e) {
+    res.json({ success: false, error: 'Unable to determine LLM status' });
+  }
+});
+
+// LLM roundtrip test (no secrets returned). Useful to verify outbound works.
+router.get('/llm-test', async (req, res) => {
+  try {
+    const llm = chatbotService.llmService;
+    const enabled = !!(llm && llm.isEnabled && llm.isEnabled());
+    if (!enabled) {
+      return res.json({ success: true, data: { enabled, response: null } });
+    }
+    const ans = await llm.generateAnswer('Explain black holes in one short paragraph.', { });
+    res.json({ success: true, data: { enabled, sampleLength: ans?.response?.length || 0 } });
+  } catch (e) {
+    res.json({ success: false, error: e.message || 'LLM call failed' });
+  }
 });
 
 // Get available training materials for chatbot context
