@@ -1980,7 +1980,6 @@ export const exportReceiptToPDF = async (order, filename = 'receipt') => {
       align: 'center', 
       titleFontSize: 20, 
       tileSize: 14, 
-      subtitle: `Receipt #${order._id || order.id}`,
       titleColor: BRAND_COLORS.primary 
     });
 
@@ -2001,7 +2000,6 @@ export const exportReceiptToPDF = async (order, filename = 'receipt') => {
     
     // Compact layout - all info in one row
     const orderInfo = [
-      `ID: ${order._id || order.id}`,
       `Date: ${new Date(order.createdAt).toLocaleDateString()}`,
       `Status: ${order.status || 'Completed'}`,
       `Payment: ${order.paymentMethod || 'Credit Card'}`
@@ -2010,7 +2008,7 @@ export const exportReceiptToPDF = async (order, filename = 'receipt') => {
     let xPos = 20;
     orderInfo.forEach((info, index) => {
       pdf.text(info, xPos, yPosition + 8);
-      xPos += (pageWidth - 40) / 4; // Distribute evenly across page
+      xPos += (pageWidth - 40) / orderInfo.length; // Distribute evenly across page
     });
     
     // Customer info on second row

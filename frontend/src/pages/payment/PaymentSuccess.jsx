@@ -110,9 +110,6 @@ export default function PaymentSuccess() {
           <p className="mt-2 text-lg text-gray-600">
             Thank you for your order. Your payment has been processed successfully.
           </p>
-          <p className="text-sm text-gray-500 mt-1">
-            Order ID: {orderId}
-          </p>
         </div>
 
         {/* Claim banner for guest orders */}
