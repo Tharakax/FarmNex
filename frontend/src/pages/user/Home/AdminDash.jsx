@@ -133,7 +133,7 @@ function AdminDashboard() {
           totalUsers: totalUsers,
           activeFarms: farmerCount,
           totalCrops: Math.floor(farmerCount * 1.2), // Estimate based on farmers
-          monthlyRevenue: `$${(totalUsers * 150).toLocaleString()}` // Estimate
+          monthlyRevenue: `${(totalUsers * 150).toLocaleString()} LKR` // Estimate
         });
         
         setError(null);
