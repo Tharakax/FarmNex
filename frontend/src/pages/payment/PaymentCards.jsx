@@ -1,103 +1,128 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Plus, Trash2, Star, StarOff, Loader, AlertCircle, Check, X } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Star, StarOff, Loader, AlertCircle, Check, X, Edit } from 'lucide-react';
 import { showDeleteConfirm } from '../../utils/sweetAlert';
 
-// Mock API functions - replace with your actual API calls
+// API configuration
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+// Real API functions
 const api = {
   async getUserPaymentMethods() {
-    // Replace with actual API call
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: [
-            {
-              _id: '1',
-              paymentMethodId: 'pm_visa_4242',
-              cardBrand: 'visa',
-              last4: '4242',
-              expMonth: 12,
-              expYear: 2026,
-              billingDetails: { 
-                name: 'John Doe',
-                email: 'john@example.com',
-                address: {
-                  line1: '123 Main St',
-                  city: 'New York',
-                  state: 'NY',
-                  postal_code: '10001',
-                  country: 'US'
-                }
-              },
-              isDefault: true,
-              createdAt: new Date().toISOString()
-            },
-            {
-              _id: '2',
-              paymentMethodId: 'pm_master_8888',
-              cardBrand: 'mastercard',
-              last4: '8888',
-              expMonth: 8,
-              expYear: 2027,
-              billingDetails: { 
-                name: 'John Doe',
-                email: 'john@example.com'
-              },
-              isDefault: false,
-              createdAt: new Date().toISOString()
-            }
-          ]
-        });
-      }, 1000);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in.');
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/api/payment`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch payment methods`);
+    }
+    
+    return await response.json();
   },
 
   async addPaymentMethod(data) {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Simulate validation errors
-        if (!data.accountNumber) {
-          reject({ message: 'Account number is required' });
-          return;
-        }
-        if (!data.accountNumber || data.accountNumber.length !== 16) {
-          reject({ message: 'Account number must be exactly 16 digits' });
-          return;
-        }
-        if (!data.last4 || data.last4.length !== 4) {
-          reject({ message: 'Last 4 digits must be exactly 4 numbers' });
-          return;
-        }
-        
-        resolve({
-          success: true,
-          data: {
-            _id: Date.now().toString(),
-            ...data,
-            createdAt: new Date().toISOString()
-          }
-        });
-      }, 1000);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in.');
+    }
+    
+    // Generate a unique paymentMethodId for the card
+    const paymentMethodId = `pm_${data.cardBrand}_${data.last4}_${Date.now()}`;
+    
+    const requestData = {
+      paymentMethodId,
+      cardBrand: data.cardBrand,
+      last4: data.last4,
+      expMonth: data.expMonth,
+      expYear: data.expYear,
+      billingDetails: data.billingDetails,
+      isDefault: data.isDefault
+    };
+    
+    const response = await fetch(`${API_BASE_URL}/api/payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(requestData)
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}: Failed to add payment method`);
+    }
+    
+    return await response.json();
   },
 
   async deletePaymentMethod(id) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({ success: true });
-      }, 1000);
+    const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete payment method');
+    }
+    
+    return await response.json();
   },
 
   async updatePaymentMethod(id, data) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: { _id: id, ...data }
-        });
-      }, 1000);
+    const response = await fetch(`${API_BASE_URL}/api/payment/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        billingDetails: data.billingDetails,
+        isDefault: data.isDefault
+      })
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update payment method');
+    }
+    
+    return await response.json();
+  },
+
+  async setDefaultPaymentMethod(id) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found. Please log in.');
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/api/payment/${id}/default`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}: Failed to set default payment method`);
+    }
+    
+    return await response.json();
   }
 };
 
@@ -105,6 +130,7 @@ const PaymentCardsManager = () => {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingCard, setEditingCard] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -124,9 +150,16 @@ const PaymentCardsManager = () => {
       const response = await api.getUserPaymentMethods();
       if (response.success) {
         setCards(response.data);
+      } else {
+        setError(response.message || 'Failed to load payment methods');
       }
     } catch (err) {
-      setError('Failed to load payment methods');
+      console.error('Error loading payment methods:', err);
+      if (err.message.includes('401') || err.message.includes('Authentication')) {
+        setError('Please log in to view payment methods');
+      } else {
+        setError('Failed to load payment methods');
+      }
     } finally {
       setLoading(false);
     }
@@ -141,9 +174,41 @@ const PaymentCardsManager = () => {
         setCards(prev => [response.data, ...prev]);
         setShowAddForm(false);
         setSuccess('Payment method added successfully');
+      } else {
+        setError(response.message || 'Failed to add payment method');
       }
     } catch (err) {
-      setError(err.message || 'Failed to add payment method');
+      console.error('Error adding payment method:', err);
+      if (err.message.includes('401') || err.message.includes('Authentication')) {
+        setError('Please log in to add payment methods');
+      } else {
+        setError(err.message || 'Failed to add payment method');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditCard = (card) => {
+    setEditingCard(card);
+    setShowAddForm(true);
+  };
+
+  const handleUpdateCard = async (cardData) => {
+    setLoading(true);
+    clearMessages();
+    try {
+      const response = await api.updatePaymentMethod(editingCard._id, cardData);
+      if (response.success) {
+        setCards(prev => prev.map(card => 
+          card._id === editingCard._id ? response.data : card
+        ));
+        setShowAddForm(false);
+        setEditingCard(null);
+        setSuccess('Payment method updated successfully');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to update payment method');
     } finally {
       setLoading(false);
     }
@@ -173,7 +238,7 @@ const PaymentCardsManager = () => {
     setLoading(true);
     clearMessages();
     try {
-      const response = await api.updatePaymentMethod(cardId, { isDefault: true });
+      const response = await api.setDefaultPaymentMethod(cardId);
       if (response.success) {
         setCards(prev => prev.map(card => ({
           ...card,
@@ -286,10 +351,23 @@ const PaymentCardsManager = () => {
                           <p className="text-sm text-gray-600">
                             {card.billingDetails?.name} • Expires {formatExpiryDate(card.expMonth, card.expYear)}
                           </p>
+                          {card.billingDetails?.address && (
+                            <p className="text-xs text-gray-500">
+                              {card.billingDetails.address.city}, {card.billingDetails.address.state || card.billingDetails.address.province}
+                            </p>
+                          )}
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditCard(card)}
+                          disabled={loading}
+                          className="text-gray-400 hover:text-blue-500 disabled:opacity-50 transition-colors p-1"
+                          title="Edit card"
+                        >
+                          <Edit size={18} />
+                        </button>
                         {!card.isDefault && (
                           <button
                             onClick={() => handleSetDefault(card._id)}
@@ -322,9 +400,11 @@ const PaymentCardsManager = () => {
         <AddCardModal 
           onClose={() => {
             setShowAddForm(false);
+            setEditingCard(null);
             clearMessages();
           }}
-          onAdd={handleAddCard}
+          onAdd={editingCard ? handleUpdateCard : handleAddCard}
+          editingCard={editingCard}
           loading={loading}
         />
       )}
@@ -332,25 +412,25 @@ const PaymentCardsManager = () => {
   );
 };
 
-const AddCardModal = ({ onClose, onAdd, loading }) => {
+const AddCardModal = ({ onClose, onAdd, editingCard, loading }) => {
   const [formData, setFormData] = useState({
-    accountNumber: '',
-    cardBrand: 'visa',
-    last4: '',
-    expMonth: '',
-    expYear: '',
+    accountNumber: editingCard ? '**** **** **** ' + editingCard.last4 : '',
+    cardBrand: editingCard ? editingCard.cardBrand : '',
+    last4: editingCard ? editingCard.last4 : '',
+    expMonth: editingCard ? editingCard.expMonth : '',
+    expYear: editingCard ? editingCard.expYear : '',
     billingDetails: {
-      name: '',
-      email: '',
+      name: editingCard ? editingCard.billingDetails?.name || '' : '',
+      email: editingCard ? editingCard.billingDetails?.email || '' : '',
       address: {
-        line1: '',
-        city: '',
-        state: '',
-        postal_code: '',
-        country: 'US'
+        line1: editingCard ? editingCard.billingDetails?.address?.line1 || '' : '',
+        city: editingCard ? editingCard.billingDetails?.address?.city || '' : '',
+        province: editingCard ? (editingCard.billingDetails?.address?.state || editingCard.billingDetails?.address?.province || '') : '',
+        postal_code: editingCard ? editingCard.billingDetails?.address?.postal_code || '' : '',
+        country: 'Sri Lanka'
       }
     },
-    isDefault: false
+    isDefault: editingCard ? editingCard.isDefault : false
   });
 
   const [errors, setErrors] = useState({});
@@ -359,6 +439,19 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 21 }, (_, i) => currentYear + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  
+  // Sri Lankan provinces
+  const sriLankanProvinces = [
+    'Western Province',
+    'Central Province',
+    'Southern Province',
+    'Northern Province',
+    'Eastern Province',
+    'North Western Province',
+    'North Central Province',
+    'Uva Province',
+    'Sabaragamuwa Province'
+  ];
 
   // Function to detect card type based on card number
   const detectCardType = (cardNumber) => {
@@ -426,6 +519,7 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
       case 'billingDetails.name':
         if (!value) error = 'Cardholder name is required';
         else if (value.length < 2) error = 'Name must be at least 2 characters';
+        else if (/\d/.test(value)) error = 'Name cannot contain digits';
         break;
       case 'billingDetails.email':
         if (!value) error = 'Email is required';
@@ -439,17 +533,16 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
         if (!value) error = 'City is required';
         else if (value.length < 2) error = 'City must be at least 2 characters';
         break;
-      case 'billingDetails.address.state':
-        if (!value) error = 'State is required';
-        else if (value.length < 2) error = 'State must be at least 2 characters';
+      case 'billingDetails.address.province':
+        if (!value) error = 'Province is required';
         break;
       case 'billingDetails.address.postal_code':
         if (!value) error = 'Postal code is required';
-        else if (!/^\d{5}(-\d{4})?$/.test(value)) error = 'Invalid postal code format';
+        else if (!/^\d{5}$/.test(value)) error = 'Postal code must be 5 digits';
         break;
       case 'billingDetails.address.country':
         if (!value) error = 'Country is required';
-        else if (value.length < 2) error = 'Country must be at least 2 characters';
+        else if (value.toLowerCase() !== 'sri lanka') error = 'Country must be Sri Lanka';
         break;
       default:
         break;
@@ -463,15 +556,14 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
     
     // Validate all fields using the validateField function
     const fieldsToValidate = [
-      'accountNumber',
-      'cardBrand', 
+      ...(editingCard ? [] : ['accountNumber']), // Skip account number validation in edit mode
       'expMonth',
       'expYear',
       'billingDetails.name',
       'billingDetails.email',
       'billingDetails.address.line1',
       'billingDetails.address.city',
-      'billingDetails.address.state',
+      'billingDetails.address.province',
       'billingDetails.address.postal_code',
       'billingDetails.address.country'
     ];
@@ -491,11 +583,11 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
       }
     });
     
-    // Ensure last4 is generated from account number
-    if (formData.accountNumber && formData.accountNumber.length >= 4) {
-      newErrors.last4 = validateField('last4', formData.accountNumber.slice(-4));
-    } else {
-      newErrors.last4 = validateField('last4', '');
+    // Ensure last4 is properly set and validated
+    const last4Value = formData.last4 || (formData.accountNumber && formData.accountNumber.length >= 4 ? formData.accountNumber.slice(-4) : '');
+    const last4Error = validateField('last4', last4Value);
+    if (last4Error) {
+      newErrors.last4 = last4Error;
     }
     
     setErrors(newErrors);
@@ -550,7 +642,7 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
         if (field === 'accountNumber' && value.length >= 4) {
           newData.last4 = value.slice(-4);
           
-          // Auto-detect card type based on account number
+          // Auto-detect and store card type based on account number
           const detectedCardType = detectCardType(value);
           newData.cardBrand = detectedCardType;
         }
@@ -575,6 +667,13 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
     if (validateForm()) {
       // Remove accountNumber from data sent to API (only save last4)
       const { accountNumber, ...dataToSave } = formData;
+      
+      // Convert province to state for backend compatibility
+      if (dataToSave.billingDetails?.address?.province) {
+        dataToSave.billingDetails.address.state = dataToSave.billingDetails.address.province;
+        delete dataToSave.billingDetails.address.province;
+      }
+      
       onAdd(dataToSave);
     }
   };
@@ -586,20 +685,19 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
   // Check if form is valid for real-time feedback
   const isFormValid = () => {
     const requiredFields = [
-      'accountNumber',
-      'cardBrand', 
+      ...(editingCard ? [] : ['accountNumber']), // Skip account number validation in edit mode
       'expMonth',
       'expYear',
       'billingDetails.name',
       'billingDetails.email',
       'billingDetails.address.line1',
       'billingDetails.address.city',
-      'billingDetails.address.state',
+      'billingDetails.address.province',
       'billingDetails.address.postal_code',
       'billingDetails.address.country'
     ];
     
-    return requiredFields.every(field => {
+    const basicValidation = requiredFields.every(field => {
       let value;
       if (field.includes('.')) {
         const [parent, child, grandchild] = field.split('.');
@@ -611,6 +709,12 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
       const error = validateField(field, value);
       return !error;
     });
+    
+    // Also validate last4 field
+    const last4Value = formData.last4 || (formData.accountNumber && formData.accountNumber.length >= 4 ? formData.accountNumber.slice(-4) : '');
+    const last4Valid = !validateField('last4', last4Value);
+    
+    return basicValidation && last4Valid;
   };
 
   return (
@@ -618,7 +722,9 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
       <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-900">Add Payment Method</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              {editingCard ? 'Edit Payment Method' : 'Add Payment Method'}
+            </h2>
             <button
               onClick={onClose}
               disabled={loading}
@@ -631,23 +737,25 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Account Number *
+                {editingCard ? 'Card Number' : 'Account Number *'}
               </label>
               <div className="relative">
                 <input
                   type="text"
                   value={formData.accountNumber}
-                  onChange={(e) => handleInputChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 16))}
-                  onBlur={() => handleBlur('accountNumber')}
+                  onChange={editingCard ? undefined : (e) => handleInputChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 16))}
+                  onBlur={editingCard ? undefined : () => handleBlur('accountNumber')}
                   className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    editingCard ? 'border-gray-300 bg-gray-50 text-gray-600' :
                     getFieldError('accountNumber') ? 'border-red-500' : 
                     formData.accountNumber.length === 16 ? 'border-green-500' : 'border-gray-300'
                   }`}
-                  placeholder="1234567890123456"
+                  placeholder={editingCard ? "Card number cannot be changed" : "1234567890123456"}
                   maxLength={16}
-                  disabled={loading}
+                  disabled={loading || editingCard}
+                  readOnly={editingCard}
                 />
-                {formData.accountNumber && formData.accountNumber.length > 0 && (
+                {formData.accountNumber && formData.accountNumber.length > 0 && !editingCard && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     <div className={`w-6 h-4 rounded border-2 ${
                       formData.accountNumber.length === 16 && !getFieldError('accountNumber') 
@@ -662,47 +770,62 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                   </div>
                 )}
               </div>
-              {getFieldError('accountNumber') && (
+              {editingCard && (
+                <p className="mt-1 text-sm text-gray-500">Card number cannot be changed for security reasons</p>
+              )}
+              {!editingCard && getFieldError('accountNumber') && (
                 <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>
               )}
-              {formData.accountNumber && formData.accountNumber.length === 16 && !getFieldError('accountNumber') && (
-                <p className="mt-1 text-sm text-green-600">✓ Valid {formData.cardBrand.charAt(0).toUpperCase() + formData.cardBrand.slice(1)} card number</p>
+              {!editingCard && formData.accountNumber && formData.accountNumber.length === 16 && !getFieldError('accountNumber') && (
+                <p className="mt-1 text-sm text-green-600">✓ Valid card number</p>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Card Brand * {formData.accountNumber && formData.accountNumber.length > 0 && (
-                  <span className="text-xs text-blue-600">(Auto-detected)</span>
-                )}
-              </label>
-              <select
-                value={formData.cardBrand}
-                onChange={(e) => handleInputChange('cardBrand', e.target.value)}
-                onBlur={() => handleBlur('cardBrand')}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  getFieldError('cardBrand') ? 'border-red-500' : 
-                  formData.accountNumber && formData.accountNumber.length > 0 ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
-                }`}
-                disabled={loading}
-              >
-                <option value="">Select card brand</option>
-                <option value="visa">Visa</option>
-                <option value="mastercard">Mastercard</option>
-                <option value="amex">American Express</option>
-                <option value="discover">Discover</option>
-                <option value="jcb">JCB</option>
-                <option value="diners">Diners Club</option>
-                <option value="unionpay">UnionPay</option>
-                <option value="unknown">Unknown</option>
-              </select>
-              {getFieldError('cardBrand') && (
-                <p className="mt-1 text-sm text-red-600">{errors.cardBrand}</p>
-              )}
-              {formData.accountNumber && formData.accountNumber.length > 0 && formData.cardBrand && formData.cardBrand !== 'unknown' && (
-                <p className="mt-1 text-sm text-blue-600">✓ Auto-detected from card number</p>
-              )}
-            </div>
+            {/* Card Type Display */}
+            {formData.accountNumber && formData.accountNumber.length > 0 && formData.cardBrand && (
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-8 rounded flex items-center justify-center shadow-sm ${
+                    formData.cardBrand === 'visa' ? 'bg-gradient-to-r from-blue-600 to-blue-700' :
+                    formData.cardBrand === 'mastercard' ? 'bg-gradient-to-r from-red-500 to-yellow-500' :
+                    formData.cardBrand === 'amex' ? 'bg-gradient-to-r from-green-600 to-green-700' :
+                    formData.cardBrand === 'discover' ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                    formData.cardBrand === 'jcb' ? 'bg-gradient-to-r from-red-600 to-red-700' :
+                    formData.cardBrand === 'diners' ? 'bg-gradient-to-r from-purple-600 to-purple-700' :
+                    formData.cardBrand === 'unionpay' ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                    'bg-gradient-to-r from-gray-500 to-gray-600'
+                  }`}>
+                    <span className="text-white text-sm font-bold">
+                      {formData.cardBrand === 'visa' ? 'VISA' : 
+                       formData.cardBrand === 'mastercard' ? 'MC' : 
+                       formData.cardBrand === 'amex' ? 'AMEX' : 
+                       formData.cardBrand === 'discover' ? 'DISC' : 
+                       formData.cardBrand === 'jcb' ? 'JCB' : 
+                       formData.cardBrand === 'diners' ? 'DC' : 
+                       formData.cardBrand === 'unionpay' ? 'UNION' : '?'}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-base font-semibold text-gray-900">
+                      {formData.cardBrand === 'visa' ? 'Visa' : 
+                       formData.cardBrand === 'mastercard' ? 'Mastercard' : 
+                       formData.cardBrand === 'amex' ? 'American Express' : 
+                       formData.cardBrand === 'discover' ? 'Discover' : 
+                       formData.cardBrand === 'jcb' ? 'JCB' : 
+                       formData.cardBrand === 'diners' ? 'Diners Club' : 
+                       formData.cardBrand === 'unionpay' ? 'UnionPay' : 'Unknown Card Type'}
+                    </p>
+                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                      <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                      Auto-detected from card number
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -773,7 +896,7 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                   <input
                     type="text"
                     value={formData.billingDetails.name}
-                    onChange={(e) => handleInputChange('billingDetails.name', e.target.value)}
+                    onChange={(e) => handleInputChange('billingDetails.name', e.target.value.replace(/[0-9]/g, ''))}
                     onBlur={() => handleBlur('billingDetails.name')}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       getFieldError('billingDetails.name') ? 'border-red-500' : 
@@ -857,21 +980,28 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      State *
+                      Province *
                     </label>
-                    <input
-                      type="text"
-                      value={formData.billingDetails.address.state}
-                      onChange={(e) => handleInputChange('billingDetails.address.state', e.target.value)}
-                      onBlur={() => handleBlur('billingDetails.address.state')}
+                    <select
+                      value={formData.billingDetails.address.province}
+                      onChange={(e) => handleInputChange('billingDetails.address.province', e.target.value)}
+                      onBlur={() => handleBlur('billingDetails.address.province')}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        getFieldError('billingDetails.address.state') ? 'border-red-500' : 'border-gray-300'
+                        getFieldError('billingDetails.address.province') ? 'border-red-500' : 
+                        formData.billingDetails.address.province ? 'border-green-500' : 'border-gray-300'
                       }`}
-                      placeholder="NY"
                       disabled={loading}
-                    />
-                    {getFieldError('billingDetails.address.state') && (
-                      <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.state']}</p>
+                    >
+                      <option value="">Select Province</option>
+                      {sriLankanProvinces.map(province => (
+                        <option key={province} value={province}>{province}</option>
+                      ))}
+                    </select>
+                    {getFieldError('billingDetails.address.province') && (
+                      <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.province']}</p>
+                    )}
+                    {formData.billingDetails.address.province && !getFieldError('billingDetails.address.province') && (
+                      <p className="mt-1 text-sm text-green-600">✓ Province selected</p>
                     )}
                   </div>
                 </div>
@@ -884,16 +1014,21 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                     <input
                       type="text"
                       value={formData.billingDetails.address.postal_code}
-                      onChange={(e) => handleInputChange('billingDetails.address.postal_code', e.target.value)}
+                      onChange={(e) => handleInputChange('billingDetails.address.postal_code', e.target.value.replace(/\D/g, '').slice(0, 5))}
                       onBlur={() => handleBlur('billingDetails.address.postal_code')}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        getFieldError('billingDetails.address.postal_code') ? 'border-red-500' : 'border-gray-300'
+                        getFieldError('billingDetails.address.postal_code') ? 'border-red-500' : 
+                        formData.billingDetails.address.postal_code && formData.billingDetails.address.postal_code.length === 5 ? 'border-green-500' : 'border-gray-300'
                       }`}
-                      placeholder="10001"
+                      placeholder="12345"
+                      maxLength={5}
                       disabled={loading}
                     />
                     {getFieldError('billingDetails.address.postal_code') && (
                       <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.postal_code']}</p>
+                    )}
+                    {formData.billingDetails.address.postal_code && formData.billingDetails.address.postal_code.length === 5 && !getFieldError('billingDetails.address.postal_code') && (
+                      <p className="mt-1 text-sm text-green-600">✓ Valid postal code</p>
                     )}
                   </div>
 
@@ -903,18 +1038,12 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                     </label>
                     <input
                       type="text"
-                      value={formData.billingDetails.address.country}
-                      onChange={(e) => handleInputChange('billingDetails.address.country', e.target.value)}
-                      onBlur={() => handleBlur('billingDetails.address.country')}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        getFieldError('billingDetails.address.country') ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="US"
-                      disabled={loading}
+                      value="Sri Lanka"
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600"
+                      disabled={true}
                     />
-                    {getFieldError('billingDetails.address.country') && (
-                      <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.country']}</p>
-                    )}
+                    <p className="mt-1 text-xs text-gray-500">Fixed to Sri Lanka</p>
                   </div>
                 </div>
               </div>
@@ -939,23 +1068,44 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Form Progress</span>
                 <span className="text-sm text-gray-500">
-                  {Object.keys(formData).filter(key => {
-                    if (key === 'billingDetails') {
-                      const billing = formData.billingDetails;
-                      return billing.name && billing.email && 
-                             billing.address.line1 && billing.address.city && 
-                             billing.address.state && billing.address.postal_code && 
-                             billing.address.country;
-                    }
-                    return formData[key] && formData[key] !== '';
-                  }).length + Object.keys(formData.billingDetails).filter(key => {
-                    if (key === 'address') {
-                      const address = formData.billingDetails.address;
-                      return address.line1 && address.city && address.state && 
-                             address.postal_code && address.country;
-                    }
-                    return formData.billingDetails[key] && formData.billingDetails[key] !== '';
-                  }).length} / 11 fields completed
+                  {(() => {
+                    // Count only required fields, excluding isDefault checkbox
+                    const requiredFields = [
+                      ...(editingCard ? [] : ['accountNumber']), // Skip account number in edit mode
+                      'expMonth', 
+                      'expYear'
+                    ];
+                    
+                    const billingFields = [
+                      'billingDetails.name',
+                      'billingDetails.email',
+                      'billingDetails.address.line1',
+                      'billingDetails.address.city',
+                      'billingDetails.address.province',
+                      'billingDetails.address.postal_code',
+                      'billingDetails.address.country'
+                    ];
+                    
+                    let completedCount = 0;
+                    
+                    // Check top-level required fields
+                    requiredFields.forEach(field => {
+                      if (formData[field] && formData[field] !== '') {
+                        completedCount++;
+                      }
+                    });
+                    
+                    // Check billing fields
+                    if (formData.billingDetails.name) completedCount++;
+                    if (formData.billingDetails.email) completedCount++;
+                    if (formData.billingDetails.address.line1) completedCount++;
+                    if (formData.billingDetails.address.city) completedCount++;
+                    if (formData.billingDetails.address.province) completedCount++;
+                    if (formData.billingDetails.address.postal_code) completedCount++;
+                    if (formData.billingDetails.address.country) completedCount++;
+                    
+                    return `${completedCount} / ${editingCard ? '9' : '10'} fields completed`;
+                  })()}
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -964,23 +1114,34 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                     isFormValid() ? 'bg-green-500' : 'bg-blue-500'
                   }`}
                   style={{
-                    width: `${(Object.keys(formData).filter(key => {
-                      if (key === 'billingDetails') {
-                        const billing = formData.billingDetails;
-                        return billing.name && billing.email && 
-                               billing.address.line1 && billing.address.city && 
-                               billing.address.state && billing.address.postal_code && 
-                               billing.address.country;
-                      }
-                      return formData[key] && formData[key] !== '';
-                    }).length + Object.keys(formData.billingDetails).filter(key => {
-                      if (key === 'address') {
-                        const address = formData.billingDetails.address;
-                        return address.line1 && address.city && address.state && 
-                               address.postal_code && address.country;
-                      }
-                      return formData.billingDetails[key] && formData.billingDetails[key] !== '';
-                    }).length) * 9.09}%`
+                    width: `${(() => {
+                      // Count only required fields, excluding isDefault checkbox
+                      const requiredFields = [
+                        ...(editingCard ? [] : ['accountNumber']), // Skip account number in edit mode
+                        'expMonth', 
+                        'expYear'
+                      ];
+                      
+                      let completedCount = 0;
+                      
+                      // Check top-level required fields
+                      requiredFields.forEach(field => {
+                        if (formData[field] && formData[field] !== '') {
+                          completedCount++;
+                        }
+                      });
+                      
+                      // Check billing fields
+                      if (formData.billingDetails.name) completedCount++;
+                      if (formData.billingDetails.email) completedCount++;
+                      if (formData.billingDetails.address.line1) completedCount++;
+                      if (formData.billingDetails.address.city) completedCount++;
+                      if (formData.billingDetails.address.province) completedCount++;
+                      if (formData.billingDetails.address.postal_code) completedCount++;
+                      if (formData.billingDetails.address.country) completedCount++;
+                      
+                      return completedCount * (editingCard ? 11.11 : 10); // 100% / 9 fields = 11.11% per field in edit mode
+                    })()}%`
                   }}
                 ></div>
               </div>
@@ -997,8 +1158,8 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                 } disabled:opacity-50`}
               >
                 {loading ? <Loader className="animate-spin h-4 w-4" /> : null}
-                {loading ? 'Adding...' : 
-                 isFormValid() ? 'Add Payment Method' : 'Complete all fields'}
+                {loading ? (editingCard ? 'Updating...' : 'Adding...') : 
+                 isFormValid() ? (editingCard ? 'Update Payment Method' : 'Add Payment Method') : 'Complete all fields'}
               </button>
               <button
                 type="button"
