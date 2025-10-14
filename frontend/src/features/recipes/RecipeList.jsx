@@ -32,6 +32,10 @@ function RecipeList({ showHeader = true, publicView = false }) {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [selectedMeals, setSelectedMeals] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  // Modal state
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchRecipes = async () => {
     try {
@@ -123,6 +127,17 @@ function RecipeList({ showHeader = true, publicView = false }) {
     setSearchTerm("");
     setSelectedTypes([]);
     setSelectedMeals([]);
+  };
+
+  // Modal handlers
+  const openModal = (recipe) => {
+    setSelectedRecipe(recipe);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedRecipe(null);
+    setIsModalOpen(false);
   };
 
   const hasActiveFilters =
@@ -555,6 +570,7 @@ function RecipeList({ showHeader = true, publicView = false }) {
                         recipe={recipe}
                         onDelete={publicView ? undefined : handleDelete}
                         readOnly={publicView}
+                        onViewDetails={openModal}
                       />
                     ))
                   ) : (
@@ -578,6 +594,163 @@ function RecipeList({ showHeader = true, publicView = false }) {
           </div>
         </div>
       </div>
+
+      {/* Recipe Modal */}
+      {isModalOpen && selectedRecipe && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Blurred background */}
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+            onClick={closeModal}
+          ></div>
+          
+          {/* Modal content */}
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            {/* Close button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white shadow-lg hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Modal body */}
+            <div className="overflow-y-auto max-h-[90vh]">
+              {/* Recipe image */}
+              {selectedRecipe.image && (
+                <div className="relative h-64 md:h-80">
+                  <img
+                    src={selectedRecipe.image.startsWith('http') ? selectedRecipe.image : `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}${selectedRecipe.image.startsWith('/') ? '' : '/'}${selectedRecipe.image}`}
+                    alt={selectedRecipe.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://via.placeholder.com/800x400?text=No+Image';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                </div>
+              )}
+
+              <div className="p-6 md:p-8">
+                {/* Recipe header */}
+                <div className="mb-6">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 flex-1">
+                      {selectedRecipe.title}
+                    </h2>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
+                        {selectedRecipe.type || "Type"}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <p className="text-lg text-gray-600 leading-relaxed">
+                    {selectedRecipe.description}
+                  </p>
+                </div>
+
+                {/* Recipe details grid */}
+                <div className="grid md:grid-cols-2 gap-8 mb-8">
+                  {/* Left column */}
+                  <div className="space-y-6">
+                    {/* Cooking time */}
+                    {selectedRecipe.time && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Cooking Time
+                        </h3>
+                        <p className="text-gray-700">{selectedRecipe.time}</p>
+                      </div>
+                    )}
+
+                    {/* Meal types */}
+                    {selectedRecipe.meal && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l1.5-6m0 0h9.5" />
+                          </svg>
+                          Meal Type
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {(Array.isArray(selectedRecipe.meal) ? selectedRecipe.meal : selectedRecipe.meal.split(',').map(m => m.trim())).map((meal, index) => (
+                            <span key={index} className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700">
+                              {meal}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Instructions */}
+                    {selectedRecipe.instructions && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Instructions
+                        </h3>
+                        <div className="text-gray-700 whitespace-pre-line">
+                          {selectedRecipe.instructions}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right column */}
+                  <div>
+                    {/* Ingredients */}
+                    {selectedRecipe.ingredients && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Ingredients
+                        </h3>
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          {Array.isArray(selectedRecipe.ingredients) ? (
+                            <ul className="space-y-2">
+                              {selectedRecipe.ingredients.map((ingredient, index) => (
+                                <li key={index} className="flex items-start gap-2 text-gray-700">
+                                  <span className="w-2 h-2 bg-emerald-500 rounded-full mt-2 flex-shrink-0"></span>
+                                  <span>{ingredient}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-gray-700 whitespace-pre-line">{selectedRecipe.ingredients}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional notes */}
+                {selectedRecipe.notes && (
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                      </svg>
+                      Notes
+                    </h3>
+                    <p className="text-gray-700 whitespace-pre-line">{selectedRecipe.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
