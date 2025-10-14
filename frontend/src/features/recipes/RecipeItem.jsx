@@ -17,6 +17,8 @@ const resolveImageUrl = (img) => {
   if (s.startsWith('uploads/')) return `${BASE}/${s}`;
   // Fallback: assume file under uploads
   // Fallback: assume file under uploads
+    // Fallback: assume file under uploads
+
   return `${BASE}/uploads/${s}`;
 };
 
