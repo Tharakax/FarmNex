@@ -18,7 +18,6 @@ export default function AddNotification() {
     sendEmail: false,
   });
 
-  //Add
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -48,7 +47,7 @@ export default function AddNotification() {
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : value;
+    const newValue = type === "checkbox" ? checked : value;
     setInputs((s) => ({ ...s, [name]: newValue }));
 
     if (errors[name]) {
@@ -109,12 +108,21 @@ export default function AddNotification() {
         <div className="mb-6 flex items-center gap-3">
           <button
             type="button"
-            onClick={() => nav('/admin')}
+            onClick={() => nav("/admin")}
             aria-label="Back to Admin Dashboard"
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-              <path fillRule="evenodd" d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z" clipRule="evenodd" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-5 w-5"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z"
+                clipRule="evenodd"
+              />
             </svg>
           </button>
           <h1 className="text-3xl font-extrabold tracking-tight">
@@ -154,19 +162,6 @@ export default function AddNotification() {
 
           <div className="p-6 grid grid-cols-1 gap-6">
             <div className="space-y-5">
-              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="text-blue-500 text-lg">ℹ️</div>
-                  <div>
-                    <h4 className="text-sm font-medium text-blue-900">Auto-Generated ID</h4>
-                    <p className="text-sm text-blue-700 mt-1">
-                      The notification ID will be automatically generated when you create the notification.
-                      No need to provide one manually.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Title *
@@ -204,7 +199,6 @@ export default function AddNotification() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Audience *
@@ -212,9 +206,9 @@ export default function AddNotification() {
                   <div className="flex flex-col gap-3">
                     {AUDIENCE_OPTIONS.map((a) => {
                       const audienceInfo = {
-                        'FARMER': { desc: 'FarmStaff & Manager roles', icon: '🌾', label: 'Farmer' },
-                        'USER': { desc: 'Customer & DeliveryStaff roles', icon: '🛒', label: 'User' },
-                        'BOTH': { desc: '', icon: '👥', label: 'Farmer & User' },
+                        FARMER: { desc: "", icon: "🌾", label: "Farmer" },
+                        USER: { desc: "", icon: "🛒", label: "User" },
+                        BOTH: { desc: "", icon: "👥", label: "Farmer & User" },
                       };
                       return (
                         <label
@@ -231,7 +225,10 @@ export default function AddNotification() {
                           />
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{audienceInfo[a]?.icon} {audienceInfo[a]?.label || a}</span>
+                              <span className="font-medium">
+                                {audienceInfo[a]?.icon}{" "}
+                                {audienceInfo[a]?.label || a}
+                              </span>
                             </div>
                             <div className="text-xs text-gray-500 mt-0.5">
                               {audienceInfo[a]?.desc}
@@ -243,7 +240,6 @@ export default function AddNotification() {
                   </div>
                 </div>
 
-               
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Type *
@@ -268,7 +264,6 @@ export default function AddNotification() {
                   </div>
                 </div>
 
-                
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Priority *
@@ -309,11 +304,10 @@ export default function AddNotification() {
                       📧 Send Email Notifications
                     </label>
                     <p className="text-sm text-gray-600 mt-1">
-                      When enabled, this notification will also be sent via email to all users in the selected audience who have email notifications enabled.
+                      When enabled, this notification will also be sent via
+                      email to all users in the selected audience who have email
+                      notifications enabled.
                     </p>
-                    <div className="mt-2 text-xs text-gray-500">
-                      <strong>Note:</strong> Email configuration must be set up in the server environment variables for this to work.
-                    </div>
                   </div>
                 </div>
               </div>

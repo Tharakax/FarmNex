@@ -200,7 +200,9 @@ function NotificationList() {
     <div>
       <Navigation />
       <div className="max-w-7xl mx-auto px-4 pt-30 sm:px-6 lg:px-8 py-10">
+        {/* Header Section - Balanced Layout */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          {/* Left Side - Title */}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -212,73 +214,90 @@ function NotificationList() {
                 <path fillRule="evenodd" d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z" clipRule="evenodd" />
               </svg>
             </button>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+            
+            <h1 className=" md:text-2xl font-bold tracking-tight ">
               <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
                 Notification Management
               </span>
             </h1>
+          
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="md:hidden inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
-                         bg-white text-gray-700 border border-gray-300 shadow-sm
-                         hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
-              </svg>
-              Filters
-              {hasActiveFilters && (
-                <span className="bg-emerald-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {selectedAudiences.length + selectedTypes.length + selectedPriorities.length + (searchTerm ? 1 : 0)}
-                </span>
+          {/* Right Side - Search and Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            {/* Search Bar */}
+            <div className="relative flex-1 md:flex-initial">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search notifications..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-gray-300 
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 
+                           bg-white text-gray-900 placeholder-gray-500"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              {/* Download PDF Button */}
+              {filteredNotifications.length > 0 && (
+                <button
+                  onClick={handleDownloadPDF}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
+                           border border-gray-300 bg-white text-gray-700 shadow-sm
+                           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                           transition-colors duration-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  Download All (PDF)
+                </button>
               )}
-            </button>
 
-            <input
-              type="text"
-              placeholder="Search notifications..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="rounded-xl border border-gray-300 px-4 py-2 text-sm 
-                         focus:outline-none focus:ring-2 focus:ring-emerald-500 
-                         shadow-sm w-full md:w-60"
-            />
+              {/* Add Notification Button */}
+              <Link to="/notifications/add" className="flex">
+                <button
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
+                             bg-emerald-600 text-white shadow-sm
+                             hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                             transition-colors duration-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="CurrentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add Recipe
+                </button>
+              </Link>
 
-            {filteredNotifications.length > 0 && (
+              {/* Mobile Filter Button */}
               <button
-                onClick={handleDownloadPDF}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
-                         bg-emerald-600 text-white shadow-sm shadow-emerald-200
-                         hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                         active:scale-[0.98] transition"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="md:hidden inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
+                           bg-white text-gray-700 border border-gray-300 shadow-sm
+                           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
                 </svg>
-                Download PDF
+                Filters
+                {hasActiveFilters && (
+                  <span className="bg-emerald-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {selectedAudiences.length + selectedTypes.length + selectedPriorities.length + (searchTerm ? 1 : 0)}
+                  </span>
+                )}
               </button>
-            )}
-
-            <Link to="/notifications/add">
-              <button
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold
-                           bg-emerald-600 text-white shadow-sm shadow-emerald-200
-                           hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                           active:scale-[0.98] transition"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="CurrentColor">
-                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Add Notification
-              </button>
-            </Link>
+            </div>
           </div>
         </div>
-        
 
+        {/* Rest of the component remains the same */}
         <div className="flex flex-col md:flex-row gap-6">
           <div className={`${isFilterOpen ? 'block' : 'hidden'} md:block w-full md:w-64 shrink-0`}>
             <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
@@ -384,7 +403,7 @@ function NotificationList() {
                   ) : (
                     <div className="col-span-full rounded-2xl border border-dashed border-gray-300 p-10 text-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 极 0 11-6 0v-1m6 极H9" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                       </svg>
                       <p className="mt-4 text-gray-500">No notifications found. Try adjusting your filters.</p>
                       {hasActiveFilters && (

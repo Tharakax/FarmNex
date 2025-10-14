@@ -169,23 +169,7 @@ export default function UpdateNotification() {
 
           <div className="p-6 grid grid-cols-1 gap-6">
             <div className="space-y-5">
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notification ID (Read-only)
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    name="notificationId"
-                    value={inputs.notificationId}
-                    readOnly
-                    className="w-full rounded-xl border border-gray-300 bg-gray-100 px-4 py-2.5 text-sm text-gray-600 cursor-not-allowed"
-                  />
-                  <div className="text-gray-500 text-sm">🔒</div>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  The notification ID is automatically generated and cannot be modified.
-                </p>
-              </div>
+              
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -232,8 +216,8 @@ export default function UpdateNotification() {
                   <div className="flex flex-col gap-3">
                     {AUDIENCE_OPTIONS.map((a) => {
                       const audienceInfo = {
-                        'FARMER': { desc: 'FarmStaff & Manager roles', icon: '🌾', label: 'Farmer' },
-                        'USER': { desc: 'Customer & DeliveryStaff roles', icon: '🛒', label: 'User' },
+                        'FARMER': { desc: '', icon: '🌾', label: 'Farmer' },
+                        'USER': { desc: '', icon: '🛒', label: 'User' },
                         'BOTH': { desc: '', icon: '👥', label: 'Farmer & User' },
                       };
                       return (
@@ -337,11 +321,7 @@ export default function UpdateNotification() {
                         ✅ <span>Email has already been sent for this notification</span>
                       </div>
                     )}
-                    {!inputs.emailSent && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        <strong>Note:</strong> Email configuration must be set up in the server environment variables for this to work.
-                      </div>
-                    )}
+                  
                   </div>
                 </div>
               </div>

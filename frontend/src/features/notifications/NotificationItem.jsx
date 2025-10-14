@@ -10,15 +10,15 @@ export default function NotificationItem({ notification, onDelete }) {
     switch (priority) {
       case "HIGH": return "bg-red-100 text-red-800 border-red-200";
       case "MEDIUM": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "LOW": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "LOW": return "bg-green-50 text-green-700 border-green-100";
       default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   const getTypeColor = (type) => {
     switch (type) {
-      case "ALERT": return "bg-red-50 text-red-700 border-red-100";
-      case "OFFER": return "bg-green-50 text-green-700 border-green-100";
+      case "ALERT": return "bg-blue-50 text-blue-700 border-blue-100";
+      case "OFFER": return "bg-blue-50 text-blue-700 border-blue-100";
       case "UPDATE": return "bg-blue-50 text-blue-700 border-blue-100";
       default: return "bg-gray-50 text-gray-700 border-gray-100";
     }
@@ -54,9 +54,7 @@ export default function NotificationItem({ notification, onDelete }) {
           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${getAudienceColor(notification.audience)}`}>
             {notification.audience}
           </span>
-          <span className="text-xs text-gray-500">
-            ID: {notification.notificationId}
-          </span>
+          
         </div>
 
         <div className="flex items-center justify-between pt-4">
