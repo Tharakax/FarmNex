@@ -90,6 +90,10 @@ const NotificationBell = ({ className = "" }) => {
   const skipUnreadOverrideRef = useRef(false);
   // Persisted timestamp: after clicking the bell, treat all notifications created at/before this time as seen
   const lastClearedAtRef = useRef(0);
+  
+  // Modal state for notification details
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const currentUser = getLoggedInUser();
   const userRole = currentUser?.role?.toLowerCase();
@@ -409,6 +413,18 @@ const NotificationBell = ({ className = "" }) => {
     }
   };
 
+  // Modal handlers
+  const openModal = (notification) => {
+    setSelectedNotification(notification);
+    setIsModalOpen(true);
+    setIsOpen(false); // Close dropdown when opening modal
+  };
+
+  const closeModal = () => {
+    setSelectedNotification(null);
+    setIsModalOpen(false);
+  };
+
   // Handle notification click
   const handleNotificationClick = async (notification) => {
     const notificationId = notification._id || notification.id;
@@ -418,9 +434,8 @@ const NotificationBell = ({ className = "" }) => {
       await markNotificationAsRead(notificationId);
     }
     
-    setIsOpen(false);
-    // Navigate to notifications page with specific notification highlighted
-    navigate(`/notifications?highlight=${notificationId}`);
+    // Show modal instead of navigating
+    openModal(notification);
   };
 
   // Handle view all notifications
@@ -616,6 +631,154 @@ const NotificationBell = ({ className = "" }) => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Notification Detail Modal */}
+      {isModalOpen && selectedNotification && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Blurred background */}
+          <div 
+            className="absolute inset-0 backdrop-blur-sm"
+            onClick={closeModal}
+          ></div>
+          
+          {/* Modal content */}
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            {/* Close button */}
+            <button
+              onClick={closeModal}
+              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white shadow-lg hover:bg-gray-50 transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-600" />
+            </button>
+
+            {/* Modal body */}
+            <div className="overflow-y-auto max-h-[90vh]">
+              {/* Header section */}
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <h2 className="text-2xl font-bold text-gray-900 flex-1">
+                    {selectedNotification.title}
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium border ${
+                      selectedNotification.priority === 'HIGH' ? 'bg-red-100 text-red-800 border-red-200' :
+                      selectedNotification.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                      selectedNotification.priority === 'LOW' ? 'bg-green-50 text-green-700 border-green-100' :
+                      'bg-gray-100 text-gray-800 border-gray-200'
+                    }`}>
+                      {selectedNotification.priority || 'Low'}
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium border ${
+                      selectedNotification.type === 'ALERT' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                      selectedNotification.type === 'OFFER' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                      selectedNotification.type === 'UPDATE' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+                      'bg-gray-50 text-gray-700 border-gray-100'
+                    }`}>
+                      {selectedNotification.type || 'Update'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                    selectedNotification.audience === 'FARMER' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                    selectedNotification.audience === 'USER' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+                    selectedNotification.audience === 'BOTH' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                    selectedNotification.audience === 'ALL' ? 'bg-gray-50 text-gray-700 border-gray-100' :
+                    'bg-gray-50 text-gray-700 border-gray-100'
+                  }`}>
+                    {selectedNotification.audience || 'All'}
+                  </span>
+                  {selectedNotification.createdAt && (
+                    <span className="text-gray-500">
+                      {formatDate(selectedNotification.createdAt)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Content section */}
+              <div className="p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    {getNotificationIcon(selectedNotification.type)}
+                    Notification Content
+                  </h3>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                      {selectedNotification.body}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Additional details */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Notification Details</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">ID:</span>
+                        <span className="font-mono text-gray-900">{selectedNotification._id || selectedNotification.id}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Priority:</span>
+                        <span className="font-medium">{selectedNotification.priority || 'Low'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Type:</span>
+                        <span className="font-medium">{selectedNotification.type || 'Update'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Audience:</span>
+                        <span className="font-medium">{selectedNotification.audience || 'All'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-2">Timeline</h4>
+                    <div className="space-y-2 text-sm">
+                      {selectedNotification.createdAt && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Created:</span>
+                          <span className="text-gray-900">{new Date(selectedNotification.createdAt).toLocaleString()}</span>
+                        </div>
+                      )}
+                      {selectedNotification.updatedAt && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Updated:</span>
+                          <span className="text-gray-900">{new Date(selectedNotification.updatedAt).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="p-6 border-t border-gray-200 bg-gray-50">
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={closeModal}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeModal();
+                      navigate('/notifications');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    View All Notifications
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

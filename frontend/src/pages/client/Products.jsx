@@ -14,6 +14,7 @@ export default function ProductsPage() {
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+    const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const Navigate = useNavigate();
     const categories = [
@@ -52,6 +53,17 @@ export default function ProductsPage() {
     useEffect(() => {
         let filtered = products;
 
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(product =>
+                product.name.toLowerCase().includes(query) ||
+                product.description?.toLowerCase().includes(query) ||
+                product.category?.toLowerCase().includes(query) ||
+                product.tags?.some(tag => tag.toLowerCase().includes(query))
+            );
+        }
+
         // Filter by categories
         if (selectedCategories.length > 0) {
             filtered = filtered.filter(product => 
@@ -70,7 +82,7 @@ export default function ProductsPage() {
         }
 
         setFilteredProducts(filtered);
-    }, [products, selectedCategories, priceRange]);
+    }, [products, selectedCategories, priceRange, searchQuery]);
 
     const handleCategoryChange = (categoryValue) => {
         setSelectedCategories(prev => 
@@ -90,6 +102,7 @@ export default function ProductsPage() {
     const clearFilters = () => {
         setSelectedCategories([]);
         setPriceRange({ min: '', max: '' });
+        setSearchQuery('');
     };
 
     const viewOne = async (productId) => {
@@ -121,6 +134,34 @@ export default function ProductsPage() {
                 </div>
             <div className="max-w-7xl pt-30 mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
+                {/* Mobile Search Bar */}
+                <div className="lg:hidden mb-6">
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search products..."
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white shadow-sm"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            >
+                                <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Mobile Filter Toggle */}
                     <div className="lg:hidden">
@@ -151,6 +192,35 @@ export default function ProductsPage() {
                                 >
                                     Clear All
                                 </button>
+                            </div>
+
+                            {/* Search Bar */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Search Products</h3>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Search products..."
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        >
+                                            <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Category Filters */}
