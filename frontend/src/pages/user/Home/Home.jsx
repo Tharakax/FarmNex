@@ -14,7 +14,7 @@ import {
   Search, 
   Home, 
   Apple, 
-  DollarSign, 
+  Banknote, 
   LogOut, 
   Edit3, 
   Lock,
@@ -232,7 +232,7 @@ const CustomerDashboard = () => {
                 <p className="text-2xl font-bold text-gray-900">Rs. {dashboardStats.thisMonthSpending.toFixed(2)}</p>
               )}
             </div>
-            <DollarSign className="w-8 h-8 text-emerald-500" />
+            <Banknote className="w-8 h-8 text-emerald-500" />
           </div>
         </div>
       </div>
@@ -259,7 +259,6 @@ const CustomerDashboard = () => {
               dashboardStats.recentOrders.slice(0, 3).map(order => (
                 <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">{order.id}</p>
                     <p className="text-sm text-gray-600">{order.date}</p>
                   </div>
                   <div className="text-right">
@@ -416,10 +415,13 @@ const CustomerDashboard = () => {
             {/* Logo */}
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                >
                   <BrandLogo size={24} />
                   <h2 className="text-xl font-bold text-green-600">Farm Nex</h2>
-                </div>
+                </button>
               </div>
             </div>
 

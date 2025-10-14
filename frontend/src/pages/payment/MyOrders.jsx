@@ -93,14 +93,14 @@ const MyOrders = () => {
         status: orderStates[order.status]?.label || order.status,
         customer: order.contactName || order.contactEmail || 'N/A',
         items: order.items?.length || 0,
-        subtotal: `$${order.subtotal?.toFixed(2) || '0.00'}`,
-        tax: `$${order.tax?.toFixed(2) || '0.00'}`,
-        shipping: `$${order.shipping?.toFixed(2) || '0.00'}`,
-        discount: order.discount > 0 ? `-$${order.discount.toFixed(2)}` : '$0.00',
-        total: `$${order.total?.toFixed(2) || '0.00'}`,
+        subtotal: `Rs. ${order.subtotal?.toFixed(2) || '0.00'}`,
+        tax: `Rs. ${order.tax?.toFixed(2) || '0.00'}`,
+        shipping: `Rs. ${order.shipping?.toFixed(2) || '0.00'}`,
+        discount: order.discount > 0 ? `-Rs. ${order.discount.toFixed(2)}` : 'Rs. 0.00',
+        total: `Rs. ${order.total?.toFixed(2) || '0.00'}`,
         payment: order.paymentcompleted ? 'Paid' : 'Pending',
         method: order.paymentMethod?.replace('_', ' ').toUpperCase() || 'N/A',
-        refund: Number(order.refundAmount || 0) > 0 ? `$${Number(order.refundAmount).toFixed(2)}` : 'None'
+        refund: Number(order.refundAmount || 0) > 0 ? `Rs. ${Number(order.refundAmount).toFixed(2)}` : 'None'
       }));
 
       // Calculate summary statistics
@@ -126,11 +126,11 @@ const MyOrders = () => {
             title: 'Order Summary',
             metrics: {
               'Total Orders': reportOrders.length.toString(),
-              'Total Amount': `$${totalSpent.toFixed(2)}`,
+              'Total Amount': `Rs. ${totalSpent.toFixed(2)}`,
               'Paid Orders': paidOrders.toString(),
               'Pending Payment': pendingPayment.toString(),
               'Delivered Orders': deliveredOrders.toString(),
-              'Total Refunds': `$${totalRefunds.toFixed(2)}`
+              'Total Refunds': `Rs. ${totalRefunds.toFixed(2)}`
             }
           }
         }
@@ -346,9 +346,9 @@ const MyOrders = () => {
                     {getStatusBadge(order.status)}
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-green-900">${order.total.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-900">Rs. {order.total.toFixed(2)}</p>
                     {Number(order.refundAmount || 0) > 0 && (
-                      <p className="text-sm text-red-600">Refund: -${Number(order.refundAmount).toFixed(2)}</p>
+                      <p className="text-sm text-red-600">Refund: -Rs. {Number(order.refundAmount).toFixed(2)}</p>
                     )}
                     <p className="text-sm text-green-600">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</p>
                   </div>
@@ -382,7 +382,7 @@ const MyOrders = () => {
                           <p className="font-medium text-green-900 truncate">{item.name}</p>
                           <div className="flex items-center justify-between text-sm text-green-600">
                             <span>Qty: {item.quantity}</span>
-                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                            <span>Rs. {(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -395,20 +395,20 @@ const MyOrders = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <div className="text-center">
                       <p className="text-green-600">Subtotal</p>
-                      <p className="font-semibold text-green-900">${order.subtotal.toFixed(2)}</p>
+                      <p className="font-semibold text-green-900">Rs. {order.subtotal.toFixed(2)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-green-600">Tax</p>
-                      <p className="font-semibold text-green-900">${order.tax.toFixed(2)}</p>
+                      <p className="font-semibold text-green-900">Rs. {order.tax.toFixed(2)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-green-600">Shipping</p>
-                      <p className="font-semibold text-green-900">${order.shipping.toFixed(2)}</p>
+                      <p className="font-semibold text-green-900">Rs. {order.shipping.toFixed(2)}</p>
                     </div>
                     {order.discount > 0 && (
                       <div className="text-center">
                         <p className="text-green-600">Discount</p>
-                        <p className="font-semibold text-green-900">-${order.discount.toFixed(2)}</p>
+                        <p className="font-semibold text-green-900">-Rs. {order.discount.toFixed(2)}</p>
                       </div>
                     )}
                   </div>
@@ -423,7 +423,7 @@ const MyOrders = () => {
                         {order.paymentcompleted ? 'Paid' : 'Pending Payment'}
                       </p>
                       {Number(order.refundAmount || 0) > 0 && (
-                        <p className="text-sm text-red-600">Refunded {order.refundStatus ? `(${order.refundStatus})` : ''}: ${Number(order.refundAmount).toFixed(2)} {order.refundTxnId ? `• TXN ${order.refundTxnId}` : ''}</p>
+                        <p className="text-sm text-red-600">Refunded {order.refundStatus ? `(${order.refundStatus})` : ''}: Rs. {Number(order.refundAmount).toFixed(2)} {order.refundTxnId ? `• TXN ${order.refundTxnId}` : ''}</p>
                       )}
                     </div>
                     {order.paymentMethod && (
@@ -504,7 +504,7 @@ const MyOrders = () => {
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
               <p className="text-2xl font-bold text-green-900">
-                ${orders.reduce((sum, order) => sum + Math.max(0, order.total - Number(order.refundAmount || 0)), 0).toFixed(2)}
+                Rs. {orders.reduce((sum, order) => sum + Math.max(0, order.total - Number(order.refundAmount || 0)), 0).toFixed(2)}
               </p>
               <p className="text-sm text-green-600">Total Spent (net)</p>
             </div>
