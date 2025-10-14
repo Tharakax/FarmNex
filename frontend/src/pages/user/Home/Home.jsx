@@ -56,6 +56,7 @@ const CustomerDashboard = () => {
   const [viewMode, setViewMode] = useState('grid');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState({
     totalOrders: 0,
@@ -327,7 +328,7 @@ const CustomerDashboard = () => {
   );
 
   const renderProducts = () => (
-    <DashboardBrowseProducts />
+    <DashboardBrowseProducts searchTerm={searchTerm} onSearchChange={setSearchTerm} />
   );
 
   const renderOrders = () => (
@@ -438,6 +439,13 @@ const CustomerDashboard = () => {
                 <input
                   type="text"
                   placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      setActiveTab('products');
+                    }
+                  }}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
@@ -452,6 +460,20 @@ const CustomerDashboard = () => {
                 title={sidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
               >
                 {sidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+              </button>
+
+              {/* Cart Button */}
+              <button
+                onClick={() => setActiveTab('cart')}
+                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Shopping Cart"
+              >
+                <ShoppingCart size={20} />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {cartItemCount}
+                  </span>
+                )}
               </button>
               
               <NotificationBell />
