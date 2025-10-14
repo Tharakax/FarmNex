@@ -2,8 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/env.js';
 import ExportSplitButton from '../../features/reports/ExportSplitButton.jsx';
-import { PieChart, Pie, Cell, ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend, Line } from 'recharts';
-import { formatCurrency, formatCompactLKR } from '../../utils/currencyUtils.js';
+import { formatCurrency } from '../../utils/currencyUtils.js';
+import { Calendar, User, CreditCard } from 'lucide-react';
 
 // Status config for professional, consistent styling
 const STATUS_OPTIONS = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -36,6 +36,27 @@ const OrdersRemade = () => {
   // Refund modal state (must be declared before any early returns)
   const [showRefund, setShowRefund] = useState(false);
   const [refundForm, setRefundForm] = useState({ amount: 0, note: '' });
+  
+  // Date selection state for reports
+  const [showDateSelector, setShowDateSelector] = useState(false);
+  const [dateSelectionType, setDateSelectionType] = useState('range'); // 'range' or 'specific'
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [specificDate, setSpecificDate] = useState('');
+  
+  // User filter state
+  const [showUserFilter, setShowUserFilter] = useState(false);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  
+  // Payment status filter state
+  const [showPaymentFilter, setShowPaymentFilter] = useState(false);
+  const [paymentFilters, setPaymentFilters] = useState({
+    pending: false,
+    completed: false
+  });
 
   useEffect(() => {
     fetchOrders();
@@ -289,12 +310,156 @@ const OrdersRemade = () => {
   const formatDate = (ds) => new Date(ds).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
 
+  // Handle date range changes
+  const handleDateRangeChange = (field, value) => {
+    setDateRange(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Clear date selection
+  const clearDateSelection = () => {
+    setDateRange({
+      startDate: '',
+      endDate: ''
+    });
+    setSpecificDate('');
+  };
+
+  // Get unique users from orders
+  const getUniqueUsers = useMemo(() => {
+    const users = new Set();
+    orders.forEach(order => {
+      const userName = order.contactName || order?.customerId?.fullName || 'Unknown Customer';
+      const userEmail = order.contactEmail || order?.customerId?.email || '';
+      if (userName && userName !== 'Unknown Customer') {
+        users.add(JSON.stringify({ name: userName, email: userEmail }));
+      }
+    });
+    return Array.from(users).map(userStr => JSON.parse(userStr));
+  }, [orders]);
+
+  // Filter users based on search term
+  const filteredUsers = useMemo(() => {
+    if (!userSearchTerm) return getUniqueUsers;
+    return getUniqueUsers.filter(user => 
+      user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+    );
+  }, [getUniqueUsers, userSearchTerm]);
+
+  // Clear user selection
+  const clearUserSelection = () => {
+    setSelectedUser('');
+    setUserSearchTerm('');
+  };
+
+  // Handle payment filter changes
+  const handlePaymentFilterChange = (filterType) => {
+    setPaymentFilters(prev => ({
+      ...prev,
+      [filterType]: !prev[filterType]
+    }));
+  };
+
+  // Clear payment filters
+  const clearPaymentFilters = () => {
+    setPaymentFilters({
+      pending: false,
+      completed: false
+    });
+  };
+
+  // Apply filters to orders for current view
+  const filteredOrders = useMemo(() => {
+    let filtered = orders;
+    
+    // Apply date filtering
+    if (dateSelectionType === 'specific' && specificDate) {
+      const selectedDate = new Date(specificDate);
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= startOfDay && orderDate <= endOfDay;
+      });
+    } else if (dateSelectionType === 'range' && dateRange.startDate && dateRange.endDate) {
+      const startDate = new Date(dateRange.startDate);
+      const endDate = new Date(dateRange.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      
+      filtered = filtered.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        return orderDate >= startDate && orderDate <= endDate;
+      });
+    }
+
+    // Apply user filtering
+    if (selectedUser) {
+      const selectedUserData = JSON.parse(selectedUser);
+      filtered = filtered.filter(order => {
+        const orderUserName = order.contactName || order?.customerId?.fullName || '';
+        const orderUserEmail = order.contactEmail || order?.customerId?.email || '';
+        return orderUserName === selectedUserData.name && orderUserEmail === selectedUserData.email;
+      });
+    }
+
+    // Apply payment status filtering
+    if (paymentFilters.pending || paymentFilters.completed) {
+      filtered = filtered.filter(order => {
+        const isCompleted = order.paymentcompleted;
+        if (paymentFilters.pending && paymentFilters.completed) {
+          return true; // Show both pending and completed
+        } else if (paymentFilters.pending) {
+          return !isCompleted; // Show only pending
+        } else if (paymentFilters.completed) {
+          return isCompleted; // Show only completed
+        }
+        return true;
+      });
+    }
+
+    return filtered;
+  }, [orders, dateSelectionType, specificDate, dateRange, selectedUser, paymentFilters]);
+
+  // Calculate analytics for filtered orders
+  const filteredAnalytics = useMemo(() => {
+    const normalized = Array.isArray(filteredOrders) ? filteredOrders : [];
+    const totalOrders = normalized.length;
+    const totalRevenue = normalized.reduce((sum, o) => sum + (Number(o.total) - Number(o.refundAmount || 0) || 0), 0);
+    const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+    const now = new Date();
+    const thisMonthRevenue = normalized
+      .filter(o => {
+        const d = new Date(o.createdAt);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      })
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const byStatus = normalized.reduce((acc, o) => {
+      const s = (o.status || 'pending');
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 });
+    
+    return { totalOrders, totalRevenue, avgOrderValue, thisMonthRevenue, byStatus };
+  }, [filteredOrders]);
+
   const handleGenerate = async (format) => {
     if (!Array.isArray(orders) || orders.length === 0) {
       alert('No orders to export yet.');
       return;
     }
-    const sales = orders.map(o => ({
+
+    if (filteredOrders.length === 0) {
+      alert('No orders found for the selected filters.');
+      return;
+    }
+
+    const sales = filteredOrders.map(o => ({
       customer: { name: o.contactName },
       createdAt: o.createdAt,
       items: Array.isArray(o.items) ? o.items : [],
@@ -302,7 +467,26 @@ const OrdersRemade = () => {
       paymentMethod: o.paymentMethod,
       status: o.status
     }));
-    const period = 'Current View';
+
+    // Generate period description
+    let period = 'Current View';
+    const filters = [];
+    
+    if (dateSelectionType === 'specific' && specificDate) {
+      filters.push(`Date: ${specificDate}`);
+    } else if (dateSelectionType === 'range' && dateRange.startDate && dateRange.endDate) {
+      filters.push(`Date Range: ${dateRange.startDate} to ${dateRange.endDate}`);
+    }
+    
+    if (selectedUser) {
+      const selectedUserData = JSON.parse(selectedUser);
+      filters.push(`User: ${selectedUserData.name}`);
+    }
+    
+    if (filters.length > 0) {
+      period = filters.join(', ');
+    }
+
     const { default: ExportService } = await import('../../services/exportService.js');
     try {
       if (format === 'excel') {
@@ -320,17 +504,6 @@ const OrdersRemade = () => {
     }
   };
 
-  // Derived chart data (hooks must stay before any conditional returns)
-  const statusData = useMemo(() => {
-    const s = analytics.byStatus || {};
-    return [
-      { name: 'pending', value: s.pending || 0 },
-      { name: 'processing', value: s.processing || 0 },
-      { name: 'shipped', value: s.shipped || 0 },
-      { name: 'delivered', value: s.delivered || 0 },
-      { name: 'cancelled', value: s.cancelled || 0 },
-    ];
-  }, [analytics]);
 
   // Recompute analytics whenever orders change so the summary updates after deletes/updates
   useEffect(() => {
@@ -353,22 +526,6 @@ const OrdersRemade = () => {
     setAnalytics({ totalOrders, totalRevenue, avgOrderValue, thisMonthRevenue, byStatus });
   }, [orders]);
 
-  const revenueSeries = useMemo(() => {
-    const map = new Map();
-    (orders || []).forEach(o => {
-      const key = new Date(o.createdAt).toISOString().split('T')[0];
-      const amt = (Number(o.total) - Number(o.refundAmount || 0)) || 0;
-      const delivered = (o.status || '').toLowerCase() === 'delivered' ? amt : 0;
-      const prev = map.get(key) || { total: 0, delivered: 0 };
-      map.set(key, { total: prev.total + amt, delivered: prev.delivered + delivered });
-    });
-    const arr = Array.from(map.entries()).map(([date, vals]) => ({ date, ...vals }));
-    arr.sort((a, b) => new Date(a.date) - new Date(b.date));
-    // cumulative
-    let cum = 0;
-    arr.forEach(p => { cum += p.total; p.cumTotal = cum; });
-    return arr;
-  }, [orders]);
 
   if (loading) {
     return (
@@ -378,48 +535,75 @@ const OrdersRemade = () => {
     );
   }
 
-  const STATUS_COLORS = {
-    pending: '#FCD34D',
-    processing: '#60A5FA',
-    shipped: '#A78BFA',
-    delivered: '#34D399',
-    cancelled: '#F87171',
-  };
 
   // Refund modal handlers
 
   const openRefundModal = (order) => {
     // Check if order is eligible for refund (credit card only)
-    if (order.paymentMethod !== 'Credit card') {
+    const paymentMethod = (order.paymentMethod || '').toLowerCase().replace(/\s+/g, '_');
+    if (!paymentMethod || (paymentMethod !== 'credit_card' && paymentMethod !== 'creditcard')) {
       alert('Refunds are only available for credit card payments processed through Stripe.');
+      return;
+    }
+
+    // Additional checks for refund eligibility
+    if (!order.paymentcompleted) {
+      alert('Refunds are only available for orders with completed payments.');
+      return;
+    }
+
+    if (order.status !== 'cancelled') {
+      alert('Refunds are only available for cancelled orders.');
       return;
     }
     
     const remaining = Math.max(0, Number(order.total || 0) - Number(order.refundAmount || 0));
+    if (remaining <= 0) {
+      alert('This order has already been fully refunded.');
+      return;
+    }
+
     setRefundForm({ amount: remaining, note: '' });
     setShowRefund(true);
   };
 
   const submitRefund = async () => {
     try {
+      // Validate refund amount
+      const remaining = Math.max(0, Number(selectedOrder.total || 0) - Number(selectedOrder.refundAmount || 0));
+      if (Number(refundForm.amount) <= 0 || Number(refundForm.amount) > remaining) {
+        alert(`Invalid refund amount. Maximum refundable amount is ${formatCurrency(remaining)}.`);
+        return;
+      }
+
       const headers = getAuthHeaders();
       const res = await axios.post(`${API_BASE_URL}/api/order/refund/${selectedOrder._id}`, {
         amount: Number(refundForm.amount),
         note: refundForm.note
       }, { headers });
-      const updated = res.data?.order;
-      if (updated) {
-        const normalized = normalizeOrders([updated])[0];
-        setOrders(prev => prev.map(o => o._id === updated._id ? normalized : o));
-        setSelectedOrder(normalized);
-        // One-click open credit note after refund
-        const url = `${API_BASE_URL}/api/order/credit-note/${normalized._id}/pdf`;
-        // Opening in a new tab; popup blockers usually allow user-initiated actions
-        window.open(url, '_blank');
+
+      if (res.data?.success) {
+        const updated = res.data?.order;
+        if (updated) {
+          const normalized = normalizeOrders([updated])[0];
+          setOrders(prev => prev.map(o => o._id === updated._id ? normalized : o));
+          setSelectedOrder(normalized);
+          
+          // Show success message
+          alert(`Refund of ${formatCurrency(refundForm.amount)} processed successfully!`);
+          
+          // One-click open credit note after refund
+          const url = `${API_BASE_URL}/api/order/credit-note/${normalized._id}/pdf`;
+          window.open(url, '_blank');
+        }
+        setShowRefund(false);
+      } else {
+        alert(res.data?.message || 'Refund failed');
       }
-      setShowRefund(false);
     } catch (err) {
-      alert(err?.response?.data?.message || err?.message || 'Refund failed');
+      console.error('Refund error:', err);
+      const errorMessage = err?.response?.data?.message || err?.message || 'Refund failed. Please try again.';
+      alert(errorMessage);
     }
   };
 
@@ -431,81 +615,330 @@ const OrdersRemade = () => {
           <p className="text-gray-600 mt-1 text-sm">View orders, change status, and delete orders</p>
           {error && <p className="text-yellow-700 mt-1 text-sm">{error}</p>}
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            onClick={() => setShowDateSelector(!showDateSelector)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-green-600 hover:text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors"
+          >
+            <Calendar size={14} />
+            {(dateRange.startDate && dateRange.endDate) || specificDate ? 'Date Filter Active' : 'Select Date Filter'}
+          </button>
+          <button
+            onClick={() => setShowUserFilter(!showUserFilter)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            <User size={14} />
+            {selectedUser ? 'User Filter Active' : 'Filter by User'}
+          </button>
+          <button
+            onClick={() => setShowPaymentFilter(!showPaymentFilter)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-purple-600 hover:text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+          >
+            <CreditCard size={14} />
+            {paymentFilters.pending || paymentFilters.completed ? 'Payment Filter Active' : 'Filter by Payment'}
+          </button>
           <ExportSplitButton onGenerate={handleGenerate} />
           <button onClick={fetchOrders} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Refresh</button>
         </div>
       </div>
 
+      {/* Date Selection */}
+      {showDateSelector && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          {/* Date Selection Type */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date Filter Type</label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="range"
+                  checked={dateSelectionType === 'range'}
+                  onChange={(e) => setDateSelectionType(e.target.value)}
+                  className="mr-2 text-green-600 focus:ring-green-500"
+                />
+                Date Range
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="specific"
+                  checked={dateSelectionType === 'specific'}
+                  onChange={(e) => setDateSelectionType(e.target.value)}
+                  className="mr-2 text-green-600 focus:ring-green-500"
+                />
+                Specific Date
+              </label>
+            </div>
+          </div>
+
+          {/* Date Range Selection */}
+          {dateSelectionType === 'range' && (
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={dateRange.startDate}
+                  onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={dateRange.endDate}
+                  onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
+                  min={dateRange.startDate || undefined}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Specific Date Selection */}
+          {dateSelectionType === 'specific' && (
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+                <input
+                  type="date"
+                  value={specificDate}
+                  onChange={(e) => setSpecificDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                />
+              </div>
+              <div className="flex-1"></div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={clearDateSelection}
+              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setShowDateSelector(false)}
+              className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+
+          {/* Filter Status */}
+          {(dateRange.startDate || dateRange.endDate || specificDate) && (
+            <div className="mt-3 p-2 bg-green-50 rounded-md">
+              <p className="text-sm text-green-700">
+                <strong>Active Filter:</strong> {
+                  dateSelectionType === 'specific' 
+                    ? `Specific Date: ${specificDate}`
+                    : `Date Range: ${dateRange.startDate || 'No start date'} to ${dateRange.endDate || 'No end date'}`
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* User Filter */}
+      {showUserFilter && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Customer/User</label>
+            
+            {/* Search Input */}
+            <div className="mb-3">
+              <input
+                type="text"
+                placeholder="Search users by name or email..."
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {/* User Selection */}
+            {filteredUsers.length > 0 ? (
+              <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-md">
+                {filteredUsers.map((user, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedUser(JSON.stringify(user))}
+                    className={`w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
+                      selectedUser === JSON.stringify(user) ? 'bg-blue-50 border-blue-200' : ''
+                    }`}
+                  >
+                    <div className="font-medium text-gray-900">{user.name}</div>
+                    {user.email && <div className="text-sm text-gray-500">{user.email}</div>}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                {userSearchTerm ? 'No users found matching your search.' : 'No users found in orders.'}
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={clearUserSelection}
+              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setShowUserFilter(false)}
+              className="px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+
+          {/* Filter Status */}
+          {selectedUser && (
+            <div className="mt-3 p-2 bg-blue-50 rounded-md">
+              <p className="text-sm text-blue-700">
+                <strong>Active Filter:</strong> {
+                  (() => {
+                    const userData = JSON.parse(selectedUser);
+                    return `${userData.name}${userData.email ? ` (${userData.email})` : ''}`;
+                  })()
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payment Status Filter */}
+      {showPaymentFilter && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Filter by Payment Status</label>
+            
+            <div className="space-y-3">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={paymentFilters.pending}
+                  onChange={() => handlePaymentFilterChange('pending')}
+                  className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Pending Payment</span>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={paymentFilters.completed}
+                  onChange={() => handlePaymentFilterChange('completed')}
+                  className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Completed Payment</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={clearPaymentFilters}
+              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setShowPaymentFilter(false)}
+              className="px-3 py-2 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+
+          {/* Filter Status */}
+          {(paymentFilters.pending || paymentFilters.completed) && (
+            <div className="mt-3 p-2 bg-purple-50 rounded-md">
+              <p className="text-sm text-purple-700">
+                <strong>Active Filters:</strong> {
+                  (() => {
+                    const filters = [];
+                    if (paymentFilters.pending) filters.push('Pending Payment');
+                    if (paymentFilters.completed) filters.push('Completed Payment');
+                    return filters.join(' • ');
+                  })()
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Analytics summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 bg-white rounded-lg border">
-          <div className="text-xs text-gray-500">Total Orders</div>
-          <div className="text-2xl font-semibold">{analytics.totalOrders}</div>
+          <div className="text-xs text-gray-500">Total Orders {(dateRange.startDate || dateRange.endDate || specificDate || selectedUser || paymentFilters.pending || paymentFilters.completed) && '(Filtered)'}</div>
+          <div className="text-2xl font-semibold">{filteredAnalytics.totalOrders}</div>
         </div>
         <div className="p-4 bg-white rounded-lg border">
-          <div className="text-xs text-gray-500">Total Revenue</div>
-          <div className="text-2xl font-semibold">{formatCurrency(analytics.totalRevenue)}</div>
+          <div className="text-xs text-gray-500">Total Revenue {(dateRange.startDate || dateRange.endDate || specificDate || selectedUser || paymentFilters.pending || paymentFilters.completed) && '(Filtered)'}</div>
+          <div className="text-2xl font-semibold">{formatCurrency(filteredAnalytics.totalRevenue)}</div>
         </div>
         <div className="p-4 bg-white rounded-lg border">
-          <div className="text-xs text-gray-500">Average Order</div>
-          <div className="text-2xl font-semibold">{formatCurrency(analytics.avgOrderValue)}</div>
+          <div className="text-xs text-gray-500">Average Order {(dateRange.startDate || dateRange.endDate || specificDate || selectedUser || paymentFilters.pending || paymentFilters.completed) && '(Filtered)'}</div>
+          <div className="text-2xl font-semibold">{formatCurrency(filteredAnalytics.avgOrderValue)}</div>
         </div>
         <div className="p-4 bg-white rounded-lg border">
-          <div className="text-xs text-gray-500">This Month</div>
-          <div className="text-2xl font-semibold">{formatCurrency(analytics.thisMonthRevenue)}</div>
+          <div className="text-xs text-gray-500">This Month {(dateRange.startDate || dateRange.endDate || specificDate || selectedUser || paymentFilters.pending || paymentFilters.completed) && '(Filtered)'}</div>
+          <div className="text-2xl font-semibold">{formatCurrency(filteredAnalytics.thisMonthRevenue)}</div>
         </div>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-gray-700">Status Distribution</h3>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Legend verticalAlign="top" height={24} />
-                <RTooltip formatter={(value, name) => [value, name]} />
-                <Pie data={statusData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={3}>
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || '#999'} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="p-4 bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-gray-700">Revenue Over Time</h3>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={revenueSeries} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.5}/>
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorDel" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tickFormatter={v => formatCompactLKR(v)} width={80} />
-                <RTooltip formatter={(v, name) => [formatCurrency(v), name]} labelFormatter={d => `Date: ${d}`} />
-                <Area type="monotone" name="Total" dataKey="total" stroke="#10B981" fillOpacity={1} fill="url(#colorRev)" />
-                <Area type="monotone" name="Delivered" dataKey="delivered" stroke="#3B82F6" fillOpacity={1} fill="url(#colorDel)" />
-                <Line type="monotone" name="Cumulative" dataKey="cumTotal" stroke="#065F46" dot={false} strokeWidth={2} />
-              </ComposedChart>
-            </ResponsiveContainer>
+      {/* Filter Status */}
+      {(dateRange.startDate || dateRange.endDate || specificDate || selectedUser || paymentFilters.pending || paymentFilters.completed) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-sm font-medium text-blue-700">
+                Showing {filteredOrders.length} of {orders.length} orders
+              </span>
+            </div>
+            <div className="text-xs text-blue-600">
+              {(() => {
+                const filters = [];
+                if (dateRange.startDate && dateRange.endDate) {
+                  filters.push(`Date: ${dateRange.startDate} to ${dateRange.endDate}`);
+                } else if (specificDate) {
+                  filters.push(`Date: ${specificDate}`);
+                }
+                if (selectedUser) {
+                  const userData = JSON.parse(selectedUser);
+                  filters.push(`User: ${userData.name}`);
+                }
+                if (paymentFilters.pending || paymentFilters.completed) {
+                  const paymentFiltersList = [];
+                  if (paymentFilters.pending) paymentFiltersList.push('Pending Payment');
+                  if (paymentFilters.completed) paymentFiltersList.push('Completed Payment');
+                  filters.push(`Payment: ${paymentFiltersList.join(', ')}`);
+                }
+                return filters.join(' • ');
+              })()}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -521,7 +954,7 @@ const OrdersRemade = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map(order => (
+              {filteredOrders.map(order => (
                 <tr key={order._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">#{(order._id || '').toString().slice(-8)}</div>
@@ -580,6 +1013,46 @@ const OrdersRemade = () => {
               <button onClick={() => setShowModal(false)} className="text-gray-500 hover:text-gray-800">✕</button>
             </div>
             <div className="p-4 space-y-4">
+              {/* Order Status */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-gray-900">Order Status</h4>
+                  {isAdmin && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedOrder.status}
+                        onChange={(e) => {
+                          handleStatusUpdate(selectedOrder._id, e.target.value);
+                          // Update the selectedOrder state to reflect the change immediately
+                          setSelectedOrder(prev => ({ ...prev, status: e.target.value }));
+                        }}
+                        disabled={!!savingStatus[selectedOrder._id]}
+                        className={`px-3 py-1 rounded-full border text-xs font-medium focus:outline-none focus:ring-2 focus:ring-offset-1 ${STATUS_STYLES[selectedOrder.status] || 'bg-gray-100 text-gray-800 border-gray-300'} ${(!isAdmin || savingStatus[selectedOrder._id]) ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {STATUS_OPTIONS.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      {savingStatus[selectedOrder._id] && <Spinner />}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-3 py-1 rounded-full border text-sm font-medium ${STATUS_STYLES[selectedOrder.status] || 'bg-gray-100 text-gray-800 border-gray-300'}`}>
+                    {selectedOrder.status || 'pending'}
+                  </span>
+                  {selectedOrder.status && (
+                    <span className="text-sm text-gray-600">
+                      {selectedOrder.status === 'pending' && '⏳ Awaiting processing'}
+                      {selectedOrder.status === 'processing' && '🔄 Being prepared'}
+                      {selectedOrder.status === 'shipped' && '🚚 On the way'}
+                      {selectedOrder.status === 'delivered' && '✅ Delivered successfully'}
+                      {selectedOrder.status === 'cancelled' && '❌ Order cancelled'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-3 rounded-lg">
                   <h4 className="font-semibold text-gray-900 mb-2">Customer</h4>
@@ -604,7 +1077,15 @@ const OrdersRemade = () => {
                         <a href={`${API_BASE_URL}/api/order/credit-note/${selectedOrder._id}/pdf`} target="_blank" rel="noopener noreferrer" className="inline-block mt-1 text-sm text-blue-600 hover:underline">Download Credit Note</a>
                       </>
                     )}
-                    {isAdmin && selectedOrder.paymentcompleted && selectedOrder.status === 'cancelled' && ((Number(selectedOrder.refundAmount||0) < Number(selectedOrder.total||0))) && (
+                    {isAdmin && (() => {
+                      const paymentMethod = (selectedOrder.paymentMethod || '').toLowerCase().replace(/\s+/g, '_');
+                      const isCreditCard = paymentMethod === 'credit_card' || paymentMethod === 'creditcard';
+                      const isCompleted = selectedOrder.paymentcompleted;
+                      const isCancelled = selectedOrder.status === 'cancelled';
+                      const hasRemainingAmount = Number(selectedOrder.refundAmount || 0) < Number(selectedOrder.total || 0);
+                      
+                      return isCreditCard && isCompleted && isCancelled && hasRemainingAmount;
+                    })() && (
                       <button onClick={() => openRefundModal(selectedOrder)} className="mt-2 px-3 py-1 text-sm bg-rose-600 text-white rounded hover:bg-rose-700">Issue Refund</button>
                     )}
                   </div>
