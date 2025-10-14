@@ -44,6 +44,7 @@ const FeedbackList = () => {
     { value: 'General', label: 'General' },
     { value: 'Bug Report', label: 'Bug Report' },
     { value: 'Feature Request', label: 'Feature Request' }
+    
   ];
 
   // Rating options
@@ -54,7 +55,7 @@ const FeedbackList = () => {
     { value: '3', label: '3 Stars' },
     { value: '2', label: '2 Stars' },
     { value: '1', label: '1 Star' }
-  ];
+  ]; 
 
   // Status options
   const statusOptions = [

@@ -17,7 +17,7 @@ const feedbackSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Category is required'],
-    enum: ['Product', 'Service', 'Support', 'Website', 'General', 'Bug Report', 'Feature Request'],
+    enum: ['Product', 'Service', 'Support', 'Website', 'General', 'Bug Report', 'Feature Request','Other'],
     default: 'General'
   },
   rating: {
