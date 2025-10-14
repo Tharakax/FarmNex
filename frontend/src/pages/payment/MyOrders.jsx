@@ -4,6 +4,7 @@ import { orderAPI } from '../../services/orderAPI';
 import { handleImageError, resolveProductImage, getProductPlaceholder } from '../../utils/imageUtils';
 import { exportToPDF } from '../../utils/exportUtils';
 import { toast } from 'react-hot-toast';
+import { getCart, addToCart } from '../../utils/cart';
 
 // Using shared resolver from imageUtils
 
@@ -186,9 +187,57 @@ const MyOrders = () => {
   };
 
   const handlePayNow = (orderId) => {
-    // Navigate to payment page
-    window.location.href = `/payment/${orderId}`;
-    // Or if using React Router: navigate(`/payment/${orderId}`);
+    // Find the order
+    const order = orders.find(o => o._id === orderId);
+    if (!order) {
+      toast.error('Order not found');
+      return;
+    }
+
+    try {
+      // Clear current cart
+      localStorage.setItem('cart', JSON.stringify([]));
+      
+      // Add order items to cart
+      order.items.forEach(item => {
+        const productData = {
+          _id: item.productId,
+          name: item.name,
+          price: item.price,
+          images: [item.image]
+        };
+        addToCart(productData, item.quantity);
+      });
+
+      // Create orderData structure for shipping page
+      const orderData = {
+        items: order.items,
+        subtotal: order.subtotal,
+        tax: order.tax,
+        shipping: order.shipping,
+        discount: order.discount || 0,
+        total: order.total,
+        contactName: order.contactName || '',
+        contactEmail: order.contactEmail || '',
+        contactPhone: order.contactPhone || '',
+        shippingAddress: order.shippingAddress || {},
+        billingAddress: order.billingAddress || {},
+        notes: order.notes || '',
+        paymentMethod: order.paymentMethod || '',
+        paymentCompleted: order.paymentcompleted || false
+      };
+
+      // Store orderData in localStorage for shipping page
+      localStorage.setItem('orderData', JSON.stringify(orderData));
+
+      // Navigate to shipping page
+      window.location.href = `/shipping/${orderId}`;
+      
+      toast.success('Order items added to cart. Please complete shipping details.');
+    } catch (error) {
+      console.error('Error preparing order for payment:', error);
+      toast.error('Failed to prepare order for payment. Please try again.');
+    }
   };
 
   const handleCancelOrder = async (orderId) => {

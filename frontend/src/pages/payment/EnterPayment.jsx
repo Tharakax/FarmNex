@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { ArrowLeft, CreditCard, Truck, CheckCircle, Lock, Calendar, User, Building, AlertCircle, Shield } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, CheckCircle, Lock, Calendar, User, AlertCircle, Shield } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { FormValidator } from '../../utils/validation';
@@ -55,29 +55,121 @@ const StripePaymentForm = ({ orderData, orderId, onPaymentSuccess, onPaymentErro
   const stripe = useStripe();
   const elements = useElements();
   const [cardError, setCardError] = useState('');
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [useNewCard, setUseNewCard] = useState(false);
+
+  // Fetch saved payment methods
+  const fetchSavedPaymentMethods = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/payment`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setSavedPaymentMethods(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching saved payment methods:', error);
+    }
+  };
+
+  // Load saved payment methods on component mount
+  useEffect(() => {
+    fetchSavedPaymentMethods();
+  }, []);
+
+  // Handle payment method selection
+  const handlePaymentMethodChange = (paymentMethodId) => {
+    setSelectedPaymentMethod(paymentMethodId);
+    if (paymentMethodId === 'new_card') {
+      setUseNewCard(true);
+      setSelectedPaymentMethod('');
+    } else {
+      setUseNewCard(false);
+      // Find the selected payment method
+      const selectedMethod = savedPaymentMethods.find(method => method._id === paymentMethodId);
+      if (selectedMethod) {
+        // Auto-fill billing information from saved payment method
+        // This helps users complete their order faster with pre-saved information
+        console.log('Selected payment method:', selectedMethod);
+        
+        // If order data has missing billing info, we can suggest using the saved method's billing details
+        // Note: We don't automatically overwrite user's order data, just provide suggestions
+        if (selectedMethod.billingDetails) {
+          console.log('Available billing details from saved card:', {
+            name: selectedMethod.billingDetails.name,
+            email: selectedMethod.billingDetails.email,
+            address: selectedMethod.billingDetails.address
+          });
+        }
+      }
+    }
+  };
+
+  // Get card brand icon
+  const getCardBrandIcon = (brand) => {
+    switch (brand) {
+      case 'visa':
+        return '💳';
+      case 'mastercard':
+        return '💳';
+      case 'amex':
+        return '💳';
+      case 'discover':
+        return '💳';
+      default:
+        return '💳';
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     
-    if (!stripe || !elements) {
+    if (!stripe) {
       return;
     }
 
     setLoading(true);
     setCardError('');
 
-    // Validate card element
-    const cardElement = elements.getElement(CardElement);
-    if (!cardElement._empty && cardElement._complete) {
+    // Validate payment method selection
+    if (savedPaymentMethods.length > 0 && !selectedPaymentMethod && !useNewCard) {
+      setCardError('Please select a payment method');
+      setLoading(false);
+      return;
+    }
+
+    // Check if using saved payment method or new card
+    if (selectedPaymentMethod && !useNewCard) {
+      // Using saved payment method
+      const selectedMethod = savedPaymentMethods.find(method => method._id === selectedPaymentMethod);
+      if (!selectedMethod) {
+        setCardError('Selected payment method not found');
+        setLoading(false);
+        return;
+      }
+
       try {
-        // Create payment intent on your server
+        // Create payment intent with saved payment method
         const { data } = await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/stripe/create-payment-intent`,
           {
-            amount: Math.round(orderData.total * 100), // Convert LKR to paisa (1 LKR = 100 paisa)
+            amount: Math.round(orderData.total * 100),
             currency: 'lkr',
             orderId: orderId,
-            contactEmail: orderData.contactEmail
+            contactEmail: orderData.contactEmail,
+            paymentMethodId: selectedMethod.paymentMethodId // Use saved payment method
           }
         );
 
@@ -87,75 +179,125 @@ const StripePaymentForm = ({ orderData, orderId, onPaymentSuccess, onPaymentErro
           throw new Error(errorMessage);
         }
 
-        // Confirm the payment with Stripe
+        // Confirm payment with saved payment method
         const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
-          payment_method: {
-            card: elements.getElement(CardElement),
-            billing_details: {
-              name: orderData.contactName || 'Customer',
-              email: orderData.contactEmail,
-              phone: orderData.contactPhone,
-              address: {
-                line1: orderData.shippingAddress?.street || '',
-                city: orderData.shippingAddress?.city || '',
-                state: orderData.shippingAddress?.state || '',
-                postal_code: orderData.shippingAddress?.zipCode || '',
-                country: 'LK'
-              }
-            }
-          }
+          payment_method: selectedMethod.paymentMethodId
         });
 
         if (error) {
-          setCardError(error.message);
-          onPaymentError(error.message);
-        } else if (paymentIntent.status === 'succeeded') {
-          // Save payment information to your backend
-          const paymentData = {
-            paymentMethod: 'credit_card',
-            paymentCompleted: true,
-            paymentDetails: {
-              stripePaymentIntentId: paymentIntent.id,
-              cardBrand: paymentIntent.payment_method_details?.card?.brand || 'unknown',
-              last4: paymentIntent.payment_method_details?.card?.last4 || '****'
-            }
-          };
+          console.error('Payment confirmation failed:', error);
+          throw new Error(error.message || 'Payment confirmation failed');
+        }
 
-          const response = await axios.put(
-            `${import.meta.env.VITE_BACKEND_URL}/api/order/payment/${orderId}`,
-            paymentData
-          );
-
-          if (response.data.success) {
-            onPaymentSuccess();
-          } else {
-            throw new Error(response.data.message || 'Failed to save payment information');
-          }
+        if (paymentIntent.status === 'succeeded') {
+          onPaymentSuccess();
+        } else {
+          throw new Error('Payment was not successful');
         }
       } catch (error) {
         console.error('Payment error:', error);
-        let errorMessage = 'Payment processing failed. Please try again.';
-        
-        if (error.response?.data?.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        // Handle specific Stripe errors
-        if (error.message?.includes('minimum')) {
-          errorMessage = 'The order amount is below the minimum required for card payments. Please try a different payment method.';
-        } else if (error.message?.includes('configuration')) {
-          errorMessage = 'Payment service is temporarily unavailable. Please try again later or use a different payment method.';
-        }
-        
-        onPaymentError(errorMessage);
+        onPaymentError(error.message || 'Payment failed');
       } finally {
         setLoading(false);
       }
     } else {
-      setCardError('Please complete your card details');
-      setLoading(false);
+      // Using new card - validate card element
+      if (!elements) {
+        setCardError('Card element not available');
+        setLoading(false);
+        return;
+      }
+
+      const cardElement = elements.getElement(CardElement);
+      if (!cardElement._empty && cardElement._complete) {
+        try {
+          // Create payment intent on your server
+          const { data } = await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/api/stripe/create-payment-intent`,
+            {
+              amount: Math.round(orderData.total * 100), // Convert LKR to paisa (1 LKR = 100 paisa)
+              currency: 'lkr',
+              orderId: orderId,
+              contactEmail: orderData.contactEmail
+            }
+          );
+
+          if (!data.success) {
+            const errorMessage = data.message || 'Failed to create payment intent';
+            console.error('Payment intent creation failed:', errorMessage);
+            throw new Error(errorMessage);
+          }
+
+          // Confirm the payment with Stripe
+          const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+            payment_method: {
+              card: elements.getElement(CardElement),
+              billing_details: {
+                name: orderData.contactName || 'Customer',
+                email: orderData.contactEmail,
+                phone: orderData.contactPhone,
+                address: {
+                  line1: orderData.shippingAddress?.street || '',
+                  city: orderData.shippingAddress?.city || '',
+                  state: orderData.shippingAddress?.state || '',
+                  postal_code: orderData.shippingAddress?.zipCode || '',
+                  country: 'LK'
+                }
+              }
+            }
+          });
+
+          if (error) {
+            setCardError(error.message);
+            onPaymentError(error.message);
+          } else if (paymentIntent.status === 'succeeded') {
+            // Save payment information to your backend
+            const paymentData = {
+              paymentMethod: 'credit_card',
+              paymentCompleted: true,
+              paymentDetails: {
+                stripePaymentIntentId: paymentIntent.id,
+                cardBrand: paymentIntent.payment_method_details?.card?.brand || 'unknown',
+                last4: paymentIntent.payment_method_details?.card?.last4 || '****'
+              }
+            };
+
+            const response = await axios.put(
+              `${import.meta.env.VITE_BACKEND_URL}/api/order/payment/${orderId}`,
+              paymentData
+            );
+
+            if (response.data.success) {
+              onPaymentSuccess();
+            } else {
+              throw new Error(response.data.message || 'Failed to save payment information');
+            }
+          }
+        } catch (error) {
+          console.error('Payment error:', error);
+          let errorMessage = 'Payment processing failed. Please try again.';
+          
+          if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          // Handle specific Stripe errors
+          if (error.message?.includes('minimum')) {
+            errorMessage = 'The order amount is below the minimum required for card payments. Please try a different payment method.';
+          } else if (error.message?.includes('configuration')) {
+            errorMessage = 'Payment service is temporarily unavailable. Please try again later or use a different payment method.';
+          }
+          
+          onPaymentError(errorMessage);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setCardError('Please complete your card details');
+        setLoading(false);
+      }
     }
   };
 
@@ -179,21 +321,108 @@ const StripePaymentForm = ({ orderData, orderId, onPaymentSuccess, onPaymentErro
 
   return (
     <div className="space-y-4">
+      {/* Payment Method Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Card Details *
+          Select Payment Method *
         </label>
-        <div className={`border rounded-md p-3 ${loading ? 'bg-gray-50' : 'bg-white'}`}>
-          <CardElement options={cardElementOptions} />
-        </div>
-        {cardError && (
-          <p className="text-red-500 text-sm mt-1">{cardError}</p>
+        {savedPaymentMethods.length > 0 ? (
+          <select
+            value={selectedPaymentMethod}
+            onChange={(e) => handlePaymentMethodChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">Choose a saved payment method</option>
+            {savedPaymentMethods.map((method) => (
+              <option key={method._id} value={method._id}>
+                {getCardBrandIcon(method.cardBrand)} {method.cardBrand.toUpperCase()} •••• {method.last4} 
+                {method.isDefault ? ' (Default)' : ''}
+              </option>
+            ))}
+            <option value="new_card">➕ Add New Card</option>
+          </select>
+        ) : (
+          <div className="bg-blue-50 p-3 rounded-md">
+            <p className="text-sm text-blue-800">
+              No saved payment methods found. You can add payment methods in your account settings for faster checkout.
+            </p>
+          </div>
+        )}
+        {!selectedPaymentMethod && savedPaymentMethods.length > 0 && (
+          <p className="text-red-500 text-sm mt-1">Please select a payment method</p>
         )}
       </div>
 
+      {/* Card Details - Show only if new card is selected or no saved methods */}
+      {(useNewCard || savedPaymentMethods.length === 0) && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Card Details *
+          </label>
+          <div className={`border rounded-md p-3 ${loading ? 'bg-gray-50' : 'bg-white'}`}>
+            <CardElement options={cardElementOptions} />
+          </div>
+          {cardError && (
+            <p className="text-red-500 text-sm mt-1">{cardError}</p>
+          )}
+        </div>
+      )}
+
+      {/* Selected Card Details */}
+      {selectedPaymentMethod && !useNewCard && (
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h4 className="font-medium text-gray-900 mb-3">Selected Payment Method</h4>
+          {(() => {
+            const selectedMethod = savedPaymentMethods.find(method => method._id === selectedPaymentMethod);
+            return selectedMethod ? (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="text-2xl">{getCardBrandIcon(selectedMethod.cardBrand)}</div>
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {selectedMethod.cardBrand.toUpperCase()} •••• {selectedMethod.last4}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Expires {selectedMethod.expMonth}/{selectedMethod.expYear}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {selectedMethod.billingDetails.name}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Show billing information suggestions */}
+                {selectedMethod.billingDetails && (
+                  <div className="border-t pt-3 mt-3">
+                    <p className="text-xs text-gray-500 mb-2">Saved billing information:</p>
+                    <div className="text-sm text-gray-700">
+                      <p><strong>Name:</strong> {selectedMethod.billingDetails.name}</p>
+                      <p><strong>Email:</strong> {selectedMethod.billingDetails.email}</p>
+                      {selectedMethod.billingDetails.address && (
+                        <div>
+                          <p><strong>Address:</strong></p>
+                          <p className="ml-2">
+                            {selectedMethod.billingDetails.address.line1}<br/>
+                            {selectedMethod.billingDetails.address.line2 && (
+                              <>{selectedMethod.billingDetails.address.line2}<br/></>
+                            )}
+                            {selectedMethod.billingDetails.address.city}, {selectedMethod.billingDetails.address.state}<br/>
+                            {selectedMethod.billingDetails.address.postal_code}, {selectedMethod.billingDetails.address.country}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null;
+          })()}
+        </div>
+      )}
+
       <button
         onClick={handleSubmit}
-        disabled={!stripe || loading}
+        disabled={!stripe || loading || (!selectedPaymentMethod && !useNewCard && savedPaymentMethods.length > 0)}
         className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400 transition-colors flex items-center justify-center"
       >
         {loading ? (
@@ -227,10 +456,6 @@ export default function EnterPayment() {
   const [paymentMethod, setPaymentMethod] = useState('credit_card');
 
   const [formData, setFormData] = useState({
-    // Bank Transfer Details
-    bankName: '',
-    accountNumber: '',
-    
     // Cash on Delivery
     codConfirmation: false,
   });
@@ -289,20 +514,6 @@ export default function EnterPayment() {
     
     // Only validate if the current payment method requires this field
     switch (fieldName) {
-      case 'bankName':
-        if (paymentMethod === 'bank_transfer') {
-          validator.required(fieldValue, 'Bank Name');
-        }
-        break;
-      
-      case 'accountNumber':
-        if (paymentMethod === 'bank_transfer') {
-          validator.required(fieldValue, 'Account Number')
-                   .minLength(fieldValue, 8, 'Account Number')
-                   .maxLength(fieldValue, 20, 'Account Number')
-                   .custom(/^\d+$/.test(fieldValue || ''), 'Account Number', 'Account number must contain only digits');
-        }
-        break;
       
       case 'codConfirmation':
         if (paymentMethod === 'cash_on_delivery') {
@@ -328,15 +539,6 @@ export default function EnterPayment() {
 
   const validateForm = () => {
     const validator = new FormValidator();
-
-    if (paymentMethod === 'bank_transfer') {
-      validator.required(formData.bankName, 'Bank Name');
-      
-      validator.required(formData.accountNumber, 'Account Number')
-               .minLength(formData.accountNumber, 8, 'Account Number')
-               .maxLength(formData.accountNumber, 20, 'Account Number')
-               .custom(/^\d+$/.test(formData.accountNumber || ''), 'Account Number', 'Account number must contain only digits');
-    }
 
     if (paymentMethod === 'cash_on_delivery') {
       validator.custom(formData.codConfirmation === true, 'COD Confirmation', 'Please confirm cash on delivery payment');
@@ -403,12 +605,7 @@ export default function EnterPayment() {
       };
 
       // Add method-specific data
-      if (paymentMethod === 'bank_transfer') {
-        paymentData.paymentDetails = {
-          bankName: formData.bankName,
-          accountLast4: formData.accountNumber.slice(-4) // Only store last 4 digits
-        };
-      } else if (paymentMethod === 'cash_on_delivery') {
+      if (paymentMethod === 'cash_on_delivery') {
         paymentData.paymentDetails = {
           codFee: 50,
           totalWithCod: orderData.total + 50
@@ -535,23 +732,6 @@ export default function EnterPayment() {
                     </div>
                   </label>
 
-                  {/* Bank Transfer */}
-                  <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="bank_transfer"
-                      checked={paymentMethod === 'bank_transfer'}
-                      onChange={(e) => handlePaymentMethodChange(e.target.value)}
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <Building size={20} className="text-gray-600" />
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">Bank Transfer</div>
-                      <div className="text-sm text-gray-500">Direct bank transfer</div>
-                    </div>
-                  </label>
-
                   {/* Cash on Delivery */}
                   <label className="flex items-center space-x-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                     <input
@@ -586,61 +766,6 @@ export default function EnterPayment() {
                       setLoading={setLoading}
                     />
                   </Elements>
-                ) : paymentMethod === 'bank_transfer' ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bank Name *
-                      </label>
-                      <select
-                        name="bankName"
-                        value={formData.bankName}
-                        onChange={handleInputChange}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.bankName ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      >
-                        <option value="">Select your bank</option>
-                        <option value="Commercial Bank">Commercial Bank</option>
-                        <option value="People's Bank">People's Bank</option>
-                        <option value="Bank of Ceylon">Bank of Ceylon</option>
-                        <option value="Hatton National Bank">Hatton National Bank</option>
-                        <option value="Sampath Bank">Sampath Bank</option>
-                        <option value="Seylan Bank">Seylan Bank</option>
-                        <option value="DFCC Bank">DFCC Bank</option>
-                        <option value="National Development Bank">National Development Bank</option>
-                      </select>
-                      {errors.bankName && (
-                        <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Account Number *
-                      </label>
-                      <input
-                        type="text"
-                        name="accountNumber"
-                        value={formData.accountNumber}
-                        onChange={handleInputChange}
-                        placeholder="Your account number"
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                          errors.accountNumber ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      {errors.accountNumber && (
-                        <p className="text-red-500 text-sm mt-1">{errors.accountNumber}</p>
-                      )}
-                    </div>
-                    
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        <strong>Important:</strong> After placing your order, you will receive bank transfer instructions via email. 
-                        Please complete the transfer within 24 hours to confirm your order.
-                      </p>
-                    </div>
-                  </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="bg-gray-50 p-4 rounded-lg">
