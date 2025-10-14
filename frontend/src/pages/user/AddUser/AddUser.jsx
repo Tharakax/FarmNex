@@ -25,11 +25,14 @@ function AddUser() {
 
   // Validation functions
   const validateFullName = (name) => {
-    if (!name.trim()) return "Full name is required";
-    if (name.trim().length < 2) return "Full name must be at least 2 characters";
-    if (!/^[a-zA-Z\s]+$/.test(name)) return "Full name can only contain letters and spaces";
-    return "";
-  };
+  if (!name.trim()) return "Full name is required";
+  if (name.trim().length < 2)
+    return "Full name must be at least 2 characters";
+  if (!/^[a-zA-Z\s]+$/.test(name))
+    return "Full name can only contain letters and spaces";
+  return "";
+};
+
 
   const validateEmail = (email) => {
     if (!email) return "Email is required";
@@ -270,38 +273,45 @@ function AddUser() {
             <div className="bg-white rounded-2xl shadow-xl p-8 border border-green-100">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Full Name */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Full Name *
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      name="fullName"
-                      value={inputs.fullName}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                        errors.fullName 
-                          ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                          : inputs.fullName && !errors.fullName
-                          ? 'border-green-300 focus:border-green-600 bg-green-50'
-                          : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                      }`}
-                      placeholder="Enter full name"
-                    />
-                    {inputs.fullName && !errors.fullName && (
-                      <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-600" />
-                    )}
-                  </div>
-                  {errors.fullName && (
-                    <div className="flex items-center text-red-600 text-sm animate-pulse">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.fullName}
-                    </div>
-                  )}
-                </div>
+               <div className="space-y-2">
+  <label className="block text-sm font-semibold text-gray-700">
+    Full Name *
+  </label>
+  <div className="relative">
+    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+    <input
+      type="text"
+      name="fullName"
+      value={inputs.fullName}
+      onChange={(e) => {
+        // Allow only letters and spaces — block everything else
+        const filteredValue = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+        handleChange({
+          target: { name: "fullName", value: filteredValue },
+        });
+      }}
+      onBlur={handleBlur}
+      className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+        errors.fullName
+          ? "border-red-300 focus:border-red-500 bg-red-50"
+          : inputs.fullName && !errors.fullName
+          ? "border-green-300 focus:border-green-600 bg-green-50"
+          : "border-gray-200 focus:border-green-500 hover:border-gray-300"
+      }`}
+      placeholder="Enter full name"
+    />
+    {inputs.fullName && !errors.fullName && (
+      <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-600" />
+    )}
+  </div>
+  {errors.fullName && (
+    <div className="flex items-center text-red-600 text-sm animate-pulse">
+      <AlertCircle className="w-4 h-4 mr-1" />
+      {errors.fullName}
+    </div>
+  )}
+</div>
+
 
                 {/* Email */}
                 <div className="space-y-2">
@@ -337,35 +347,57 @@ function AddUser() {
                   )}
                 </div>
 
-                {/* Phone */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Phone Number *
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type="tel" name="phone" value={inputs.phone} onChange={handleChange} 
-                      onBlur={handleBlur}
-                      className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
-                        errors.phone 
-                          ? 'border-red-300 focus:border-red-500 bg-red-50' 
-                          : inputs.phone && !errors.phone
-                          ? 'border-green-300 focus:border-green-600 bg-green-50'
-                          : 'border-gray-200 focus:border-green-500 hover:border-gray-300'
-                      }`}
-                      placeholder="Enter phone number-(e.g., +94771234567)"
-                    />
-                    {inputs.phone && !errors.phone && (
-                      <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-600" />
-                    )}
-                  </div>
-                  {errors.phone && (
-                    <div className="flex items-center text-red-600 text-sm animate-pulse">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.phone}
-                    </div>
-                  )}
-                </div>
+                {/* Phone Number */}
+<div className="space-y-2">
+  <label className="block text-sm font-semibold text-gray-700">
+    Phone Number *
+  </label>
+  <div className="relative">
+    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+
+    <input
+      type="tel"
+      name="phone"
+      value={inputs.phone || "+94"} // ensure +94 always appears
+      onChange={(e) => {
+        let value = e.target.value;
+
+        // Ensure it always starts with +94
+        if (!value.startsWith("+94")) {
+          value = "+94" + value.replace(/^\+?94?/, "");
+        }
+
+        // Remove any non-digit characters after +94
+        const afterPrefix = value.slice(3).replace(/[^0-9]/g, "");
+
+        // Limit to max 9 digits after +94 (like +94771234567)
+        value = "+94" + afterPrefix.slice(0, 9);
+
+        handleChange({ target: { name: "phone", value } });
+      }}
+      onBlur={handleBlur}
+      className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
+        errors.phone
+          ? "border-red-300 focus:border-red-500 bg-red-50"
+          : inputs.phone && !errors.phone
+          ? "border-green-300 focus:border-green-600 bg-green-50"
+          : "border-gray-200 focus:border-green-500 hover:border-gray-300"
+      }`}
+      placeholder="+94771234567"
+    />
+
+    {inputs.phone && !errors.phone && (
+      <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-600" />
+    )}
+  </div>
+
+  {errors.phone && (
+    <div className="flex items-center text-red-600 text-sm animate-pulse">
+      <AlertCircle className="w-4 h-4 mr-1" />
+      {errors.phone}
+    </div>
+  )}
+</div>
 
                 {/* Age */}
                 <div className="space-y-2">

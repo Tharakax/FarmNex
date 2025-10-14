@@ -4,6 +4,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
+import { exportReceiptToPDF } from '../../utils/exportUtils';
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
@@ -38,6 +39,21 @@ export default function PaymentSuccess() {
   const isLoggedIn = !!localStorage.getItem('token');
   const userEmail = localStorage.getItem('userEmail') || '';
   const shouldShowClaim = isLoggedIn && order && !order.customerId;
+
+  const handleDownloadReceipt = async () => {
+    if (!order) {
+      toast.error('Order data not available');
+      return;
+    }
+
+    try {
+      await exportReceiptToPDF(order, `receipt-${orderId}`);
+      toast.success('Receipt downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      toast.error('Failed to download receipt. Please try again.');
+    }
+  };
 
   const handleClaim = async () => {
     if (!shouldShowClaim) return;
@@ -247,7 +263,7 @@ export default function PaymentSuccess() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
-            to="/"
+            to="/customerdash"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <Home className="mr-2 h-4 w-4" />
@@ -260,7 +276,7 @@ export default function PaymentSuccess() {
             View Order History
           </button>
           <button
-            onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}/api/order/receipt/${orderId}/pdf`, '_blank')}
+            onClick={handleDownloadReceipt}
             className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <Download className="mr-2 h-4 w-4" />

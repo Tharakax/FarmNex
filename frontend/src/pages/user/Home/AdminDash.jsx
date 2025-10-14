@@ -347,7 +347,7 @@ function AdminDashboard() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['User', 'Role', 'Farm Details', 'Status', 'Last Login', 'Actions'].map((header, i) => (
+                  {['User', 'Role',  'Status', 'Last Login', 'Actions'].map((header, i) => (
                     <th key={i} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       {header}
                     </th>
@@ -373,22 +373,22 @@ function AdminDashboard() {
                         {user.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div>{user.farmArea || 'N/A'}</div>
-                      <div className="text-gray-500">
-                        {user.crops ? user.crops.join(', ') : 'No crops assigned'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.status || 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.lastLogin || 'N/A'}
-                    </td>
+                  
+                   <td className="px-6 py-4 whitespace-nowrap">
+  <span
+    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+      user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+    }`}
+  >
+    {user.status || 'Inactive'}
+  </span>
+</td>
+<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+  {user.currentSession?.loginTime
+    ? new Date(user.currentSession.loginTime).toLocaleString()
+    : 'N/A'}
+</td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         <button onClick={() => handleViewUser(user)} className="text-blue-600 hover:text-blue-900 p-1 rounded">
@@ -431,7 +431,7 @@ function AdminDashboard() {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-center h-16 px-4 bg-green-600">
             <BrandLogo size={32} className="mr-2" />
-            <h2 className="text-xl font-bold text-white">Farm Nex Admin</h2>
+            <h2 className="text-xl font-bold text-white">Admin</h2>
           </div>
 
           <div className="p-4 border-b border-gray-200">
@@ -528,15 +528,15 @@ function AdminDashboard() {
               <button onClick={() => setShowUserModal(false)} className="text-gray-400 hover:text-gray-600">×</button>
             </div>
             <div className="space-y-4">
-              {['Name', 'Email', 'Role', 'Farm Area', 'Crops', 'Status', 'Last Login'].map((label, i) => (
+              {['Name', 'Email', 'Role', 'Status', 'Last Login'].map((label, i) => (
                 <div key={i}>
                   <label className="text-sm font-medium text-gray-700">{label}</label>
                   <p className="text-gray-900">
                     {label === 'Name' && (selectedUser.fullName || selectedUser.name)}
                     {label === 'Email' && selectedUser.email}
                     {label === 'Role' && selectedUser.role}
-                    {label === 'Farm Area' && (selectedUser.farmArea || 'N/A')}
-                    {label === 'Crops' && (selectedUser.crops ? selectedUser.crops.join(', ') : 'No crops assigned')}
+                   
+                    
                     {label === 'Status' && (selectedUser.status || 'Inactive')}
                     {label === 'Last Login' && (selectedUser.lastLogin || 'N/A')}
                   </p>

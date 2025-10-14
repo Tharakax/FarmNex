@@ -14,7 +14,7 @@ import {
   Search, 
   Home, 
   Apple, 
-  DollarSign, 
+  Banknote, 
   LogOut, 
   Edit3, 
   Lock,
@@ -26,13 +26,16 @@ import {
   Download,
   Phone,
   Mail,
-  Clock
+  Clock,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import DashboardFeedbackForm from '../../../features/dashboard/DashboardFeedbackForm';
 import DashboardFeedbackList from '../../../features/dashboard/DashboardFeedbackList';
 import DashboardBrowseProducts from '../../../features/dashboard/DashboardBrowseProducts';
 import DashboardShoppingCart from '../../../features/dashboard/DashboardShoppingCart';
 import PaymentHistory from '../../../features/dashboard/PaymentHistory';
+import PaymentCardsManager from '../../payment/PaymentCards';
 //import ProductStarRatings from '../../../features/dashboard/ProductStarRatings.jsx';
 import NotificationBell from '../../../features/notifications/NotificationBell';
 import { getLoggedInUser } from '../../../utils/userUtils';
@@ -48,10 +51,12 @@ const CustomerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState({
     totalOrders: 0,
@@ -183,6 +188,7 @@ const CustomerDashboard = () => {
     { id: 'cart', label: 'Shopping Cart', icon: ShoppingCart, badge: cartItemCount > 0 ? cartItemCount : null },
     { id: 'orders', label: 'Order History', icon: Package },
     { id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'payment-methods', label: 'Payment Methods', icon: CreditCard },
     { id: 'feedback', label: 'Feedback & Ratings', icon: Star },
     { id: 'qna', label: 'Q&A Section', icon: MessageSquare },
     { id: 'support', label: 'Help & Support', icon: HelpCircle },
@@ -232,7 +238,7 @@ const CustomerDashboard = () => {
                 <p className="text-2xl font-bold text-gray-900">Rs. {dashboardStats.thisMonthSpending.toFixed(2)}</p>
               )}
             </div>
-            <DollarSign className="w-8 h-8 text-emerald-500" />
+            <Banknote className="w-8 h-8 text-emerald-500" />
           </div>
         </div>
       </div>
@@ -259,7 +265,6 @@ const CustomerDashboard = () => {
               dashboardStats.recentOrders.slice(0, 3).map(order => (
                 <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">{order.id}</p>
                     <p className="text-sm text-gray-600">{order.date}</p>
                   </div>
                   <div className="text-right">
@@ -323,7 +328,7 @@ const CustomerDashboard = () => {
   );
 
   const renderProducts = () => (
-    <DashboardBrowseProducts />
+    <DashboardBrowseProducts searchTerm={searchTerm} onSearchChange={setSearchTerm} />
   );
 
   const renderOrders = () => (
@@ -337,6 +342,7 @@ const CustomerDashboard = () => {
       case 'cart': return (<DashboardShoppingCart onBrowseProducts={() => setActiveTab('products')} />);
       case 'orders': return renderOrders();
       case 'payments': return <PaymentHistory />;
+      case 'payment-methods': return <PaymentCardsManager />;
       case 'feedback': return (
         <div>
          
@@ -416,10 +422,13 @@ const CustomerDashboard = () => {
             {/* Logo */}
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => navigate('/')}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                >
                   <BrandLogo size={24} />
                   <h2 className="text-xl font-bold text-green-600">Farm Nex</h2>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -430,6 +439,13 @@ const CustomerDashboard = () => {
                 <input
                   type="text"
                   placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      setActiveTab('products');
+                    }
+                  }}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
@@ -437,6 +453,29 @@ const CustomerDashboard = () => {
 
             {/* Right Navigation */}
             <div className="flex items-center gap-4">
+              {/* Sidebar Toggle Button */}
+              <button
+                onClick={() => setSidebarVisible(!sidebarVisible)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title={sidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+              >
+                {sidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+              </button>
+
+              {/* Cart Button */}
+              <button
+                onClick={() => setActiveTab('cart')}
+                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title="Shopping Cart"
+              >
+                <ShoppingCart size={20} />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+              
               <NotificationBell />
 
               {/* User Profile Dropdown */}
@@ -528,7 +567,7 @@ const CustomerDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar Navigation */}
-          <div className={`md:w-64 ${showMobileMenu ? 'block' : 'hidden md:block'}`}>
+          <div className={`${sidebarVisible ? 'md:w-64' : 'md:w-0'} ${showMobileMenu ? 'block' : sidebarVisible ? 'block md:block' : 'hidden md:block'} transition-all duration-300 overflow-hidden`}>
             <div className="bg-white rounded-xl shadow-sm border p-4">
               <nav className="space-y-2">
                 {navItems.map(item => {
@@ -563,7 +602,7 @@ const CustomerDashboard = () => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1">
+          <div className={`flex-1 ${!sidebarVisible ? 'md:ml-0' : ''} transition-all duration-300`}>
             <div className="bg-white rounded-xl shadow-sm border p-6">
               {renderContent()}
             </div>

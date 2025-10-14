@@ -102,9 +102,10 @@ const OtpVerification = () => {
 
         console.log("Login successful, redirecting to:", user.role);
 
-        // Redirect based on role - only farmers get their specific dashboard
+       
         let redirectPath = "/"; // Default to home page
         
+        //role base access
         if (user.role === "FarmStaff") {
           redirectPath = "/farmerdashboard";
         } else if (user.role === "Admin") {
@@ -238,7 +239,7 @@ const OtpVerification = () => {
     if (otp.length === 6 && !loading && !error) {
       const timer = setTimeout(() => {
         handleVerifyOTP();
-      }, 1500); // 500ms delay to prevent accidental submissions
+      }, 1500); // delay to prevent accidental submissions
       
       return () => clearTimeout(timer);
     }

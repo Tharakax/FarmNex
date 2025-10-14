@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import paymentAPI from '../../services/paymentAPI';
 import { handleImageError, getProductPlaceholder } from '../../utils/imageUtils';
+import { exportToPDF } from '../../utils/exportUtils';
+import { toast } from 'react-hot-toast';
 
 const PaymentHistory = () => {
   const [payments, setPayments] = useState([]);
@@ -76,7 +78,7 @@ const PaymentHistory = () => {
   };
 
   const formatAmount = (amount) => {
-    return `$${parseFloat(amount).toFixed(2)}`;
+    return `LKR ${parseFloat(amount).toFixed(2)}`;
   };
 
   const getPaymentMethodIcon = (method) => {
@@ -120,33 +122,101 @@ const PaymentHistory = () => {
     return matchesSearch && matchesMonth && matchesMethod;
   });
 
-  const downloadReceipt = (payment) => {
-    // Create a simple receipt download
-    const receiptContent = `
-FARMNEX PAYMENT RECEIPT
-=======================
-Transaction ID: ${payment.transactionId}
-Order ID: ${payment.orderId.slice(-8)}
-Date: ${formatDate(payment.date)}
-Amount: ${formatAmount(payment.amount)}
-Payment Method: ${payment.paymentMethod}
-Status: ${payment.status}
+  const downloadReceipt = async (payment) => {
+    try {
+      // Import the PDF utility dynamically to avoid issues
+      const { exportReceiptToPDF } = await import('../../utils/exportUtils');
+      
+      // Create order-like object for receipt generation
+      const orderData = {
+        _id: payment.orderId,
+        id: payment.orderId,
+        createdAt: payment.date,
+        updatedAt: payment.date,
+        status: payment.status,
+        paymentMethod: payment.paymentMethod,
+        paymentcompleted: true,
+        contactName: payment.customerName || 'Customer',
+        contactEmail: payment.customerEmail || '',
+        contactPhone: payment.customerPhone || '',
+        shippingAddress: payment.shippingAddress || null,
+        items: payment.items,
+        subtotal: payment.amount,
+        tax: 0,
+        shipping: 0,
+        discount: 0,
+        total: payment.amount,
+        refundAmount: 0
+      };
+      
+      await exportReceiptToPDF(orderData, `receipt-${payment.transactionId}`);
+      toast.success('Receipt downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      toast.error('Failed to download receipt. Please try again.');
+    }
+  };
 
-Items:
-${payment.items.map(item => `- ${item.name} x${item.quantity} - $${item.price}`).join('\n')}
+  const exportPaymentReport = async () => {
+    try {
+      // Define column structure for payments export
+      const paymentColumns = [
+        { header: 'Transaction ID', key: 'transactionId' },
+        { header: 'Date', key: 'date' },
+        { header: 'Description', key: 'description' },
+        { header: 'Amount', key: 'amount' },
+        { header: 'Payment Method', key: 'paymentMethod' },
+        { header: 'Status', key: 'status' },
+        { header: 'Items Count', key: 'itemsCount' }
+      ];
+      
+      // Prepare data for export
+      const exportData = filteredPayments.map(payment => ({
+        transactionId: payment.transactionId || 'N/A',
+        date: formatDate(payment.date),
+        description: payment.description || 'Payment',
+        amount: `LKR ${parseFloat(payment.amount).toFixed(2)}`,
+        paymentMethod: payment.paymentMethod?.replace('_', ' ').toUpperCase() || 'N/A',
+        status: payment.status?.charAt(0).toUpperCase() + payment.status?.slice(1) || 'Pending',
+        itemsCount: payment.items?.length || 0
+      }));
 
-Thank you for your business!
-    `;
-    
-    const blob = new Blob([receiptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-${payment.transactionId}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      // Calculate summary statistics
+      const totalAmount = filteredPayments.reduce((sum, payment) => sum + parseFloat(payment.amount), 0);
+      const successfulPayments = filteredPayments.filter(payment => payment.status === 'completed' || payment.status === 'delivered').length;
+      const pendingPayments = filteredPayments.filter(payment => payment.status === 'pending').length;
+
+      // Generate filename
+      const fileName = `payment-history-${new Date().toISOString().split('T')[0]}`;
+      
+      // Use standardized export function
+      await exportToPDF(
+        exportData, 
+        'Payment History Report', 
+        paymentColumns, 
+        fileName, 
+        'payments',
+        {
+          subtitle: `${filteredPayments.length} payments found`,
+          summary: {
+            title: 'Payment Summary',
+            metrics: {
+              'Total Payments': filteredPayments.length.toString(),
+              'Total Amount': `LKR ${totalAmount.toFixed(2)}`,
+              'Successful Payments': successfulPayments.toString(),
+              'Pending Payments': pendingPayments.toString(),
+              'Average Amount': `LKR ${(totalAmount / filteredPayments.length || 1).toFixed(2)}`
+            }
+          }
+        }
+      );
+      
+      toast.success('Payment report downloaded successfully!');
+      
+    } catch (error) {
+      console.error('Error generating payment report:', error);
+      toast.error('Failed to generate payment report. Please try again.');
+    }
   };
 
   if (loading) {
@@ -199,7 +269,7 @@ Thank you for your business!
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Payment History</h2>
         <button 
-          onClick={fetchPaymentData}
+          onClick={exportPaymentReport}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
         >
           <Download className="w-4 h-4" />
@@ -374,7 +444,7 @@ Thank you for your business!
 
       {/* Payment Detail Modal */}
       {selectedPayment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 border-4 border-gray-300 absolute inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
@@ -424,7 +494,7 @@ Thank you for your business!
                           <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
                         </div>
                       </div>
-                      <p className="font-medium text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-medium text-sm">LKR {(item.price * item.quantity).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>

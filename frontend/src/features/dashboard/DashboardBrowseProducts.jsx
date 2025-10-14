@@ -5,7 +5,7 @@ import { productAPI } from '../../services/productAPI';
 import { addToCart, getCart } from '../../utils/cart';
 import toast from 'react-hot-toast';
 
-const DashboardBrowseProducts = () => {
+const DashboardBrowseProducts = ({ searchTerm: externalSearchTerm, onSearchChange }) => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -27,6 +27,13 @@ const DashboardBrowseProducts = () => {
     { value: 'dairy-products', label: 'Dairy Products' },
     { value: 'meats', label: 'Meats' }
   ];
+
+  // Sync external search term with internal search term
+  useEffect(() => {
+    if (externalSearchTerm !== undefined) {
+      setSearchTerm(externalSearchTerm);
+    }
+  }, [externalSearchTerm]);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -169,7 +176,13 @@ const DashboardBrowseProducts = () => {
               type="text"
               placeholder="Search products..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                setSearchTerm(newValue);
+                if (onSearchChange) {
+                  onSearchChange(newValue);
+                }
+              }}
               className="pl-10 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-400 w-64 font-medium transition-all"
             />
           </div>

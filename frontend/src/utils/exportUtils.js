@@ -2013,11 +2013,344 @@ const pieUrl = await renderDonutChartToDataUrl(pieSeries, 340, {
   }
 };
 
+// Export receipt/invoice to PDF with FarmNex branding - Single page compact layout
+export const exportReceiptToPDF = async (order, filename = 'receipt') => {
+  try {
+    console.log('Starting receipt PDF export...');
+    
+    if (!order) {
+      throw new Error('No order data available to export');
+    }
+    
+    // Create PDF instance in portrait mode for receipt layout
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    console.log('PDF instance created (portrait), dimensions:', pageWidth, 'x', pageHeight);
+    
+    // Compact header with FarmNex branding
+    const headerBottomY = drawFarmNexPdfHeader(pdf, 'Order Receipt', pageWidth, { 
+      align: 'center', 
+      titleFontSize: 20, 
+      tileSize: 14, 
+      subtitle: `Receipt #${order._id || order.id}`,
+      titleColor: BRAND_COLORS.primary 
+    });
+
+    // Compact order details section - single row
+    let yPosition = headerBottomY + 8;
+    
+    // Order info - compact single row
+    pdf.setFillColor(248, 249, 250);
+    pdf.roundedRect(15, yPosition, pageWidth - 30, 25, 3, 3, 'F');
+    pdf.setDrawColor(...BRAND_COLORS.border);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(15, yPosition, pageWidth - 30, 25, 3, 3, 'S');
+    
+    // Order details in compact format
+    pdf.setFontSize(9);
+    pdf.setTextColor(...BRAND_COLORS.dark);
+    pdf.setFont('helvetica', 'normal');
+    
+    // Compact layout - all info in one row
+    const orderInfo = [
+      `ID: ${order._id || order.id}`,
+      `Date: ${new Date(order.createdAt).toLocaleDateString()}`,
+      `Status: ${order.status || 'Completed'}`,
+      `Payment: ${order.paymentMethod || 'Credit Card'}`
+    ];
+    
+    let xPos = 20;
+    orderInfo.forEach((info, index) => {
+      pdf.text(info, xPos, yPosition + 8);
+      xPos += (pageWidth - 40) / 4; // Distribute evenly across page
+    });
+    
+    // Customer info on second row
+    yPosition += 12;
+    const customerInfo = [];
+    if (order.contactName) customerInfo.push(`Customer: ${order.contactName}`);
+    if (order.contactEmail) customerInfo.push(`Email: ${order.contactEmail}`);
+    if (order.contactPhone) customerInfo.push(`Phone: ${order.contactPhone}`);
+    
+    xPos = 20;
+    customerInfo.forEach((info, index) => {
+      pdf.text(info, xPos, yPosition + 8);
+      xPos += (pageWidth - 40) / customerInfo.length;
+    });
+    
+    yPosition += 20;
+    
+    // Compact shipping address - single line if possible
+    if (order.shippingAddress) {
+      pdf.setFontSize(9);
+      pdf.setTextColor(...BRAND_COLORS.dark);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Shipping Address:', 15, yPosition);
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...BRAND_COLORS.darkMedium);
+      
+      // Try to fit address in one line, otherwise use two
+      const addressLine1 = `${order.shippingAddress.name || 'N/A'}, ${order.shippingAddress.street || 'N/A'}`;
+      const addressLine2 = `${order.shippingAddress.city || 'N/A'}, ${order.shippingAddress.state || 'N/A'} ${order.shippingAddress.zipCode || 'N/A'}`;
+      
+      pdf.text(addressLine1, 15, yPosition + 8);
+      pdf.text(addressLine2, 15, yPosition + 16);
+      
+      yPosition += 25;
+    }
+    
+    // Compact items table
+    pdf.setFontSize(10);
+    pdf.setTextColor(...BRAND_COLORS.dark);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Order Items', 15, yPosition);
+    
+    yPosition += 8;
+    
+    // Compact table headers
+    const tableHeaders = ['Item', 'Qty', 'Price', 'Total'];
+    const colWidths = [75, 20, 35, 35];
+    const headerY = yPosition;
+    
+    // Header background
+    pdf.setFillColor(...BRAND_COLORS.primary);
+    pdf.rect(15, headerY, pageWidth - 30, 10, 'F');
+    
+    // Header text
+    pdf.setFontSize(9);
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    
+    xPos = 18;
+    tableHeaders.forEach((header, index) => {
+      pdf.text(header, xPos, headerY + 6);
+      xPos += colWidths[index];
+    });
+    
+    yPosition += 12;
+    
+    // Compact items rows
+    pdf.setFontSize(8);
+    pdf.setTextColor(...BRAND_COLORS.dark);
+    pdf.setFont('helvetica', 'normal');
+    
+    if (order.items && order.items.length > 0) {
+      // Limit items to fit on page (show first 8-10 items max)
+      const maxItems = Math.min(order.items.length, 8);
+      const itemsToShow = order.items.slice(0, maxItems);
+      
+      itemsToShow.forEach((item, index) => {
+        // Compact row height
+        const rowHeight = 8;
+        
+        // Alternate row background
+        if (index % 2 === 0) {
+          pdf.setFillColor(250, 250, 250);
+          pdf.rect(15, yPosition - 2, pageWidth - 30, rowHeight, 'F');
+        }
+        
+        // Item name (truncated if too long)
+        const itemName = item.name && item.name.length > 30 
+          ? item.name.substring(0, 27) + '...' 
+          : item.name || 'Product';
+        
+        xPos = 18;
+        pdf.text(itemName, xPos, yPosition + 4);
+        xPos += colWidths[0];
+        
+        pdf.text((item.quantity || 0).toString(), xPos, yPosition + 4);
+        xPos += colWidths[1];
+        
+        pdf.text(`Rs. ${(item.price || 0).toFixed(2)}`, xPos, yPosition + 4);
+        xPos += colWidths[2];
+        
+        pdf.text(`Rs. ${((item.price || 0) * (item.quantity || 0)).toFixed(2)}`, xPos, yPosition + 4);
+        
+        yPosition += rowHeight + 1;
+      });
+      
+      // Show total items if truncated
+      if (order.items.length > maxItems) {
+        pdf.setFontSize(8);
+        pdf.setTextColor(...BRAND_COLORS.gray);
+        pdf.text(`... and ${order.items.length - maxItems} more items`, 18, yPosition + 2);
+        yPosition += 8;
+      }
+    }
+    
+    // Compact order summary
+    yPosition += 8;
+    pdf.setDrawColor(...BRAND_COLORS.border);
+    pdf.setLineWidth(0.5);
+    pdf.line(15, yPosition, pageWidth - 15, yPosition);
+    
+    pdf.setFontSize(9);
+    pdf.setTextColor(...BRAND_COLORS.dark);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Order Summary', 15, yPosition + 6);
+    
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...BRAND_COLORS.darkMedium);
+    
+    let summaryYPos = yPosition + 14;
+    
+    // Compact summary in two columns
+    const leftColX = 15;
+    const rightColX = pageWidth - 80;
+    
+    pdf.text(`Subtotal: Rs. ${(order.subtotal || 0).toFixed(2)}`, rightColX, summaryYPos, { align: 'right' });
+    summaryYPos += 6;
+    
+    if (order.discount > 0) {
+      pdf.text(`Discount: -Rs. ${(order.discount || 0).toFixed(2)}`, rightColX, summaryYPos, { align: 'right' });
+      summaryYPos += 6;
+    }
+    
+    pdf.text(`Shipping: ${order.shipping === 0 ? 'Free' : `Rs. ${(order.shipping || 0).toFixed(2)}`}`, rightColX, summaryYPos, { align: 'right' });
+    summaryYPos += 6;
+    
+    pdf.text(`Tax: Rs. ${(order.tax || 0).toFixed(2)}`, rightColX, summaryYPos, { align: 'right' });
+    summaryYPos += 8;
+    
+    // Total with emphasis
+    pdf.setFontSize(11);
+    pdf.setTextColor(...BRAND_COLORS.primary);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Total: Rs. ${(order.total || 0).toFixed(2)}`, rightColX, summaryYPos, { align: 'right' });
+    
+    // Compact footer
+    const footerY = pageHeight - 15;
+    pdf.setDrawColor(...BRAND_COLORS.border);
+    pdf.setLineWidth(0.5);
+    pdf.line(15, footerY - 8, pageWidth - 15, footerY - 8);
+    
+    pdf.setFontSize(7);
+    pdf.setTextColor(...BRAND_COLORS.gray);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('FarmNex Farm Management System • No 8, Temple Road, Beralapanathra, Sri Lanka', 15, footerY - 2);
+    pdf.text('Tel: 0742331740 • Email: farmnex@gmail.com', 15, footerY + 3);
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 15, footerY + 3, { align: 'right' });
+    
+    console.log('Receipt PDF generated successfully');
+    
+    // Save the PDF
+    pdf.save(`${filename}.pdf`);
+    return true;
+    
+  } catch (error) {
+    console.error('Error exporting receipt PDF:', error);
+    throw new Error(`Receipt PDF Export Failed: ${error.message || 'Unknown error occurred'}`);
+  }
+};
+
+// Export credit note to PDF with FarmNex branding
+export const exportCreditNoteToPDF = async (order, filename = 'credit-note') => {
+  try {
+    console.log('Starting credit note PDF export...');
+    
+    if (!order) {
+      throw new Error('No order data available to export');
+    }
+    
+    const refunded = Number(order.refundAmount || 0);
+    if (refunded <= 0) {
+      throw new Error('No refund recorded for this order');
+    }
+    
+    // Create PDF instance in portrait mode
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    
+    // Header with FarmNex branding
+    const headerBottomY = drawFarmNexPdfHeader(pdf, 'Credit Note', pageWidth, { 
+      align: 'center', 
+      titleFontSize: 24, 
+      tileSize: 16, 
+      subtitle: `Refund Confirmation for Order #${order._id || order.id}`,
+      titleColor: BRAND_COLORS.primary 
+    });
+
+    let yPosition = headerBottomY + 20;
+    
+    // Credit note details box
+    const infoBoxHeight = 60;
+    pdf.setFillColor(248, 249, 250);
+    pdf.roundedRect(15, yPosition, pageWidth - 30, infoBoxHeight, 3, 3, 'F');
+    pdf.setDrawColor(...BRAND_COLORS.border);
+    pdf.setLineWidth(0.5);
+    pdf.roundedRect(15, yPosition, pageWidth - 30, infoBoxHeight, 3, 3, 'S');
+    
+    // Credit note title
+    pdf.setFontSize(12);
+    pdf.setTextColor(...BRAND_COLORS.dark);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Credit Note Details', 20, yPosition + 10);
+    
+    // Credit note information
+    pdf.setFontSize(10);
+    pdf.setTextColor(...BRAND_COLORS.darkMedium);
+    pdf.setFont('helvetica', 'normal');
+    
+    pdf.text(`Credit Note for Order: ${order._id || order.id}`, 20, yPosition + 20);
+    pdf.text(`Date: ${new Date(order.refundAt || new Date()).toLocaleDateString()}`, 20, yPosition + 28);
+    pdf.text(`Customer: ${order.contactName || 'N/A'}`, 20, yPosition + 36);
+    pdf.text(`Email: ${order.contactEmail || 'N/A'}`, 20, yPosition + 44);
+    
+    // Refund amount with emphasis
+    pdf.setFontSize(16);
+    pdf.setTextColor(...BRAND_COLORS.primary);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(`Refund Amount: Rs. ${refunded.toFixed(2)}`, pageWidth - 50, yPosition + 25, { align: 'right' });
+    
+    pdf.setFontSize(10);
+    pdf.setTextColor(...BRAND_COLORS.darkMedium);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Status: ${order.refundStatus || 'processed'}`, pageWidth - 50, yPosition + 35, { align: 'right' });
+    pdf.text(`Method: ${order.refundMethod || order.paymentMethod || 'manual'}`, pageWidth - 50, yPosition + 43, { align: 'right' });
+    
+    yPosition += infoBoxHeight + 20;
+    
+    // Additional refund information
+    if (order.refundTxnId) {
+      pdf.setFontSize(10);
+      pdf.setTextColor(...BRAND_COLORS.dark);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Transaction Information', 15, yPosition);
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...BRAND_COLORS.darkMedium);
+      pdf.text(`Transaction ID: ${order.refundTxnId}`, 15, yPosition + 10);
+    }
+    
+    // Add FarmNex footer
+    addFarmNexFooter(pdf);
+    
+    console.log('Credit note PDF generated successfully');
+    
+    // Save the PDF
+    pdf.save(`${filename}.pdf`);
+    return true;
+    
+  } catch (error) {
+    console.error('Error exporting credit note PDF:', error);
+    throw new Error(`Credit Note PDF Export Failed: ${error.message || 'Unknown error occurred'}`);
+  }
+};
+
+export { drawSummaryBlock, drawCoverPage, applyWatermark, renderBarChartToDataUrl, renderDonutChartToDataUrl };
+
 export default {
   exportToPDF,
   exportToExcel,
   exportProductsToPDFWithImages,
   exportProductsToCompactPDF,
+  exportReceiptToPDF,
+  exportCreditNoteToPDF,
   formatCurrency,
   formatDate,
   getInventoryColumns,
@@ -2034,5 +2367,3 @@ export default {
   renderBarChartToDataUrl,
   renderDonutChartToDataUrl
 };
-
-export { drawSummaryBlock, drawCoverPage, applyWatermark, renderBarChartToDataUrl, renderDonutChartToDataUrl };
