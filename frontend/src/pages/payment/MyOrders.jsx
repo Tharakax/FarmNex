@@ -4,6 +4,7 @@ import { orderAPI } from '../../services/orderAPI';
 import { handleImageError, resolveProductImage, getProductPlaceholder } from '../../utils/imageUtils';
 import { exportToPDF } from '../../utils/exportUtils';
 import { toast } from 'react-hot-toast';
+import { getCart, addToCart } from '../../utils/cart';
 
 // Using shared resolver from imageUtils
 
@@ -13,6 +14,13 @@ const MyOrders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [dateSelectionType, setDateSelectionType] = useState('range'); // 'range' or 'specific'
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [specificDate, setSpecificDate] = useState('');
 
   // Order states from order.js schema
   const orderStates = {
@@ -67,7 +75,30 @@ const MyOrders = () => {
     
     try {
       // Filter orders based on active tab
-      const reportOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
+      let reportOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
+      
+      // Apply date filtering based on selection type
+      if (dateSelectionType === 'specific' && specificDate) {
+        const selectedDate = new Date(specificDate);
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        reportOrders = reportOrders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= startOfDay && orderDate <= endOfDay;
+        });
+      } else if (dateSelectionType === 'range' && dateRange.startDate && dateRange.endDate) {
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+        endDate.setHours(23, 59, 59, 999); // Include the entire end date
+        
+        reportOrders = reportOrders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= startDate && orderDate <= endDate;
+        });
+      }
       
       // Define column structure for orders export
       const orderColumns = [
@@ -93,14 +124,14 @@ const MyOrders = () => {
         status: orderStates[order.status]?.label || order.status,
         customer: order.contactName || order.contactEmail || 'N/A',
         items: order.items?.length || 0,
-        subtotal: `$${order.subtotal?.toFixed(2) || '0.00'}`,
-        tax: `$${order.tax?.toFixed(2) || '0.00'}`,
-        shipping: `$${order.shipping?.toFixed(2) || '0.00'}`,
-        discount: order.discount > 0 ? `-$${order.discount.toFixed(2)}` : '$0.00',
-        total: `$${order.total?.toFixed(2) || '0.00'}`,
+        subtotal: `Rs. ${order.subtotal?.toFixed(2) || '0.00'}`,
+        tax: `Rs. ${order.tax?.toFixed(2) || '0.00'}`,
+        shipping: `Rs. ${order.shipping?.toFixed(2) || '0.00'}`,
+        discount: order.discount > 0 ? `-Rs. ${order.discount.toFixed(2)}` : 'Rs. 0.00',
+        total: `Rs. ${order.total?.toFixed(2) || '0.00'}`,
         payment: order.paymentcompleted ? 'Paid' : 'Pending',
         method: order.paymentMethod?.replace('_', ' ').toUpperCase() || 'N/A',
-        refund: Number(order.refundAmount || 0) > 0 ? `$${Number(order.refundAmount).toFixed(2)}` : 'None'
+        refund: Number(order.refundAmount || 0) > 0 ? `Rs. ${Number(order.refundAmount).toFixed(2)}` : 'None'
       }));
 
       // Calculate summary statistics
@@ -110,8 +141,16 @@ const MyOrders = () => {
       const deliveredOrders = reportOrders.filter(order => order.status === 'delivered').length;
       const totalRefunds = reportOrders.reduce((sum, order) => sum + Number(order.refundAmount || 0), 0);
 
-      // Generate filename
-      const fileName = `orders-report-${activeTab}-${new Date().toISOString().split('T')[0]}`;
+      // Generate filename with date filtering if provided
+      let fileName = `orders-report-${activeTab}-${new Date().toISOString().split('T')[0]}`;
+      if (dateSelectionType === 'specific' && specificDate) {
+        const dateStr = specificDate.replace(/-/g, '');
+        fileName = `orders-report-${activeTab}-${dateStr}`;
+      } else if (dateSelectionType === 'range' && dateRange.startDate && dateRange.endDate) {
+        const startDateStr = dateRange.startDate.replace(/-/g, '');
+        const endDateStr = dateRange.endDate.replace(/-/g, '');
+        fileName = `orders-report-${activeTab}-${startDateStr}-to-${endDateStr}`;
+      }
       
       // Use standardized export function with correct parameter order
       await exportToPDF(
@@ -126,11 +165,11 @@ const MyOrders = () => {
             title: 'Order Summary',
             metrics: {
               'Total Orders': reportOrders.length.toString(),
-              'Total Amount': `$${totalSpent.toFixed(2)}`,
+              'Total Amount': `Rs. ${totalSpent.toFixed(2)}`,
               'Paid Orders': paidOrders.toString(),
               'Pending Payment': pendingPayment.toString(),
               'Delivered Orders': deliveredOrders.toString(),
-              'Total Refunds': `$${totalRefunds.toFixed(2)}`
+              'Total Refunds': `Rs. ${totalRefunds.toFixed(2)}`
             }
           }
         }
@@ -144,6 +183,23 @@ const MyOrders = () => {
     } finally {
       setGeneratingPDF(false);
     }
+  };
+
+  // Handle date range changes
+  const handleDateRangeChange = (field, value) => {
+    setDateRange(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Clear date selection
+  const clearDateSelection = () => {
+    setDateRange({
+      startDate: '',
+      endDate: ''
+    });
+    setSpecificDate('');
   };
 
   const filteredOrders = orders.filter(order => 
@@ -186,9 +242,57 @@ const MyOrders = () => {
   };
 
   const handlePayNow = (orderId) => {
-    // Navigate to payment page
-    window.location.href = `/payment/${orderId}`;
-    // Or if using React Router: navigate(`/payment/${orderId}`);
+    // Find the order
+    const order = orders.find(o => o._id === orderId);
+    if (!order) {
+      toast.error('Order not found');
+      return;
+    }
+
+    try {
+      // Clear current cart
+      localStorage.setItem('cart', JSON.stringify([]));
+      
+      // Add order items to cart
+      order.items.forEach(item => {
+        const productData = {
+          _id: item.productId,
+          name: item.name,
+          price: item.price,
+          images: [item.image]
+        };
+        addToCart(productData, item.quantity);
+      });
+
+      // Create orderData structure for shipping page
+      const orderData = {
+        items: order.items,
+        subtotal: order.subtotal,
+        tax: order.tax,
+        shipping: order.shipping,
+        discount: order.discount || 0,
+        total: order.total,
+        contactName: order.contactName || '',
+        contactEmail: order.contactEmail || '',
+        contactPhone: order.contactPhone || '',
+        shippingAddress: order.shippingAddress || {},
+        billingAddress: order.billingAddress || {},
+        notes: order.notes || '',
+        paymentMethod: order.paymentMethod || '',
+        paymentCompleted: order.paymentcompleted || false
+      };
+
+      // Store orderData in localStorage for shipping page
+      localStorage.setItem('orderData', JSON.stringify(orderData));
+
+      // Navigate to shipping page
+      window.location.href = `/shipping/${orderId}`;
+      
+      toast.success('Order items added to cart. Please complete shipping details.');
+    } catch (error) {
+      console.error('Error preparing order for payment:', error);
+      toast.error('Failed to prepare order for payment. Please try again.');
+    }
   };
 
   const handleCancelOrder = async (orderId) => {
@@ -260,29 +364,168 @@ const MyOrders = () => {
             </div>
             
             {/* PDF Download Button */}
-            <button
-              onClick={generatePDF}
-              disabled={generatingPDF || orders.length === 0}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                generatingPDF || orders.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {generatingPDF ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Download size={16} />
-                  Download Report
-                </>
-              )}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowDateRange(!showDateRange)}
+                className="flex items-center gap-2 px-3 py-1 text-sm text-green-600 hover:text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors"
+              >
+                <Calendar size={14} />
+                {(dateRange.startDate && dateRange.endDate) || specificDate ? 'Date Filter Active' : 'Select Date Filter'}
+              </button>
+              <button
+                onClick={generatePDF}
+                disabled={generatingPDF || orders.length === 0}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  generatingPDF || orders.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {generatingPDF ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Download Report
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Date Selection */}
+        {showDateRange && (
+          <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 mb-6">
+            {/* Date Selection Type */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-green-700 mb-2">Date Filter Type</label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="range"
+                    checked={dateSelectionType === 'range'}
+                    onChange={(e) => setDateSelectionType(e.target.value)}
+                    className="mr-2 text-green-600 focus:ring-green-500"
+                  />
+                  Date Range
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="specific"
+                    checked={dateSelectionType === 'specific'}
+                    onChange={(e) => setDateSelectionType(e.target.value)}
+                    className="mr-2 text-green-600 focus:ring-green-500"
+                  />
+                  Specific Date
+                </label>
+              </div>
+            </div>
+
+            {/* Date Range Selection */}
+            {dateSelectionType === 'range' && (
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-green-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={dateRange.startDate}
+                    onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-green-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={dateRange.endDate}
+                    onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
+                    min={dateRange.startDate || undefined}
+                    className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Specific Date Selection */}
+            {dateSelectionType === 'specific' && (
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-green-700 mb-1">Select Date</label>
+                  <input
+                    type="date"
+                    value={specificDate}
+                    onChange={(e) => setSpecificDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+                <div className="flex-1"></div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={clearDateSelection}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setShowDateRange(false)}
+                className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+
+            {/* Filter Status */}
+            {(dateRange.startDate || dateRange.endDate || specificDate) && (
+              <div className="mt-3 p-2 bg-green-50 rounded-md">
+                <p className="text-sm text-green-700">
+                  <strong>Active Filter:</strong> {
+                    dateSelectionType === 'specific' 
+                      ? `Specific Date: ${specificDate}`
+                      : `Date Range: ${dateRange.startDate || 'No start date'} to ${dateRange.endDate || 'No end date'}`
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Order Summary Stats */}
+        {orders.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">{orders.length}</p>
+              <p className="text-sm text-green-600">Total Orders</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">
+                Rs. {orders.reduce((sum, order) => sum + Math.max(0, order.total - Number(order.refundAmount || 0)), 0).toFixed(2)}
+              </p>
+              <p className="text-sm text-green-600">Total Spent (net)</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">
+                {orders.filter(order => order.status === 'delivered').length}
+              </p>
+              <p className="text-sm text-green-600">Delivered</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">
+                {orders.filter(order => !order.paymentcompleted).length}
+              </p>
+              <p className="text-sm text-green-600">Pending Payment</p>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border border-green-200 mb-6 overflow-hidden">
@@ -346,9 +589,9 @@ const MyOrders = () => {
                     {getStatusBadge(order.status)}
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-green-900">${order.total.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-900">Rs. {order.total.toFixed(2)}</p>
                     {Number(order.refundAmount || 0) > 0 && (
-                      <p className="text-sm text-red-600">Refund: -${Number(order.refundAmount).toFixed(2)}</p>
+                      <p className="text-sm text-red-600">Refund: -Rs. {Number(order.refundAmount).toFixed(2)}</p>
                     )}
                     <p className="text-sm text-green-600">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</p>
                   </div>
@@ -382,7 +625,7 @@ const MyOrders = () => {
                           <p className="font-medium text-green-900 truncate">{item.name}</p>
                           <div className="flex items-center justify-between text-sm text-green-600">
                             <span>Qty: {item.quantity}</span>
-                            <span>${(item.price * item.quantity).toFixed(2)}</span>
+                            <span>Rs. {(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -395,20 +638,20 @@ const MyOrders = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                     <div className="text-center">
                       <p className="text-green-600">Subtotal</p>
-                      <p className="font-semibold text-green-900">${order.subtotal.toFixed(2)}</p>
+                      <p className="font-semibold text-green-900">Rs. {order.subtotal.toFixed(2)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-green-600">Tax</p>
-                      <p className="font-semibold text-green-900">${order.tax.toFixed(2)}</p>
+                      <p className="font-semibold text-green-900">Rs. {order.tax.toFixed(2)}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-green-600">Shipping</p>
-                      <p className="font-semibold text-green-900">${order.shipping.toFixed(2)}</p>
+                      <p className="font-semibold text-green-900">Rs. {order.shipping.toFixed(2)}</p>
                     </div>
                     {order.discount > 0 && (
                       <div className="text-center">
                         <p className="text-green-600">Discount</p>
-                        <p className="font-semibold text-green-900">-${order.discount.toFixed(2)}</p>
+                        <p className="font-semibold text-green-900">-Rs. {order.discount.toFixed(2)}</p>
                       </div>
                     )}
                   </div>
@@ -423,7 +666,7 @@ const MyOrders = () => {
                         {order.paymentcompleted ? 'Paid' : 'Pending Payment'}
                       </p>
                       {Number(order.refundAmount || 0) > 0 && (
-                        <p className="text-sm text-red-600">Refunded {order.refundStatus ? `(${order.refundStatus})` : ''}: ${Number(order.refundAmount).toFixed(2)} {order.refundTxnId ? `• TXN ${order.refundTxnId}` : ''}</p>
+                        <p className="text-sm text-red-600">Refunded {order.refundStatus ? `(${order.refundStatus})` : ''}: Rs. {Number(order.refundAmount).toFixed(2)} {order.refundTxnId ? `• TXN ${order.refundTxnId}` : ''}</p>
                       )}
                     </div>
                     {order.paymentMethod && (
@@ -495,33 +738,6 @@ const MyOrders = () => {
           )}
         </div>
 
-        {/* Order Summary Stats */}
-        {orders.length > 0 && (
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">{orders.length}</p>
-              <p className="text-sm text-green-600">Total Orders</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">
-                ${orders.reduce((sum, order) => sum + Math.max(0, order.total - Number(order.refundAmount || 0)), 0).toFixed(2)}
-              </p>
-              <p className="text-sm text-green-600">Total Spent (net)</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">
-                {orders.filter(order => order.status === 'delivered').length}
-              </p>
-              <p className="text-sm text-green-600">Delivered</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">
-                {orders.filter(order => !order.paymentcompleted).length}
-              </p>
-              <p className="text-sm text-green-600">Pending Payment</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
