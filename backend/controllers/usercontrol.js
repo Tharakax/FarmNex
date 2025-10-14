@@ -109,7 +109,7 @@ export const loginUser = async (req, res, next) => {
 
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes we can chnage 5 or....
 
     user.otp = otp;
     user.otpExpiresAt = otpExpiresAt;
@@ -786,13 +786,3 @@ export const directLogin = async (req, res) => {
   }
 };
 
-// exports
-// exports.getAllUsers = getAllUsers;
-// exports.addAllUsers = addAllUsers;
-// exports.loginUser = loginUser;
-// exports.getById = getById;
-// exports.updateUser = updateUser;
-// exports.deleteUser = deleteUser;
-// exports.changePassword = changePassword;
-// exports.loginWithOTPStep1 = loginWithOTPStep1;
-// exports.verifyOTP = verifyOTP;

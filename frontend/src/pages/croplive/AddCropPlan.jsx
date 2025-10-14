@@ -175,20 +175,24 @@ function AddCropPlan() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                  <span>Plan Name</span>
-                  <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={pName} 
-                  required 
-                  onChange={(e) => setPName(e.target.value)} 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                  placeholder="Enter plan name"
-                />
-              </div>
+             <div className="space-y-2">
+  <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+    <span>Plan Name</span>
+    <span className="text-red-500">*</span>
+  </label>
+  <input 
+    type="text" 
+    value={pName} 
+    required 
+    onChange={(e) => {
+      // Only allow letters and spaces
+      const filtered = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+      setPName(filtered);
+    }} 
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+    placeholder="Enter plan name"
+  />
+</div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
@@ -211,15 +215,20 @@ function AddCropPlan() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Variety</label>
-                <input 
-                  type="text" 
-                  value={variety} 
-                  onChange={(e) => setVariety(e.target.value)} 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                  placeholder="Enter variety"
-                />
-              </div>
+  <label className="text-sm font-medium text-gray-700">Variety</label>
+  <input 
+    type="text" 
+    value={variety} 
+    onChange={(e) => {
+      // Allow only letters and spaces
+      const filtered = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+      setVariety(filtered);
+    }} 
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+    placeholder="Enter variety"
+  />
+</div>
+
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
