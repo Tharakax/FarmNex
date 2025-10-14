@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Configuration for Arduino Uno
-const SERIAL_PORT = process.env.ARDUINO_SERIAL_PORT || 'COM4'; // Arduino Uno port
+const SERIAL_PORT = process.env.ARDUINO_SERIAL_PORT || 'COM11'; // Arduino Uno port
 const BAUD_RATE = 9600; // Arduino Uno baud rate
 const API_URL = process.env.API_URL || 'http://localhost:3000';
 const IOT_API_KEY = process.env.IOT_API_KEY;

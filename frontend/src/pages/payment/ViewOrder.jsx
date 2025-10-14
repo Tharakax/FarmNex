@@ -17,6 +17,8 @@ import {
   StickyNote
 } from 'lucide-react';
 import { handleImageError, resolveProductImage } from '../../utils/imageUtils';
+import { toast } from 'react-hot-toast';
+import axios from 'axios';
 
 // Using shared resolver from imageUtils
 
@@ -147,8 +149,38 @@ const ViewOrder = ({ orderId }) => {
     window.location.href = `/payment/${currentOrderId}`;
   };
 
-  const downloadReceipt = () => {
-    window.open(`http://localhost:3000/api/order/receipt/${currentOrderId}/pdf`, '_blank');
+  const downloadReceipt = async () => {
+    try {
+      if (!order) {
+        toast.error('Order data not available');
+        return;
+      }
+
+      // Import the PDF utility dynamically to avoid issues
+      const { exportReceiptToPDF } = await import('../../utils/exportUtils');
+      await exportReceiptToPDF(order, `receipt-${currentOrderId}`);
+      toast.success('Receipt downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      toast.error('Failed to download receipt. Please try again.');
+    }
+  };
+
+  const downloadCreditNote = async () => {
+    try {
+      if (!order) {
+        toast.error('Order data not available');
+        return;
+      }
+
+      // Import the PDF utility dynamically to avoid issues
+      const { exportCreditNoteToPDF } = await import('../../utils/exportUtils');
+      await exportCreditNoteToPDF(order, `credit-note-${currentOrderId}`);
+      toast.success('Credit note downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading credit note:', error);
+      toast.error('Failed to download credit note. Please try again.');
+    }
   };
 
   if (loading) {
@@ -467,15 +499,13 @@ const ViewOrder = ({ orderId }) => {
                       </div>
                     )}
                     <div className="mt-4">
-                      <a
-                        href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/order/credit-note/${order._id}/pdf`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={downloadCreditNote}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                       >
                         <Download size={16} />
                         Download Credit Note
-                      </a>
+                      </button>
                     </div>
                   </>
                 )}
@@ -607,14 +637,12 @@ const ViewOrder = ({ orderId }) => {
                 )}
                 
                 {Number(order.refundAmount || 0) > 0 && (
-                  <a
-                    href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/order/credit-note/${order._id}/pdf`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full text-left px-3 py-2 text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                  <button
+                    onClick={downloadCreditNote}
+                    className="w-full text-left px-3 py-2 text-green-700 hover:bg-green-50 rounded-lg transition-colors"
                   >
                     Download Credit Note
-                  </a>
+                  </button>
                 )}
                 
                 <button

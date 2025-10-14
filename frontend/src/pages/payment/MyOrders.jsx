@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Package, Eye, CreditCard, ShoppingBag, Clock, Truck, CheckCircle, XCircle, Download } from 'lucide-react';
 import { orderAPI } from '../../services/orderAPI';
 import { handleImageError, resolveProductImage, getProductPlaceholder } from '../../utils/imageUtils';
+import { exportToPDF } from '../../utils/exportUtils';
+import { toast } from 'react-hot-toast';
 
 // Using shared resolver from imageUtils
 
@@ -59,179 +61,86 @@ const MyOrders = () => {
     fetchOrders();
   }, []);
 
-  // PDF Generation Function
+  // PDF Generation Function using standardized FarmNex format
   const generatePDF = async () => {
     setGeneratingPDF(true);
     
     try {
-      // Ensure jsPDF is loaded
-      if (!window.jspdf) {
-        throw new Error('PDF library not loaded');
-      }
-
-      // Create a new jsPDF instance
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      
-      // Set up colors
-      const primaryColor = [34, 197, 94]; // Green-500
-      const darkColor = [20, 83, 45]; // Green-900
-      
-      // Header
-      doc.setFillColor(...primaryColor);
-      doc.rect(0, 0, 210, 30, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(24);
-      doc.setFont('helvetica', 'bold');
-      doc.text('ORDER REPORT', 20, 20);
-      
-      // Date and summary info
-      doc.setTextColor(...darkColor);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      const currentDate = new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-      doc.text(`Generated on: ${currentDate}`, 20, 40);
-      
       // Filter orders based on active tab
       const reportOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
       
-      doc.text(`Report Type: ${orderStates[activeTab].label}`, 20, 48);
-      doc.text(`Total Orders: ${reportOrders.length}`, 20, 56);
+      // Define column structure for orders export
+      const orderColumns = [
+        { header: 'Order ID', key: 'orderId' },
+        { header: 'Date', key: 'date' },
+        { header: 'Status', key: 'status' },
+        { header: 'Customer', key: 'customer' },
+        { header: 'Items', key: 'items' },
+        { header: 'Subtotal', key: 'subtotal' },
+        { header: 'Tax', key: 'tax' },
+        { header: 'Shipping', key: 'shipping' },
+        { header: 'Discount', key: 'discount' },
+        { header: 'Total', key: 'total' },
+        { header: 'Payment', key: 'payment' },
+        { header: 'Method', key: 'method' },
+        { header: 'Refund', key: 'refund' }
+      ];
       
-      let yPosition = 70;
-      
-      // Summary Statistics
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...primaryColor);
-      doc.text('SUMMARY', 20, yPosition);
-      yPosition += 10;
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...darkColor);
-      
-      const totalSpent = reportOrders.reduce((sum, order) => sum + order.total, 0);
+      // Prepare data for export
+      const exportData = reportOrders.map(order => ({
+        orderId: order._id?.slice(-8).toUpperCase() || 'N/A',
+        date: new Date(order.createdAt).toLocaleDateString(),
+        status: orderStates[order.status]?.label || order.status,
+        customer: order.contactName || order.contactEmail || 'N/A',
+        items: order.items?.length || 0,
+        subtotal: `$${order.subtotal?.toFixed(2) || '0.00'}`,
+        tax: `$${order.tax?.toFixed(2) || '0.00'}`,
+        shipping: `$${order.shipping?.toFixed(2) || '0.00'}`,
+        discount: order.discount > 0 ? `-$${order.discount.toFixed(2)}` : '$0.00',
+        total: `$${order.total?.toFixed(2) || '0.00'}`,
+        payment: order.paymentcompleted ? 'Paid' : 'Pending',
+        method: order.paymentMethod?.replace('_', ' ').toUpperCase() || 'N/A',
+        refund: Number(order.refundAmount || 0) > 0 ? `$${Number(order.refundAmount).toFixed(2)}` : 'None'
+      }));
+
+      // Calculate summary statistics
+      const totalSpent = reportOrders.reduce((sum, order) => sum + (order.total || 0), 0);
       const paidOrders = reportOrders.filter(order => order.paymentcompleted).length;
       const pendingPayment = reportOrders.filter(order => !order.paymentcompleted).length;
       const deliveredOrders = reportOrders.filter(order => order.status === 'delivered').length;
+      const totalRefunds = reportOrders.reduce((sum, order) => sum + Number(order.refundAmount || 0), 0);
+
+      // Generate filename
+      const fileName = `orders-report-${activeTab}-${new Date().toISOString().split('T')[0]}`;
       
-      doc.text(`Total Amount: $${totalSpent.toFixed(2)}`, 20, yPosition);
-      doc.text(`Paid Orders: ${paidOrders}`, 20, yPosition + 8);
-      doc.text(`Pending Payment: ${pendingPayment}`, 20, yPosition + 16);
-      doc.text(`Delivered Orders: ${deliveredOrders}`, 20, yPosition + 24);
-      
-      yPosition += 40;
-      
-      // Orders List
-      if (reportOrders.length > 0) {
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...primaryColor);
-        doc.text('ORDER DETAILS', 20, yPosition);
-        yPosition += 15;
-        
-        reportOrders.forEach((order, index) => {
-          // Check if we need a new page
-          if (yPosition > 250) {
-            doc.addPage();
-            yPosition = 20;
+      // Use standardized export function with correct parameter order
+      await exportToPDF(
+        exportData, 
+        'Orders Report', 
+        orderColumns, 
+        fileName, 
+        'orders',
+        {
+          subtitle: `${orderStates[activeTab]?.label || 'All Orders'} - ${reportOrders.length} orders`,
+          summary: {
+            title: 'Order Summary',
+            metrics: {
+              'Total Orders': reportOrders.length.toString(),
+              'Total Amount': `$${totalSpent.toFixed(2)}`,
+              'Paid Orders': paidOrders.toString(),
+              'Pending Payment': pendingPayment.toString(),
+              'Delivered Orders': deliveredOrders.toString(),
+              'Total Refunds': `$${totalRefunds.toFixed(2)}`
+            }
           }
-          
-          // Order header background
-          doc.setFillColor(248, 250, 252);
-          doc.rect(15, yPosition - 5, 180, 20, 'F');
-          
-          // Order ID and date
-          doc.setFontSize(12);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...darkColor);
-          doc.text(`Order #${order._id.slice(-8).toUpperCase()}`, 20, yPosition + 5);
-          
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10);
-          const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
-          doc.text(`Date: ${orderDate}`, 20, yPosition + 12);
-          
-          // Status and total
-          doc.text(`Status: ${orderStates[order.status].label}`, 120, yPosition + 5);
-          doc.setFont('helvetica', 'bold');
-          doc.text(`Total: $${order.total.toFixed(2)}`, 120, yPosition + 12);
-          
-          yPosition += 25;
-          
-          // Order items
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          doc.text('Items:', 25, yPosition);
-          yPosition += 8;
-          
-          order.items.forEach((item, itemIndex) => {
-            doc.setFont('helvetica', 'normal');
-            doc.text(`• ${item.name}`, 30, yPosition);
-            doc.text(`Qty: ${item.quantity}`, 120, yPosition);
-            doc.text(`$${(item.price * item.quantity).toFixed(2)}`, 160, yPosition);
-            yPosition += 6;
-          });
-          
-          // Order totals
-          yPosition += 5;
-          doc.setFont('helvetica', 'normal');
-          doc.text(`Subtotal: $${order.subtotal.toFixed(2)}`, 25, yPosition);
-          doc.text(`Tax: $${order.tax.toFixed(2)}`, 80, yPosition);
-          doc.text(`Shipping: $${order.shipping.toFixed(2)}`, 120, yPosition);
-          if (order.discount > 0) {
-            doc.text(`Discount: -$${order.discount.toFixed(2)}`, 160, yPosition);
-          }
-          
-          yPosition += 8;
-          
-          // Payment info
-          doc.text(`Payment: ${order.paymentcompleted ? 'Paid' : 'Pending'}`, 25, yPosition);
-          if (order.paymentMethod) {
-            doc.text(`Method: ${order.paymentMethod.replace('_', ' ').toUpperCase()}`, 80, yPosition);
-          }
-          
-          yPosition += 15;
-          
-          // Separator line
-          doc.setDrawColor(229, 231, 235);
-          doc.line(20, yPosition, 190, yPosition);
-          yPosition += 10;
-        });
-      } else {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(107, 114, 128);
-        doc.text('No orders found for the selected filter.', 20, yPosition);
-      }
+        }
+      );
       
-      // Footer
-      const pageCount = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(107, 114, 128);
-        doc.text(`Page ${i} of ${pageCount}`, 180, 285);
-        doc.text('Generated from Order Management System', 20, 285);
-      }
-      
-      // Save the PDF
-      const fileName = `orders-report-${activeTab}-${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
+      toast.success('Orders report downloaded successfully!');
       
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF report. Please try again.');
+      toast.error('Failed to generate PDF report. Please try again.');
     } finally {
       setGeneratingPDF(false);
     }
@@ -309,18 +218,6 @@ const MyOrders = () => {
     }
   };
 
-  // Load jsPDF library
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !window.jspdf) {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-      script.async = true;
-      script.onload = () => {
-        console.log('jsPDF loaded successfully');
-      };
-      document.head.appendChild(script);
-    }
-  }, []);
 
   if (loading) {
     return (

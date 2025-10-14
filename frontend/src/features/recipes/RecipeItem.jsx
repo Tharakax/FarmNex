@@ -19,9 +19,17 @@ const resolveImageUrl = (img) => {
   return `${BASE}/uploads/${s}`;
 };
 
-export default function RecipeItem({ recipe, onDelete, readOnly = false }) {
+export default function RecipeItem({ recipe, onDelete, readOnly = false, onViewDetails }) {
   const handleDelete = () => {
     if (window.confirm("Delete this recipe?")) onDelete?.(recipe._id);
+  };
+
+  const handleCardClick = (e) => {
+    // Don't trigger if clicking on buttons or links
+    if (e.target.closest('button') || e.target.closest('a')) {
+      return;
+    }
+    onViewDetails?.(recipe);
   };
 
   const ingredientsText = Array.isArray(recipe.ingredients)
@@ -38,7 +46,10 @@ export default function RecipeItem({ recipe, onDelete, readOnly = false }) {
     : [];
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+    <div 
+      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md cursor-pointer"
+      onClick={handleCardClick}
+    >
       {recipe.image && (
         <div className="mb-4 overflow-hidden rounded-xl">
           <img
@@ -104,11 +115,15 @@ export default function RecipeItem({ recipe, onDelete, readOnly = false }) {
             <Link
               to={`/recipes/edit/${recipe._id}`}
               className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
+              onClick={(e) => e.stopPropagation()}
             >
               Edit
             </Link>
             <button
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
               className="text-sm font-medium text-red-600 hover:text-red-700"
             >
               Delete
