@@ -35,6 +35,7 @@ import DashboardFeedbackList from '../../../features/dashboard/DashboardFeedback
 import DashboardBrowseProducts from '../../../features/dashboard/DashboardBrowseProducts';
 import DashboardShoppingCart from '../../../features/dashboard/DashboardShoppingCart';
 import PaymentHistory from '../../../features/dashboard/PaymentHistory';
+import PaymentCardsManager from '../../payment/PaymentCards';
 //import ProductStarRatings from '../../../features/dashboard/ProductStarRatings.jsx';
 import NotificationBell from '../../../features/notifications/NotificationBell';
 import { getLoggedInUser } from '../../../utils/userUtils';
@@ -186,6 +187,7 @@ const CustomerDashboard = () => {
     { id: 'cart', label: 'Shopping Cart', icon: ShoppingCart, badge: cartItemCount > 0 ? cartItemCount : null },
     { id: 'orders', label: 'Order History', icon: Package },
     { id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'payment-methods', label: 'Payment Methods', icon: CreditCard },
     { id: 'feedback', label: 'Feedback & Ratings', icon: Star },
     { id: 'qna', label: 'Q&A Section', icon: MessageSquare },
     { id: 'support', label: 'Help & Support', icon: HelpCircle },
@@ -339,6 +341,7 @@ const CustomerDashboard = () => {
       case 'cart': return (<DashboardShoppingCart onBrowseProducts={() => setActiveTab('products')} />);
       case 'orders': return renderOrders();
       case 'payments': return <PaymentHistory />;
+      case 'payment-methods': return <PaymentCardsManager />;
       case 'feedback': return (
         <div>
          

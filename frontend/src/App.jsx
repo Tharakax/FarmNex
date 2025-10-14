@@ -130,7 +130,7 @@ function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/shipping/:orderId" element={<EnterShipping />} />
             <Route path="/payment/:orderId" element={<EnterPayment />} />
-            <Route path="payment-methods" element={<PaymentCardsManager />} />
+            <Route path="/payment-methods" element={<PaymentCardsManager />} />
             <Route path="/order-success/:orderId" element={<PaymentSuccess />} />
             <Route path="/order-unsuccess/:orderId" element={<PaymentUnsuccess />} />
             {/* Training Management Routes */}

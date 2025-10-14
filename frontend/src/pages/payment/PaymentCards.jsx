@@ -56,8 +56,12 @@ const api = {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         // Simulate validation errors
-        if (!data.paymentMethodId) {
-          reject({ message: 'Payment method ID is required' });
+        if (!data.accountNumber) {
+          reject({ message: 'Account number is required' });
+          return;
+        }
+        if (!data.accountNumber || data.accountNumber.length !== 16) {
+          reject({ message: 'Account number must be exactly 16 digits' });
           return;
         }
         if (!data.last4 || data.last4.length !== 4) {
@@ -214,9 +218,8 @@ const PaymentCardsManager = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+    <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-bold text-gray-900">Payment Methods</h1>
@@ -312,26 +315,26 @@ const PaymentCardsManager = () => {
               </div>
             )}
           </div>
-        </div>
 
-        {showAddForm && (
-          <AddCardModal 
-            onClose={() => {
-              setShowAddForm(false);
-              clearMessages();
-            }}
-            onAdd={handleAddCard}
-            loading={loading}
-          />
-        )}
       </div>
+      
+      {showAddForm && (
+        <AddCardModal 
+          onClose={() => {
+            setShowAddForm(false);
+            clearMessages();
+          }}
+          onAdd={handleAddCard}
+          loading={loading}
+        />
+      )}
     </div>
   );
 };
 
 const AddCardModal = ({ onClose, onAdd, loading }) => {
   const [formData, setFormData] = useState({
-    paymentMethodId: '',
+    accountNumber: '',
     cardBrand: 'visa',
     last4: '',
     expMonth: '',
@@ -357,16 +360,62 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
   const years = Array.from({ length: 21 }, (_, i) => currentYear + i);
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
+  // Function to detect card type based on card number
+  const detectCardType = (cardNumber) => {
+    const cleaned = cardNumber.replace(/\D/g, '');
+    
+    // Visa: starts with 4
+    if (/^4/.test(cleaned)) {
+      return 'visa';
+    }
+    
+    // Mastercard: starts with 5 or 2
+    if (/^5[1-5]/.test(cleaned) || /^2[2-7]/.test(cleaned)) {
+      return 'mastercard';
+    }
+    
+    // American Express: starts with 34 or 37
+    if (/^3[47]/.test(cleaned)) {
+      return 'amex';
+    }
+    
+    // Discover: starts with 6
+    if (/^6(?:011|5)/.test(cleaned)) {
+      return 'discover';
+    }
+    
+    // JCB: starts with 35
+    if (/^35/.test(cleaned)) {
+      return 'jcb';
+    }
+    
+    // Diners Club: starts with 30 or 36
+    if (/^3[068]/.test(cleaned)) {
+      return 'diners';
+    }
+    
+    // UnionPay: starts with 62
+    if (/^62/.test(cleaned)) {
+      return 'unionpay';
+    }
+    
+    return 'unknown';
+  };
+
   const validateField = (name, value) => {
     let error = '';
     
     switch (name) {
-      case 'paymentMethodId':
-        if (!value) error = 'Payment method ID is required';
+      case 'accountNumber':
+        if (!value) error = 'Account number is required';
+        else if (!/^\d{16}$/.test(value)) error = 'Must be exactly 16 digits';
         break;
       case 'last4':
         if (!value) error = 'Last 4 digits are required';
         else if (!/^\d{4}$/.test(value)) error = 'Must be exactly 4 digits';
+        break;
+      case 'cardBrand':
+        if (!value) error = 'Card brand is required';
         break;
       case 'expMonth':
         if (!value) error = 'Expiration month is required';
@@ -374,8 +423,33 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
       case 'expYear':
         if (!value) error = 'Expiration year is required';
         break;
+      case 'billingDetails.name':
+        if (!value) error = 'Cardholder name is required';
+        else if (value.length < 2) error = 'Name must be at least 2 characters';
+        break;
       case 'billingDetails.email':
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email format';
+        if (!value) error = 'Email is required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Invalid email format';
+        break;
+      case 'billingDetails.address.line1':
+        if (!value) error = 'Address is required';
+        else if (value.length < 5) error = 'Address must be at least 5 characters';
+        break;
+      case 'billingDetails.address.city':
+        if (!value) error = 'City is required';
+        else if (value.length < 2) error = 'City must be at least 2 characters';
+        break;
+      case 'billingDetails.address.state':
+        if (!value) error = 'State is required';
+        else if (value.length < 2) error = 'State must be at least 2 characters';
+        break;
+      case 'billingDetails.address.postal_code':
+        if (!value) error = 'Postal code is required';
+        else if (!/^\d{5}(-\d{4})?$/.test(value)) error = 'Invalid postal code format';
+        break;
+      case 'billingDetails.address.country':
+        if (!value) error = 'Country is required';
+        else if (value.length < 2) error = 'Country must be at least 2 characters';
         break;
       default:
         break;
@@ -387,16 +461,41 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    // Validate required fields
-    if (!formData.paymentMethodId) newErrors.paymentMethodId = 'Payment method ID is required';
-    if (!formData.last4) newErrors.last4 = 'Last 4 digits are required';
-    if (!formData.expMonth) newErrors.expMonth = 'Expiration month is required';
-    if (!formData.expYear) newErrors.expYear = 'Expiration year is required';
+    // Validate all fields using the validateField function
+    const fieldsToValidate = [
+      'accountNumber',
+      'cardBrand', 
+      'expMonth',
+      'expYear',
+      'billingDetails.name',
+      'billingDetails.email',
+      'billingDetails.address.line1',
+      'billingDetails.address.city',
+      'billingDetails.address.state',
+      'billingDetails.address.postal_code',
+      'billingDetails.address.country'
+    ];
     
-    // Validate format
-    if (formData.last4 && !/^\d{4}$/.test(formData.last4)) newErrors.last4 = 'Must be exactly 4 digits';
-    if (formData.billingDetails.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.billingDetails.email)) {
-      newErrors['billingDetails.email'] = 'Invalid email format';
+    fieldsToValidate.forEach(field => {
+      let value;
+      if (field.includes('.')) {
+        const [parent, child, grandchild] = field.split('.');
+        value = grandchild ? formData[parent]?.[child]?.[grandchild] : formData[parent]?.[child];
+      } else {
+        value = formData[field];
+      }
+      
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+    
+    // Ensure last4 is generated from account number
+    if (formData.accountNumber && formData.accountNumber.length >= 4) {
+      newErrors.last4 = validateField('last4', formData.accountNumber.slice(-4));
+    } else {
+      newErrors.last4 = validateField('last4', '');
     }
     
     setErrors(newErrors);
@@ -434,13 +533,39 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
           } : value
         }
       }));
+      
+      // Real-time validation for nested fields
+      const error = validateField(field, value);
+      setErrors(prev => ({ ...prev, [field]: error }));
+      
+      // Mark field as touched for real-time validation
+      if (!touched[field]) {
+        setTouched(prev => ({ ...prev, [field]: true }));
+      }
     } else {
-      setFormData(prev => ({ ...prev, [field]: value }));
-    }
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setFormData(prev => {
+        const newData = { ...prev, [field]: value };
+        
+        // Auto-extract last 4 digits when account number is entered
+        if (field === 'accountNumber' && value.length >= 4) {
+          newData.last4 = value.slice(-4);
+          
+          // Auto-detect card type based on account number
+          const detectedCardType = detectCardType(value);
+          newData.cardBrand = detectedCardType;
+        }
+        
+        return newData;
+      });
+      
+      // Real-time validation for top-level fields
+      const error = validateField(field, value);
+      setErrors(prev => ({ ...prev, [field]: error }));
+      
+      // Mark field as touched for real-time validation
+      if (!touched[field]) {
+        setTouched(prev => ({ ...prev, [field]: true }));
+      }
     }
   };
 
@@ -448,12 +573,44 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onAdd(formData);
+      // Remove accountNumber from data sent to API (only save last4)
+      const { accountNumber, ...dataToSave } = formData;
+      onAdd(dataToSave);
     }
   };
 
   const getFieldError = (field) => {
     return touched[field] && errors[field];
+  };
+
+  // Check if form is valid for real-time feedback
+  const isFormValid = () => {
+    const requiredFields = [
+      'accountNumber',
+      'cardBrand', 
+      'expMonth',
+      'expYear',
+      'billingDetails.name',
+      'billingDetails.email',
+      'billingDetails.address.line1',
+      'billingDetails.address.city',
+      'billingDetails.address.state',
+      'billingDetails.address.postal_code',
+      'billingDetails.address.country'
+    ];
+    
+    return requiredFields.every(field => {
+      let value;
+      if (field.includes('.')) {
+        const [parent, child, grandchild] = field.split('.');
+        value = grandchild ? formData[parent]?.[child]?.[grandchild] : formData[parent]?.[child];
+      } else {
+        value = formData[field];
+      }
+      
+      const error = validateField(field, value);
+      return !error;
+    });
   };
 
   return (
@@ -474,34 +631,62 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Method ID *
+                Account Number *
               </label>
-              <input
-                type="text"
-                value={formData.paymentMethodId}
-                onChange={(e) => handleInputChange('paymentMethodId', e.target.value)}
-                onBlur={() => handleBlur('paymentMethodId')}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  getFieldError('paymentMethodId') ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="pm_1234567890"
-                disabled={loading}
-              />
-              {getFieldError('paymentMethodId') && (
-                <p className="mt-1 text-sm text-red-600">{errors.paymentMethodId}</p>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.accountNumber}
+                  onChange={(e) => handleInputChange('accountNumber', e.target.value.replace(/\D/g, '').slice(0, 16))}
+                  onBlur={() => handleBlur('accountNumber')}
+                  className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    getFieldError('accountNumber') ? 'border-red-500' : 
+                    formData.accountNumber.length === 16 ? 'border-green-500' : 'border-gray-300'
+                  }`}
+                  placeholder="1234567890123456"
+                  maxLength={16}
+                  disabled={loading}
+                />
+                {formData.accountNumber && formData.accountNumber.length > 0 && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className={`w-6 h-4 rounded border-2 ${
+                      formData.accountNumber.length === 16 && !getFieldError('accountNumber') 
+                        ? 'border-green-500 bg-green-100' 
+                        : 'border-gray-300 bg-gray-100'
+                    }`}>
+                      <div className="w-full h-full flex items-center justify-center text-xs font-bold">
+                        {formData.accountNumber.length === 16 && !getFieldError('accountNumber') ? '✓' : 
+                         formData.accountNumber.length > 0 ? formData.accountNumber.length : ''}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              {getFieldError('accountNumber') && (
+                <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>
+              )}
+              {formData.accountNumber && formData.accountNumber.length === 16 && !getFieldError('accountNumber') && (
+                <p className="mt-1 text-sm text-green-600">✓ Valid {formData.cardBrand.charAt(0).toUpperCase() + formData.cardBrand.slice(1)} card number</p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Card Brand *
+                Card Brand * {formData.accountNumber && formData.accountNumber.length > 0 && (
+                  <span className="text-xs text-blue-600">(Auto-detected)</span>
+                )}
               </label>
               <select
                 value={formData.cardBrand}
                 onChange={(e) => handleInputChange('cardBrand', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onBlur={() => handleBlur('cardBrand')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  getFieldError('cardBrand') ? 'border-red-500' : 
+                  formData.accountNumber && formData.accountNumber.length > 0 ? 'border-blue-500 bg-blue-50' : 'border-gray-300'
+                }`}
                 disabled={loading}
               >
+                <option value="">Select card brand</option>
                 <option value="visa">Visa</option>
                 <option value="mastercard">Mastercard</option>
                 <option value="amex">American Express</option>
@@ -511,26 +696,11 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                 <option value="unionpay">UnionPay</option>
                 <option value="unknown">Unknown</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Last 4 Digits *
-              </label>
-              <input
-                type="text"
-                value={formData.last4}
-                onChange={(e) => handleInputChange('last4', e.target.value.replace(/\D/g, '').slice(0, 4))}
-                onBlur={() => handleBlur('last4')}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  getFieldError('last4') ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="1234"
-                maxLength={4}
-                disabled={loading}
-              />
-              {getFieldError('last4') && (
-                <p className="mt-1 text-sm text-red-600">{errors.last4}</p>
+              {getFieldError('cardBrand') && (
+                <p className="mt-1 text-sm text-red-600">{errors.cardBrand}</p>
+              )}
+              {formData.accountNumber && formData.accountNumber.length > 0 && formData.cardBrand && formData.cardBrand !== 'unknown' && (
+                <p className="mt-1 text-sm text-blue-600">✓ Auto-detected from card number</p>
               )}
             </div>
 
@@ -544,7 +714,8 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                   onChange={(e) => handleInputChange('expMonth', e.target.value ? parseInt(e.target.value) : '')}
                   onBlur={() => handleBlur('expMonth')}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    getFieldError('expMonth') ? 'border-red-500' : 'border-gray-300'
+                    getFieldError('expMonth') ? 'border-red-500' : 
+                    formData.expMonth ? 'border-green-500' : 'border-gray-300'
                   }`}
                   disabled={loading}
                 >
@@ -558,6 +729,9 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                 {getFieldError('expMonth') && (
                   <p className="mt-1 text-sm text-red-600">{errors.expMonth}</p>
                 )}
+                {formData.expMonth && !getFieldError('expMonth') && (
+                  <p className="mt-1 text-sm text-green-600">✓ Month selected</p>
+                )}
               </div>
 
               <div>
@@ -569,7 +743,8 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                   onChange={(e) => handleInputChange('expYear', e.target.value ? parseInt(e.target.value) : '')}
                   onBlur={() => handleBlur('expYear')}
                   className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    getFieldError('expYear') ? 'border-red-500' : 'border-gray-300'
+                    getFieldError('expYear') ? 'border-red-500' : 
+                    formData.expYear ? 'border-green-500' : 'border-gray-300'
                   }`}
                   disabled={loading}
                 >
@@ -581,30 +756,43 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                 {getFieldError('expYear') && (
                   <p className="mt-1 text-sm text-red-600">{errors.expYear}</p>
                 )}
+                {formData.expYear && !getFieldError('expYear') && (
+                  <p className="mt-1 text-sm text-green-600">✓ Year selected</p>
+                )}
               </div>
             </div>
 
             <div className="pt-4 border-t border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Billing Details (Optional)</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Billing Details</h3>
               
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cardholder Name
+                    Cardholder Name *
                   </label>
                   <input
                     type="text"
                     value={formData.billingDetails.name}
                     onChange={(e) => handleInputChange('billingDetails.name', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => handleBlur('billingDetails.name')}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      getFieldError('billingDetails.name') ? 'border-red-500' : 
+                      formData.billingDetails.name && formData.billingDetails.name.length >= 2 ? 'border-green-500' : 'border-gray-300'
+                    }`}
                     placeholder="John Doe"
                     disabled={loading}
                   />
+                  {getFieldError('billingDetails.name') && (
+                    <p className="mt-1 text-sm text-red-600">{errors['billingDetails.name']}</p>
+                  )}
+                  {formData.billingDetails.name && formData.billingDetails.name.length >= 2 && !getFieldError('billingDetails.name') && (
+                    <p className="mt-1 text-sm text-green-600">✓ Valid name</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
+                    Email *
                   </label>
                   <input
                     type="email"
@@ -612,7 +800,8 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                     onChange={(e) => handleInputChange('billingDetails.email', e.target.value)}
                     onBlur={() => handleBlur('billingDetails.email')}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      getFieldError('billingDetails.email') ? 'border-red-500' : 'border-gray-300'
+                      getFieldError('billingDetails.email') ? 'border-red-500' : 
+                      formData.billingDetails.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.billingDetails.email) ? 'border-green-500' : 'border-gray-300'
                     }`}
                     placeholder="john@example.com"
                     disabled={loading}
@@ -620,79 +809,112 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
                   {getFieldError('billingDetails.email') && (
                     <p className="mt-1 text-sm text-red-600">{errors['billingDetails.email']}</p>
                   )}
+                  {formData.billingDetails.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.billingDetails.email) && !getFieldError('billingDetails.email') && (
+                    <p className="mt-1 text-sm text-green-600">✓ Valid email</p>
+                  )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address Line 1
+                    Address Line 1 *
                   </label>
                   <input
                     type="text"
                     value={formData.billingDetails.address.line1}
                     onChange={(e) => handleInputChange('billingDetails.address.line1', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onBlur={() => handleBlur('billingDetails.address.line1')}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      getFieldError('billingDetails.address.line1') ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="123 Main St"
                     disabled={loading}
                   />
+                  {getFieldError('billingDetails.address.line1') && (
+                    <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.line1']}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      City
+                      City *
                     </label>
                     <input
                       type="text"
                       value={formData.billingDetails.address.city}
                       onChange={(e) => handleInputChange('billingDetails.address.city', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onBlur={() => handleBlur('billingDetails.address.city')}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        getFieldError('billingDetails.address.city') ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="New York"
                       disabled={loading}
                     />
+                    {getFieldError('billingDetails.address.city') && (
+                      <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.city']}</p>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      State
+                      State *
                     </label>
                     <input
                       type="text"
                       value={formData.billingDetails.address.state}
                       onChange={(e) => handleInputChange('billingDetails.address.state', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onBlur={() => handleBlur('billingDetails.address.state')}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        getFieldError('billingDetails.address.state') ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="NY"
                       disabled={loading}
                     />
+                    {getFieldError('billingDetails.address.state') && (
+                      <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.state']}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Postal Code
+                      Postal Code *
                     </label>
                     <input
                       type="text"
                       value={formData.billingDetails.address.postal_code}
                       onChange={(e) => handleInputChange('billingDetails.address.postal_code', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onBlur={() => handleBlur('billingDetails.address.postal_code')}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        getFieldError('billingDetails.address.postal_code') ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="10001"
                       disabled={loading}
                     />
+                    {getFieldError('billingDetails.address.postal_code') && (
+                      <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.postal_code']}</p>
+                    )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Country
+                      Country *
                     </label>
                     <input
                       type="text"
                       value={formData.billingDetails.address.country}
                       onChange={(e) => handleInputChange('billingDetails.address.country', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onBlur={() => handleBlur('billingDetails.address.country')}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        getFieldError('billingDetails.address.country') ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       placeholder="US"
                       disabled={loading}
                     />
+                    {getFieldError('billingDetails.address.country') && (
+                      <p className="mt-1 text-sm text-red-600">{errors['billingDetails.address.country']}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -712,14 +934,71 @@ const AddCardModal = ({ onClose, onAdd, loading }) => {
               </label>
             </div>
 
+            {/* Progress indicator */}
+            <div className="pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">Form Progress</span>
+                <span className="text-sm text-gray-500">
+                  {Object.keys(formData).filter(key => {
+                    if (key === 'billingDetails') {
+                      const billing = formData.billingDetails;
+                      return billing.name && billing.email && 
+                             billing.address.line1 && billing.address.city && 
+                             billing.address.state && billing.address.postal_code && 
+                             billing.address.country;
+                    }
+                    return formData[key] && formData[key] !== '';
+                  }).length + Object.keys(formData.billingDetails).filter(key => {
+                    if (key === 'address') {
+                      const address = formData.billingDetails.address;
+                      return address.line1 && address.city && address.state && 
+                             address.postal_code && address.country;
+                    }
+                    return formData.billingDetails[key] && formData.billingDetails[key] !== '';
+                  }).length} / 11 fields completed
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    isFormValid() ? 'bg-green-500' : 'bg-blue-500'
+                  }`}
+                  style={{
+                    width: `${(Object.keys(formData).filter(key => {
+                      if (key === 'billingDetails') {
+                        const billing = formData.billingDetails;
+                        return billing.name && billing.email && 
+                               billing.address.line1 && billing.address.city && 
+                               billing.address.state && billing.address.postal_code && 
+                               billing.address.country;
+                      }
+                      return formData[key] && formData[key] !== '';
+                    }).length + Object.keys(formData.billingDetails).filter(key => {
+                      if (key === 'address') {
+                        const address = formData.billingDetails.address;
+                        return address.line1 && address.city && address.state && 
+                               address.postal_code && address.country;
+                      }
+                      return formData.billingDetails[key] && formData.billingDetails[key] !== '';
+                    }).length) * 9.09}%`
+                  }}
+                ></div>
+              </div>
+            </div>
+
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
-                disabled={loading}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                disabled={loading || !isFormValid()}
+                className={`flex-1 py-2 px-4 rounded-md transition-colors flex items-center justify-center gap-2 ${
+                  isFormValid() 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                } disabled:opacity-50`}
               >
                 {loading ? <Loader className="animate-spin h-4 w-4" /> : null}
-                {loading ? 'Adding...' : 'Add Payment Method'}
+                {loading ? 'Adding...' : 
+                 isFormValid() ? 'Add Payment Method' : 'Complete all fields'}
               </button>
               <button
                 type="button"
