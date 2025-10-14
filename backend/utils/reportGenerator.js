@@ -9,24 +9,25 @@ export const generatePDF = async (questions, res) => {
   });
 
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", "attachment; filename=qa_report.pdf");
+  res.setHeader("Content-Disposition", "attachment; filename=farmnex_qa_report.pdf");
   doc.pipe(res);
 
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   let y = 50;
 
-  // Colors
+  // FarmNex Brand Colors
   const colors = {
-    primary: "#22c55e",
-    success: "#16a34a",
-    dark: "#1f2937",
-    darkMedium: "#4b5563",
-    gray: "#6b7280",
-    border: "#d1d5db",
-    greenLight: "#d1fae5",
+    primary: "#22c55e",        // Professional Green
+    success: "#16a34a",        // Success Green
+    dark: "#1f2937",           // Dark Text
+    darkMedium: "#4b5563",     // Medium Dark
+    gray: "#6b7280",           // Professional Gray
+    border: "#d1d5db",         // Border Gray
+    greenLight: "#d1fae5",     // Light Green Background
     white: "#ffffff",
     red: "#ef4444",
-    yellow: "#eab308"
+    yellow: "#eab308",
+    lightBg: "#f9fafb"
   };
 
   // Calculate statistics
@@ -35,352 +36,501 @@ export const generatePDF = async (questions, res) => {
     q.adminReply && q.adminReply !== "Pending" && q.status === "Closed"
   ).length;
   const pendingQuestions = totalQuestions - answeredQuestions;
+  const responseRate = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
 
-  // ---------- HEADER ----------
+  // ========== HEADER FUNCTION ==========
   const addHeader = () => {
-    // Logo and Brand
+    // Logo Tile (Green square with leaf icon)
+    doc.rect(50, y, 18, 18)
+       .fillAndStroke(colors.greenLight, colors.success);
+    
+    doc.fontSize(10)
+       .fillColor(colors.success)
+       .font("Helvetica-Bold")
+       .text("🌿", 54, y + 3);
+
+    // FarmNex Brand Name
     doc.fontSize(20)
        .fillColor(colors.primary)
        .font("Helvetica-Bold")
-       .text("🌿 FarmNex", 50, y);
+       .text("FarmNex", 73, y);
+
+    y += 35;
 
     // Report Title
-    doc.fontSize(24)
+    doc.fontSize(26)
        .fillColor(colors.primary)
        .font("Helvetica-Bold")
-       .text("Q&A Report", 50, y + 30, { align: "center" });
+       .text("Q&A Report", 50, y, { align: "center", width: pageWidth });
+
+    y += 35;
+
+    // Report Subtitle
+    doc.fontSize(14)
+       .fillColor(colors.darkMedium)
+       .font("Helvetica")
+       .text("Manage farmer questions and replies", 50, y, { align: "center", width: pageWidth });
+
+    y += 25;
 
     // Contact Details
     doc.fontSize(9)
        .fillColor(colors.gray)
        .font("Helvetica")
-       .text("No 8, Temple Road, Beralapanathra, Sri Lanka", 50, y + 60, { align: "center" });
+       .text("No 8, Temple Road, Beralapanathra, Sri Lanka", 50, y, { align: "center", width: pageWidth });
     
-    doc.text("Tel: 0742331740 • Email: farmnex@gmail.com", 50, y + 72, { align: "center" });
+    y += 12;
+    
+    doc.text("Tel: 0742331740 • Email: farmnex@gmail.com", 50, y, { align: "center", width: pageWidth });
+
+    y += 20;
 
     // Divider Line
-    doc.moveTo(50, y + 90)
-       .lineTo(pageWidth + 50, y + 90)
+    doc.moveTo(50, y)
+       .lineTo(pageWidth + 50, y)
        .strokeColor(colors.border)
        .lineWidth(2)
        .stroke();
 
-    y = y + 110;
+    y += 20;
   };
 
-  // ---------- FOOTER ----------
+  // ========== FOOTER FUNCTION ==========
   const addFooter = () => {
     const range = doc.bufferedPageRange();
     for (let i = 0; i < range.count; i++) {
       doc.switchToPage(i);
-      const bottom = doc.page.height - 40;
+      const bottom = doc.page.height - 35;
 
       // Footer line
-      doc.moveTo(50, bottom - 10)
-         .lineTo(pageWidth + 50, bottom - 10)
+      doc.moveTo(50, bottom - 5)
+         .lineTo(pageWidth + 50, bottom - 5)
          .strokeColor(colors.border)
          .lineWidth(1)
          .stroke();
 
-      // Company info (left)
+      // Company info (left side)
       doc.fontSize(7)
          .fillColor(colors.gray)
          .font("Helvetica")
-         .text("FarmNex Farm Management System • No 8, Temple Road, Beralapanathra, Sri Lanka", 50, bottom, { 
+         .text("FarmNex Farm Management System • No 8, Temple Road, Beralapanathra, Sri Lanka", 50, bottom + 2, { 
            align: "left",
-           width: pageWidth / 3
+           width: pageWidth * 0.4
          });
       
-      doc.text("Tel: 0742331740 • Email: farmnex@gmail.com", 50, bottom + 8, { 
-        align: "left",
-        width: pageWidth / 3
-      });
+      doc.fontSize(7)
+         .text("Tel: 0742331740 • Email: farmnex@gmail.com", 50, bottom + 10, { 
+           align: "left",
+           width: pageWidth * 0.4
+         });
 
       // Page number (center)
       doc.fontSize(9)
          .fillColor(colors.gray)
-         .text(`Page ${i + 1} of ${range.count}`, 50, bottom + 4, { 
+         .font("Helvetica")
+         .text(`Page ${i + 1} of ${range.count}`, 50, bottom + 5, { 
            align: "center", 
            width: pageWidth 
          });
 
-      // Timestamp (right)
+      // Timestamp (right side)
       doc.fontSize(8)
          .fillColor(colors.gray)
-         .text(`Generated: ${new Date().toLocaleString()}`, 50, bottom + 4, { 
+         .text(`Generated: ${new Date().toLocaleString('en-US', { 
+           year: 'numeric', 
+           month: 'short', 
+           day: 'numeric', 
+           hour: '2-digit', 
+           minute: '2-digit'
+         })}`, 50, bottom + 5, { 
            align: "right", 
            width: pageWidth 
          });
     }
   };
 
-  // ---------- SUMMARY SECTION ----------
+  // ========== SUMMARY STATISTICS BOXES ==========
   const drawSummary = () => {
-    const boxWidth = (pageWidth - 20) / 3;
-    const boxHeight = 60;
+    const boxWidth = (pageWidth - 30) / 4; // 4 boxes with 10px spacing
+    const boxHeight = 80;
     const boxY = y;
+    const iconSize = 24;
 
-    // Total Questions Box
-    doc.roundedRect(50, boxY, boxWidth, boxHeight, 5)
+    // Box 1: Total Questions (Blue/Green)
+    doc.roundedRect(50, boxY, boxWidth, boxHeight, 8)
        .fillAndStroke(colors.primary, colors.primary);
     
-    doc.fontSize(22)
+    doc.fontSize(11)
+       .fillColor(colors.white)
+       .font("Helvetica")
+       .text("💬", 50 + (boxWidth - 20) / 2, boxY + 10, { width: 20, align: "center" });
+    
+    doc.fontSize(32)
        .fillColor(colors.white)
        .font("Helvetica-Bold")
-       .text(totalQuestions.toString(), 50, boxY + 10, { 
+       .text(totalQuestions.toString(), 50, boxY + 30, { 
          width: boxWidth, 
          align: "center" 
        });
     
-    doc.fontSize(11)
+    doc.fontSize(10)
        .fillColor(colors.white)
        .font("Helvetica")
-       .text("Total Questions", 50, boxY + 38, { 
+       .text("Total Questions", 50, boxY + 62, { 
          width: boxWidth, 
          align: "center" 
        });
 
-    // Answered Questions Box
-    doc.roundedRect(50 + boxWidth + 10, boxY, boxWidth, boxHeight, 5)
+    // Box 2: Answered (Green)
+    const box2X = 50 + boxWidth + 10;
+    doc.roundedRect(box2X, boxY, boxWidth, boxHeight, 8)
        .fillAndStroke(colors.success, colors.success);
     
-    doc.fontSize(22)
+    doc.fontSize(11)
+       .fillColor(colors.white)
+       .text("✅", box2X + (boxWidth - 20) / 2, boxY + 10, { width: 20, align: "center" });
+    
+    doc.fontSize(32)
        .fillColor(colors.white)
        .font("Helvetica-Bold")
-       .text(answeredQuestions.toString(), 50 + boxWidth + 10, boxY + 10, { 
+       .text(answeredQuestions.toString(), box2X, boxY + 30, { 
          width: boxWidth, 
          align: "center" 
        });
     
-    doc.fontSize(11)
+    doc.fontSize(10)
        .fillColor(colors.white)
        .font("Helvetica")
-       .text("Answered", 50 + boxWidth + 10, boxY + 38, { 
+       .text("Answered", box2X, boxY + 62, { 
          width: boxWidth, 
          align: "center" 
        });
 
-    // Pending Questions Box
-    doc.roundedRect(50 + (boxWidth + 10) * 2, boxY, boxWidth, boxHeight, 5)
-       .fillAndStroke(colors.red, colors.red);
+    // Box 3: Pending (Yellow/Warning)
+    const box3X = 50 + (boxWidth + 10) * 2;
+    doc.roundedRect(box3X, boxY, boxWidth, boxHeight, 8)
+       .fillAndStroke(colors.yellow, colors.yellow);
     
-    doc.fontSize(22)
+    doc.fontSize(11)
+       .fillColor(colors.white)
+       .text("⚠️", box3X + (boxWidth - 20) / 2, boxY + 10, { width: 20, align: "center" });
+    
+    doc.fontSize(32)
        .fillColor(colors.white)
        .font("Helvetica-Bold")
-       .text(pendingQuestions.toString(), 50 + (boxWidth + 10) * 2, boxY + 10, { 
+       .text(pendingQuestions.toString(), box3X, boxY + 30, { 
          width: boxWidth, 
          align: "center" 
        });
     
-    doc.fontSize(11)
+    doc.fontSize(10)
        .fillColor(colors.white)
        .font("Helvetica")
-       .text("Pending", 50 + (boxWidth + 10) * 2, boxY + 38, { 
+       .text("Pending", box3X, boxY + 62, { 
          width: boxWidth, 
          align: "center" 
        });
 
-    y += boxHeight + 30;
+    // Box 4: Response Rate (Purple)
+    const box4X = 50 + (boxWidth + 10) * 3;
+    doc.roundedRect(box4X, boxY, boxWidth, boxHeight, 8)
+       .fillAndStroke("#8b5cf6", "#8b5cf6");
+    
+    doc.fontSize(11)
+       .fillColor(colors.white)
+       .text("📊", box4X + (boxWidth - 20) / 2, boxY + 10, { width: 20, align: "center" });
+    
+    doc.fontSize(32)
+       .fillColor(colors.white)
+       .font("Helvetica-Bold")
+       .text(`${responseRate}%`, box4X, boxY + 30, { 
+         width: boxWidth, 
+         align: "center" 
+       });
+    
+    doc.fontSize(10)
+       .fillColor(colors.white)
+       .font("Helvetica")
+       .text("Response Rate", box4X, boxY + 62, { 
+         width: boxWidth, 
+         align: "center" 
+       });
+
+    y += boxHeight + 40;
   };
 
-  // ---------- Q&A CARD ----------
+  // ========== Q&A CARD WITH COMPLETE DETAILS ==========
   const drawQACard = (q, index) => {
-    const cardPadding = 15;
+    const cardPadding = 20;
     const startY = y;
+    const contentWidth = pageWidth - (cardPadding * 2);
 
-    // Check if we need a new page (more generous spacing)
-    if (y + 250 > doc.page.height - 80) {
+    // Check if we need a new page
+    if (y + 300 > doc.page.height - 80) {
       doc.addPage();
       y = 50;
     }
 
-    // Card Background with Border
-    doc.roundedRect(50, y, pageWidth, 10, 5)
-       .fillAndStroke(colors.greenLight, colors.border);
-
-    // Question Number Header
-    doc.fontSize(12)
-       .fillColor(colors.white)
-       .font("Helvetica-Bold")
-       .rect(50, y, pageWidth, 30)
+    // Card Header (Question Number)
+    doc.roundedRect(50, y, pageWidth, 35, 8)
        .fillAndStroke(colors.primary, colors.primary);
     
-    doc.fillColor(colors.white)
-       .text(`Question #${index + 1}`, 50 + cardPadding, y + 8, { width: pageWidth - cardPadding * 2 });
-
-    y += 35;
-
-    // Question Title
     doc.fontSize(14)
+       .fillColor(colors.white)
+       .font("Helvetica-Bold")
+       .text(`Question #${index + 1}`, 50 + cardPadding, y + 10);
+
+    y += 45;
+
+    // Question Title Section
+    doc.fontSize(16)
        .fillColor(colors.dark)
        .font("Helvetica-Bold")
-       .text(q.title || "No Title", 50 + cardPadding, y, { width: pageWidth - cardPadding * 2 });
+       .text(q.title || "No Title Provided", 50 + cardPadding, y, { 
+         width: contentWidth,
+         lineGap: 2
+       });
     
-    y += doc.heightOfString(q.title || "No Title", { width: pageWidth - cardPadding * 2 }) + 10;
+    const titleHeight = doc.heightOfString(q.title || "No Title Provided", { width: contentWidth });
+    y += titleHeight + 20;
 
-    // Asked By Section
+    // Metadata Section (Asked By, Email, Date)
+    const metaStartY = y;
+    
+    // Row 1: Asked By
     doc.fontSize(10)
        .fillColor(colors.darkMedium)
        .font("Helvetica-Bold")
        .text("Asked By: ", 50 + cardPadding, y, { continued: true })
        .font("Helvetica")
        .fillColor(colors.gray)
-       .text(q.author?.fullName || "Unknown");
+       .text(q.author?.fullName || "Unknown User");
 
-    y += 15;
+    y += 16;
 
-    doc.font("Helvetica-Bold")
+    // Row 2: Email
+    doc.fontSize(10)
        .fillColor(colors.darkMedium)
+       .font("Helvetica-Bold")
        .text("Email: ", 50 + cardPadding, y, { continued: true })
        .font("Helvetica")
        .fillColor(colors.gray)
-       .text(q.author?.email || "N/A");
+       .text(q.author?.email || "Not provided");
 
-    y += 15;
+    y += 16;
 
-    doc.font("Helvetica-Bold")
+    // Row 3: Date
+    doc.fontSize(10)
        .fillColor(colors.darkMedium)
+       .font("Helvetica-Bold")
        .text("Asked On: ", 50 + cardPadding, y, { continued: true })
        .font("Helvetica")
        .fillColor(colors.gray)
-       .text(q.createdAt ? new Date(q.createdAt).toLocaleString() : "N/A");
+       .text(q.createdAt ? new Date(q.createdAt).toLocaleString('en-US', { 
+         year: 'numeric', 
+         month: 'short', 
+         day: 'numeric', 
+         hour: '2-digit', 
+         minute: '2-digit'
+       }) : "Date not available");
 
-    y += 20;
+    y += 25;
 
-    // Question Content
+    // Question Content Box
     if (q.content) {
+      // Light gray background box for content
+      const contentBoxY = y;
+      
       doc.fontSize(10)
          .fillColor(colors.darkMedium)
          .font("Helvetica-Bold")
          .text("Question Content:", 50 + cardPadding, y);
       
-      y += 15;
+      y += 18;
 
+      // Content text with background
+      const questionContent = q.content;
+      const contentTextY = y;
+      
       doc.fontSize(10)
          .fillColor(colors.dark)
          .font("Helvetica")
-         .text(q.content, 50 + cardPadding, y, { 
-           width: pageWidth - cardPadding * 2,
-           align: "left"
+         .text(questionContent, 50 + cardPadding, y, { 
+           width: contentWidth,
+           align: "left",
+           lineGap: 3
          });
 
-      y += doc.heightOfString(q.content, { width: pageWidth - cardPadding * 2 }) + 15;
+      const contentTextHeight = doc.heightOfString(questionContent, { width: contentWidth });
+      
+      // Draw background rectangle for content
+      doc.rect(50 + cardPadding - 5, contentBoxY - 5, contentWidth + 10, contentTextHeight + 30)
+         .fillOpacity(0.5)
+         .fillAndStroke(colors.lightBg, colors.border)
+         .fillOpacity(1);
+      
+      // Redraw text on top of background
+      doc.fontSize(10)
+         .fillColor(colors.darkMedium)
+         .font("Helvetica-Bold")
+         .text("Question Content:", 50 + cardPadding, contentBoxY);
+      
+      doc.fontSize(10)
+         .fillColor(colors.dark)
+         .font("Helvetica")
+         .text(questionContent, 50 + cardPadding, contentTextY, { 
+           width: contentWidth,
+           align: "left",
+           lineGap: 3
+         });
+
+      y += contentTextHeight + 25;
     }
 
     // Image Indicator
     if (q.image) {
-      doc.fontSize(9)
+      doc.fontSize(10)
          .fillColor(colors.success)
          .font("Helvetica-Bold")
-         .text("📷 Image Attached", 50 + cardPadding, y);
-      y += 15;
+         .text("📷 Image Attached to Question", 50 + cardPadding, y);
+      y += 20;
     }
 
     // Check for page break before reply section
-    if (y + 150 > doc.page.height - 80) {
+    if (y + 180 > doc.page.height - 80) {
       doc.addPage();
       y = 50;
     }
 
-    // Reply Section (with different background)
+    // Reply Section Background
     const replyStartY = y;
-    const hasReply = q.adminReply && q.adminReply !== "Pending";
-
-    doc.roundedRect(50 + cardPadding, y, pageWidth - cardPadding * 2, 5, 3)
-       .fillAndStroke(hasReply ? "#ecfdf5" : "#fef2f2", colors.border);
-
-    y += 10;
-
-    // Status Badge with proper color
+    const hasReply = q.adminReply && q.adminReply !== "Pending" && q.status === "Closed";
+    
+    // Status Badge
     const status = q.status || "Open";
-    let statusText = status;
-    let statusColor = colors.red; // Default: red for pending/open
+    let statusText = status === "Closed" ? "ANSWERED" : "PENDING";
+    let statusColor = status === "Closed" ? colors.success : colors.red;
+    let statusIcon = status === "Closed" ? "✓" : "⏳";
     
-    if (status === "Closed" || status === "answered") {
-      statusColor = colors.success; // Green for answered/closed
-      statusText = "answered";
-    } else if (status === "Open" || status === "Pending") {
-      statusColor = colors.red; // Red for pending/open
-      statusText = "pending";
-    }
-    
-    doc.fontSize(9)
-       .fillColor(colors.white)
-       .font("Helvetica-Bold")
-       .roundedRect(50 + cardPadding + 5, y, 70, 18, 3)
+    doc.roundedRect(50 + cardPadding, y, 110, 24, 4)
        .fillAndStroke(statusColor, statusColor);
     
-    doc.fillColor(colors.white)
-       .text(`Status: ${statusText}`, 50 + cardPadding + 10, y + 4, { width: 60 });
+    doc.fontSize(11)
+       .fillColor(colors.white)
+       .font("Helvetica-Bold")
+       .text(`${statusIcon} ${statusText}`, 50 + cardPadding + 5, y + 6);
 
-    y += 25;
+    y += 35;
 
-    // Reply Content
-    doc.fontSize(10)
+    // Admin Reply Header
+    doc.fontSize(11)
        .fillColor(colors.darkMedium)
        .font("Helvetica-Bold")
-       .text("Admin Reply:", 50 + cardPadding + 5, y);
+       .text("Admin Reply:", 50 + cardPadding, y);
     
-    y += 15;
+    y += 18;
 
-    const replyText = q.adminReply || "Pending...";
+    // Reply Content Box
+    const replyText = q.adminReply || "No reply yet. This question is pending response from the admin team.";
+    const replyBoxY = y;
+    
+    const replyBgColor = hasReply ? "#ecfdf5" : "#fef2f2";
+    
     doc.fontSize(10)
        .fillColor(colors.dark)
        .font("Helvetica")
-       .text(replyText, 50 + cardPadding + 5, y, { 
-         width: pageWidth - cardPadding * 2 - 10,
-         align: "left"
+       .text(replyText, 50 + cardPadding, y, { 
+         width: contentWidth,
+         align: "left",
+         lineGap: 3
        });
 
-    y += doc.heightOfString(replyText, { width: pageWidth - cardPadding * 2 - 10 }) + 15;
+    const replyTextHeight = doc.heightOfString(replyText, { width: contentWidth });
+    
+    // Draw background for reply
+    doc.rect(50 + cardPadding - 5, replyBoxY - 5, contentWidth + 10, replyTextHeight + 15)
+       .fillOpacity(0.7)
+       .fillAndStroke(replyBgColor, colors.border)
+       .fillOpacity(1);
+    
+    // Redraw reply text
+    doc.fontSize(10)
+       .fillColor(colors.dark)
+       .font("Helvetica")
+       .text(replyText, 50 + cardPadding, replyBoxY, { 
+         width: contentWidth,
+         align: "left",
+         lineGap: 3
+       });
 
-    // Replied By Info
+    y += replyTextHeight + 20;
+
+    // Replied By Info (if answered)
     if (hasReply) {
       doc.fontSize(9)
          .fillColor(colors.gray)
-         .font("Helvetica")
-         .text(`Replied by: ${q.repliedBy?.fullName || "N/A"} (${q.repliedBy?.email || "N/A"})`, 
-               50 + cardPadding + 5, y);
+         .font("Helvetica-Oblique")
+         .text(`Replied by: ${q.repliedBy?.fullName || "Administrator"} (${q.repliedBy?.email || "admin@farmnex.com"})`, 
+               50 + cardPadding, y, { width: contentWidth });
       
-      y += 12;
+      y += 13;
 
-      doc.text(`Replied on: ${q.repliedAt ? new Date(q.repliedAt).toLocaleString() : "N/A"}`, 
-               50 + cardPadding + 5, y);
+      doc.text(`Replied on: ${q.repliedAt ? new Date(q.repliedAt).toLocaleString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit'
+      }) : "Date not available"}`, 
+               50 + cardPadding, y, { width: contentWidth });
       
-      y += 15;
+      y += 20;
     } else {
-      y += 10;
+      y += 15;
     }
 
-    // Calculate reply section height
-    const replyHeight = y - replyStartY;
-    doc.roundedRect(50 + cardPadding, replyStartY, pageWidth - cardPadding * 2, replyHeight, 3)
-       .stroke(colors.border);
-
-    // Card bottom margin
-    y += 20;
-
-    // Complete card border
+    // Card Border
     const cardHeight = y - startY;
-    doc.roundedRect(50, startY, pageWidth, cardHeight, 5)
-       .stroke(colors.border);
+    doc.roundedRect(50, startY, pageWidth, cardHeight, 8)
+       .strokeColor(colors.border)
+       .lineWidth(1.5)
+       .stroke();
 
-    y += 10; // Space between cards
+    y += 25; // Space between cards
   };
 
-  // ---------- GENERATE PDF ----------
+  // ========== MAIN GENERATION ==========
+  
+  // Add Header
   addHeader();
   
   // Add Summary Statistics
   drawSummary();
 
-  // Draw each Q&A card
-  questions.forEach((q, index) => {
-    drawQACard(q, index);
-  });
+  // Questions Section Header
+  doc.fontSize(18)
+     .fillColor(colors.primary)
+     .font("Helvetica-Bold")
+     .text("Questions & Answers", 50, y);
+  
+  y += 30;
 
-  // Add footers to all pages at the end
+  // Draw each Q&A card
+  if (questions && questions.length > 0) {
+    questions.forEach((q, index) => {
+      drawQACard(q, index);
+    });
+  } else {
+    // No questions message
+    doc.fontSize(14)
+       .fillColor(colors.gray)
+       .font("Helvetica")
+       .text("No questions found in the system.", 50, y, { align: "center", width: pageWidth });
+  }
+
+  // Add footers to all pages
   addFooter();
 
+  // Finalize PDF
   doc.end();
 };
