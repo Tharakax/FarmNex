@@ -17,6 +17,7 @@ import {
   StickyNote
 } from 'lucide-react';
 import { handleImageError, resolveProductImage } from '../../utils/imageUtils';
+import { getCart, addToCart } from '../../utils/cart';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -146,7 +147,47 @@ const ViewOrder = ({ orderId }) => {
   };
 
   const handlePayNow = () => {
-    window.location.href = `/payment/${currentOrderId}`;
+    if (!order) {
+      toast.error('Order not found');
+      return;
+    }
+
+    try {
+      localStorage.setItem('cart', JSON.stringify([])); // Clear current cart
+      order.items.forEach(item => {
+        const productData = {
+          _id: item.productId,
+          name: item.name,
+          price: item.price,
+          images: [item.image]
+        };
+        addToCart(productData, item.quantity);
+      });
+
+      const orderData = {
+        items: order.items,
+        subtotal: order.subtotal,
+        tax: order.tax,
+        shipping: order.shipping,
+        discount: order.discount || 0,
+        total: order.total,
+        contactName: order.contactName || '',
+        contactEmail: order.contactEmail || '',
+        contactPhone: order.contactPhone || '',
+        shippingAddress: order.shippingAddress || {},
+        billingAddress: order.billingAddress || {},
+        notes: order.notes || '',
+        paymentMethod: order.paymentMethod || '',
+        paymentCompleted: order.paymentcompleted || false
+      };
+
+      localStorage.setItem('orderData', JSON.stringify(orderData));
+      window.location.href = `/shipping/${currentOrderId}`;
+      toast.success('Order items added to cart. Please complete shipping details.');
+    } catch (error) {
+      console.error('Error preparing order for payment:', error);
+      toast.error('Failed to prepare order for payment. Please try again.');
+    }
   };
 
   const downloadReceipt = async () => {
