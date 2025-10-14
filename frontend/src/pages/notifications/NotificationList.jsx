@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import NotificationItem from "../../features/notifications/NotificationItem";
-import Navigation from "../../components/navigation";
+//import Navigation from "../../components/navigation";
 import { exportToPDF } from "../../utils/exportUtils";
 
 const API_URL = "http://localhost:3000/api/notifications";
@@ -198,7 +198,7 @@ function NotificationList() {
 
   return (
     <div>
-      <Navigation />
+      {/*<Navigation />*/}
       <div className="max-w-7xl mx-auto px-4 pt-30 sm:px-6 lg:px-8 py-10">
         {/* Header Section - Balanced Layout */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
