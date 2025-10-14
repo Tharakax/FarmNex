@@ -30,6 +30,7 @@ import TrainingViewer from '../../../components/training/components/TrainingView
 import AddEditTrainingForm from '../../../components/training/components/AddEditTrainingForm';
 import { getFileUrl } from '../../../config/env';
 import { trainingAPIReal } from '../../../services/trainingAPIReal';
+import { exportToPDF } from '../../../utils/exportUtils';
 
 /**
  * Training Management Component
@@ -40,6 +41,7 @@ const TrainingManagement = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [pdfDays, setPdfDays] = useState('30');
   
   // State for different views and operations
   const [currentView, setCurrentView] = useState('dashboard'); // dashboard, materials, form
@@ -349,6 +351,83 @@ const TrainingManagement = () => {
     }
   };
 
+  // PDF Export Handler (Last N days)
+  const handleExportToPDF = async (days = null) => {
+    if (isExportingPDF) return;
+    setIsExportingPDF(true);
+    setErrorMessage('');
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3000/api/training?limit=200', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      });
+
+      let allMaterials = [];
+      if (response.ok) {
+        const data = await response.json();
+        allMaterials = data.materials || [];
+      }
+
+      // Resolve selected days (dropdown value or argument)
+      const selected = days ?? pdfDays;
+      const daysNum = selected === 'all' ? null : Number(selected || 30);
+
+      // Filter by date range (last N days) if provided
+      const cutoff = daysNum ? Date.now() - daysNum * 24 * 60 * 60 * 1000 : null;
+      const materialsInRange = allMaterials.filter(m => {
+        if (!cutoff) return true;
+        const t = m.createdAt ? new Date(m.createdAt).getTime() : 0;
+        return t >= cutoff;
+      });
+
+      // Build rows and columns
+      const columns = [
+        { header: 'Title', key: 'title' },
+        { header: 'Category', key: 'category' },
+        { header: 'Type', key: 'type' },
+        { header: 'Difficulty', key: 'difficulty' },
+        { header: 'Status', key: 'status' },
+        { header: 'Views', key: 'views' },
+        { header: 'Created Date', key: 'createdDate' },
+      ];
+
+      const rows = materialsInRange.map(m => ({
+        title: m.title || '',
+        category: m.category || 'Uncategorized',
+        type: m.type || 'Unknown',
+        difficulty: m.difficulty || 'Unknown',
+        status: m.status || 'Unknown',
+        views: m.views || 0,
+        createdDate: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : '',
+      }));
+
+      const totalViews = materialsInRange.reduce((s, m) => s + (m.views || 0), 0);
+      const label = daysNum ? `Last ${daysNum} days` : 'All time';
+      const summary = {
+        title: `Report Summary (${label})`,
+        metrics: [
+          { label: 'Total Materials', value: materialsInRange.length },
+          { label: 'Total Views', value: totalViews },
+          { label: 'Categories', value: new Set(materialsInRange.map(m => m.category || 'Uncategorized')).size },
+        ],
+        sections: ['Overview', 'Materials Table']
+      };
+
+      const today = new Date().toISOString().split('T')[0];
+      const filename = daysNum ? `Training_Report_last_${daysNum}days_${today}` : `Training_Report_all_${today}`;
+      await exportToPDF(rows, `Training Materials Report`, columns, filename, 'training', { summary });
+      setSuccessMessage(`PDF generated (${label})`);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      setErrorMessage('Failed to export PDF: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   // View handlers
   const handleViewMaterial = (material) => {
     setViewingMaterial(material);
@@ -489,7 +568,7 @@ const TrainingManagement = () => {
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <button
             onClick={handleCreateNew}
             className="flex items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border-2 border-dashed border-blue-300 transition-colors"
@@ -518,6 +597,39 @@ const TrainingManagement = () => {
             )}
             <span className="font-medium text-purple-600">Export to Excel</span>
           </button>
+
+          {/* Export PDF - Select days */}
+          <div className="p-4 bg-red-50 rounded-lg border-2 border-dashed border-red-300 flex flex-col items-center justify-center">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-6 w-6 text-red-600" />
+              <span className="font-medium text-red-600">Export PDF</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={pdfDays}
+                onChange={(e) => setPdfDays(e.target.value)}
+                className="px-2 py-1 border border-red-300 rounded-md text-sm text-red-700 bg-white"
+                title="Select time range"
+              >
+                <option value="2">Last 2 days</option>
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="60">Last 60 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="180">Last 180 days</option>
+                <option value="365">Last 365 days</option>
+                <option value="all">All time</option>
+              </select>
+              <button
+                onClick={() => handleExportToPDF()}
+                disabled={isExportingPDF}
+                className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm disabled:opacity-50"
+              >
+                {isExportingPDF ? 'Generating...' : 'Generate'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

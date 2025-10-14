@@ -74,7 +74,7 @@ const renderFaIconToDataUrl = (faIconDef, size = 48, color = '#FFFFFF') => {
       try {
         const p = new Path2D(pathStr);
         ctx.fill(p);
-      } catch {
+      } catch (e) {
         // If Path2D with SVG string isn't supported, skip
       }
     };
@@ -110,7 +110,7 @@ export const drawFarmNexPdfHeader = (pdf, title, pageWidth, options = {}) => {
     } else {
       pdf.rect(paddingX, topY, tileSize, tileSize, 'F');
     }
-  } catch {
+  } catch (e) {
     pdf.rect(paddingX, topY, tileSize, tileSize, 'F');
   }
 
@@ -458,325 +458,276 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title, pageWidth, { align: 'cent
     // Use autoTable through the pdf instance (attached by side-effect import)
     console.log('Using pdf.autoTable method');
     
-    try {
-      // Check if autoTable is available on the pdf instance
-      if (typeof pdf.autoTable !== 'function') {
-        throw new Error('autoTable plugin not properly loaded');
-      }
-      
-      // Professional table styling with optimal readability
-      pdf.autoTable({
-        head: [headers],
-        body: rows,
-        startY: (pdf.lastAutoTable?.finalY ? pdf.lastAutoTable.finalY : tableStartY),
-        theme: 'striped',
-        margin: { left: 10, right: 10, top: 10, bottom: 30 },
-        styles: {
-          fontSize: 8,
-          cellPadding: 3,
-          overflow: 'linebreak',
-          lineColor: [...BRAND_COLORS.border],
-          lineWidth: 0.5,
-          fontStyle: 'normal',
-          textColor: [...BRAND_COLORS.dark],
-          minCellWidth: 15,
-          cellWidth: 'auto'
-        },
-        headStyles: {
-          fillColor: [...BRAND_COLORS.grayVeryLight],
-          textColor: [...BRAND_COLORS.dark],
-          fontSize: 9,
-          fontStyle: 'bold',
-          halign: 'center',
-          valign: 'middle',
-          cellPadding: 4,
-          minCellHeight: 10,
-          lineColor: [...BRAND_COLORS.border],
-          lineWidth: 1
-        },
-        bodyStyles: {
-          fontSize: 8,
-          textColor: [...BRAND_COLORS.dark],
-          valign: 'top',
-          cellPadding: 3,
-          lineColor: [...BRAND_COLORS.border],
-          lineWidth: 0.3
-        },
-        alternateRowStyles: {
-          fillColor: [248, 248, 248]
-        },
-        columnStyles: (() => {
-          // Dynamic column widths that ensure all columns fit within page width
-          const availableWidth = pageWidth - 40; // Account for margins
-          const isLandscape = pageWidth > pageHeight; // Detect landscape orientation
-          const baseStyles = {
-            0: { fontStyle: 'bold', halign: 'center' }, // ID
-            1: { fontStyle: 'bold' }, // Name/Product Name
-          };
-          
-          // Calculate widths based on number of columns to ensure all fit
-          if (columns.length <= 7) {
-            // Standard width distribution for 7 or fewer columns
-            return {
-              ...baseStyles,
-              0: { ...baseStyles[0], cellWidth: 18 }, // ID
-              1: { ...baseStyles[1], cellWidth: 38 }, // Name
-              2: { cellWidth: 22 }, // Category
-              3: { cellWidth: 45, fontSize: 7 }, // Description
-              4: { cellWidth: 22, fontStyle: 'bold', halign: 'right' }, // Price
-              5: { cellWidth: 18, halign: 'center' }, // Stock
-              6: { cellWidth: 17, halign: 'center' }, // Unit
-            };
-          } else if (columns.length === 8) {
-          // 8 columns - optimized for landscape orientation with generous Supplier width
-          if (isLandscape) {
-            // Landscape layout with much more space available (297mm vs 210mm)
-            return {
-              ...baseStyles,
-              0: { ...baseStyles[0], cellWidth: 15 }, // ID - slightly smaller
-              1: { ...baseStyles[1], cellWidth: 35 }, // Name
-              2: { cellWidth: 22 }, // Category
-              3: { cellWidth: 18, halign: 'center' }, // Quantity
-              4: { cellWidth: 15, halign: 'center' }, // Unit
-              5: { cellWidth: 22, fontStyle: 'bold', halign: 'right' }, // Cost per Unit
-              6: { cellWidth: 22, fontStyle: 'bold', halign: 'right' }, // Total Cost
-              7: { cellWidth: 50, fontStyle: 'bold' }, // Supplier - VERY WIDE for full names
-            };
-            } else {
-              // Portrait fallback (shouldn't be used for 8+ columns now)
-              return {
-                ...baseStyles,
-                0: { ...baseStyles[0], cellWidth: 12 }, // ID
-                1: { ...baseStyles[1], cellWidth: 26 }, // Name
-                2: { cellWidth: 16 }, // Category
-                3: { cellWidth: 22, fontSize: 6 }, // Description
-                4: { cellWidth: 18, fontStyle: 'bold', halign: 'right' }, // Price
-                5: { cellWidth: 14, halign: 'center' }, // Stock
-                6: { cellWidth: 10, halign: 'center' }, // Unit
-                7: { cellWidth: 45, halign: 'center', fontStyle: 'bold' }, // Status
-              };
+    // Check if autoTable is available on the pdf instance
+    if (typeof pdf.autoTable !== 'function') {
+      throw new Error('autoTable plugin not properly loaded');
+    }
+    
+    const renderTableSubset = (subsetColumns, startY, opts = {}) => {
+        const subsetHeaders = subsetColumns.map(col => col.header || col.key || '');
+        const subsetRows = data.map(item => subsetColumns.map(col => {
+          let value = item[col.key];
+          if (value === null || value === undefined) return '';
+          const stringValue = String(value).replace(/[\r\n\t]/g, ' ').trim();
+          if (col.key === 'description') return stringValue.length > 50 ? stringValue.substring(0, 47) + '...' : stringValue;
+          if (col.key === 'name' || col.key === 'productName') return stringValue.length > 28 ? stringValue.substring(0, 25) + '...' : stringValue;
+          return stringValue.length > 40 ? stringValue.substring(0, 37) + '...' : stringValue;
+        }));
+
+        // Simple column styles tuned for subsets
+        const isLandscape = pageWidth > pageHeight;
+        const colStyles = (() => {
+          const map = {};
+          subsetColumns.forEach((c, i) => {
+            const h = String(c.header || c.key).toLowerCase();
+            let w = 18;
+            if (h.includes('name')) w = 30;
+            else if (h.includes('type')) w = 16;
+            else if (h.includes('category')) w = 18;
+            else if (h.includes('quantity')) { map[i] = { cellWidth: 16, halign: 'center' }; return; }
+            else if (h === 'unit') { map[i] = { cellWidth: 12, halign: 'center' }; return; }
+            else if (h === 'min' || h === 'max') { map[i] = { cellWidth: 12, halign: 'center' }; return; }
+            else if (h.includes('unit price') || (h.includes('price') && !h.includes('total'))) { map[i] = { cellWidth: 20, halign: 'right' }; return; }
+            else if (h.includes('total')) { map[i] = { cellWidth: 22, halign: 'right' }; return; }
+            else if (h.includes('status')) w = 18;
+            else if (h.includes('supplier')) w = 60;
+            else if (h.includes('location')) w = 48;
+            else if (h.includes('last updated') || h.includes('updated')) w = 22;
+            map[i] = { cellWidth: w };
+          });
+          return map;
+        })();
+
+        pdf.autoTable({
+          head: [subsetHeaders],
+          body: subsetRows,
+          startY,
+          theme: 'striped',
+          margin: { left: 10, right: 10, top: 10, bottom: 30 },
+          styles: {
+            fontSize: 8,
+            cellPadding: 3,
+            overflow: 'linebreak',
+            lineColor: [...BRAND_COLORS.border],
+            lineWidth: 0.5,
+            fontStyle: 'normal',
+            textColor: [...BRAND_COLORS.dark],
+            minCellWidth: 12,
+            cellWidth: 'auto'
+          },
+          headStyles: {
+            fillColor: [...BRAND_COLORS.grayVeryLight],
+            textColor: [...BRAND_COLORS.dark],
+            fontSize: 9,
+            fontStyle: 'bold',
+            halign: 'center',
+            valign: 'middle',
+            cellPadding: 4,
+            minCellHeight: 10,
+            lineColor: [...BRAND_COLORS.border],
+            lineWidth: 1
+          },
+          bodyStyles: {
+            fontSize: 8,
+            textColor: [...BRAND_COLORS.dark],
+            valign: 'top',
+            cellPadding: 3,
+            lineColor: [...BRAND_COLORS.border],
+            lineWidth: 0.3
+          },
+          alternateRowStyles: { fillColor: [248, 248, 248] },
+          columnStyles: colStyles,
+          didParseCell: function(data) {
+            data.cell.styles.overflow = 'linebreak';
+            data.cell.styles.cellWidth = 'wrap';
+            if (data.cell.text[0] && (data.cell.text[0].includes('LKR') || data.cell.text[0].includes('$') || data.cell.text[0].includes('Rs'))) {
+              data.cell.styles.textColor = [...BRAND_COLORS.success];
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.halign = 'right';
             }
-          } else {
-            // 9+ columns - landscape optimized layout
-            if (isLandscape) {
-              // Landscape layout for 9+ columns with excellent Supplier width
-              return {
-                ...baseStyles,
-                0: { ...baseStyles[0], cellWidth: 12 }, // ID
-                1: { ...baseStyles[1], cellWidth: 30 }, // Name
-                2: { cellWidth: 18 }, // Type/Category
-                3: { cellWidth: 16, halign: 'center' }, // Quantity
-                4: { cellWidth: 12, halign: 'center' }, // Unit
-                5: { cellWidth: 20, fontStyle: 'bold', halign: 'right' }, // Cost per Unit
-                6: { cellWidth: 20, fontStyle: 'bold', halign: 'right' }, // Total Cost
-                7: { cellWidth: 45, fontStyle: 'bold' }, // Supplier - VERY WIDE for full names
-                8: { cellWidth: 18, halign: 'center' }, // Status
-              };
-            } else {
-              // Portrait fallback for 9+ columns
-              return {
-                ...baseStyles,
-                0: { ...baseStyles[0], cellWidth: 12 }, // ID
-                1: { ...baseStyles[1], cellWidth: 26 }, // Name
-                2: { cellWidth: 16 }, // Category
-                3: { cellWidth: 28, fontSize: 6 }, // Description
-                4: { cellWidth: 18, fontStyle: 'bold', halign: 'right' }, // Price
-                5: { cellWidth: 14, halign: 'center' }, // Stock
-                6: { cellWidth: 10, halign: 'center' }, // Unit
-                7: { cellWidth: 22, halign: 'center', fontStyle: 'bold' }, // Status
-                8: { cellWidth: 24, fontSize: 7 }, // Date/Revenue/Rating
-              };
+            if (data.cell.text[0] && /^\d+(\.\d+)?$/.test(data.cell.text[0])) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.halign = 'right';
             }
           }
-        })(),
-        didParseCell: function(data) {
-          // Apply text wrapping for better readability
-          data.cell.styles.overflow = 'linebreak';
-          data.cell.styles.cellWidth = 'wrap';
-          
-          // Professional status highlighting with subtle colors
-          if (data.column.index === columns.findIndex(col => col.key === 'status')) {
-            const cellText = data.cell.text[0];
-            if (cellText) {
-              const status = cellText.toLowerCase();
-              if (status.includes('active') || status.includes('in stock') || status.includes('available')) {
-                data.cell.styles.textColor = [...BRAND_COLORS.success];
-                data.cell.styles.fontStyle = 'bold';
-              } else if (status.includes('low') || status.includes('warning')) {
-                data.cell.styles.textColor = [...BRAND_COLORS.warning];
-                data.cell.styles.fontStyle = 'bold';
-              } else if (status.includes('out') || status.includes('inactive') || status.includes('expired')) {
-                data.cell.styles.textColor = [...BRAND_COLORS.error];
-                data.cell.styles.fontStyle = 'bold';
-              } else if (status.includes('over')) {
-                data.cell.styles.textColor = [...BRAND_COLORS.info];
-                data.cell.styles.fontStyle = 'bold';
-              }
-            }
-          }
-          
-          // Professional currency highlighting
-          if (data.cell.text[0] && (data.cell.text[0].includes('LKR') || data.cell.text[0].includes('$') || data.cell.text[0].includes('Rs'))) {
-            data.cell.styles.textColor = [...BRAND_COLORS.success];
-            data.cell.styles.fontStyle = 'bold';
-            data.cell.styles.halign = 'right';
-          }
-          
-          // Subtle number emphasis
-          if (data.cell.text[0] && /^\d+(\.\d+)?$/.test(data.cell.text[0])) {
-            data.cell.styles.fontStyle = 'bold';
-            data.cell.styles.halign = 'right';
-          }
-          
-          // Better alignment for different data types
-          if (data.column.index === 0) { // ID column
-            data.cell.styles.halign = 'center';
-          }
-        }
-      });
-    } catch (autoTableError) {
-      console.error('AutoTable failed, using manual table generation:', autoTableError);
-      
-      // Enhanced manual table creation as fallback with better spacing
-      let yPosition = (typeof headerBottomY !== 'undefined' ? headerBottomY + 20 : 95);
-      const rowHeight = 12;
-      const availableWidth = pageWidth - 24;
-      
-      // Dynamic column widths based on content type and total columns
-      const columnWidths = headers.map((header, index) => {
-        const headerLower = header.toLowerCase();
-        const totalCols = headers.length;
-        
-        if (totalCols <= 7) {
-          // Standard spacing for 7 or fewer columns
-          if (headerLower.includes('id')) return 18;
-          if (headerLower.includes('name')) return 38;
-          if (headerLower.includes('description')) return 45;
-          if (headerLower.includes('price') || headerLower.includes('cost')) return 22;
-          if (headerLower.includes('quantity') || headerLower.includes('stock')) return 18;
-          if (headerLower.includes('category')) return 22;
-          if (headerLower.includes('unit')) return 17;
-          return Math.max(20, availableWidth / totalCols);
-          } else if (columns.length === 8) {
-            // Tighter spacing for 8 columns with proper Supplier column width
-            if (headerLower.includes('id')) return 15;
-            if (headerLower.includes('name')) return 35;
-            if (headerLower.includes('type') || headerLower.includes('category')) return 22;
-            if (headerLower.includes('quantity')) return 18;
-            if (headerLower.includes('unit')) return 15;
-            if (headerLower.includes('cost') || headerLower.includes('price')) return 22;
-            if (headerLower.includes('supplier')) return 50; // MUCH LARGER WIDTH for full supplier names
-            if (headerLower.includes('status')) return 20;
-            return Math.max(18, availableWidth / totalCols);
+        });
+      };
+
+      // Attempt to render using autoTable; fall back to manual renderer on failure
+      let usedAutoTable = false;
+      try {
+        // If the table is very wide, split it across pages with repeated Item Name
+        const keyCol = columns.find(c => c.key === 'productName') || columns.find(c => c.key === 'name') || columns[0];
+        const coreKeys = [keyCol.key, 'type', 'category', 'quantity', 'unit', 'min', 'max', 'pricePerUnit', 'totalValue', 'status'];
+        const coreCols = [];
+        coreKeys.forEach(k => { const c = columns.find(col => col.key === k); if (c && !coreCols.some(x=>x.key===c.key)) coreCols.push(c); });
+        const remaining = columns.filter(c => !coreCols.some(x => x.key === c.key));
+        const tailCols = [keyCol, ...remaining.filter(c => c.key !== keyCol.key)];
+
+        if ((columns.length >= 12) || (pageWidth > pageHeight && columns.length > 10)) {
+          // First page: core columns
+          renderTableSubset(coreCols, (pdf.lastAutoTable?.finalY ? pdf.lastAutoTable.finalY : tableStartY));
+          // Second page: remaining columns with repeated key column
+          pdf.addPage();
+          const headerBottomY2 = drawFarmNexPdfHeader(pdf, title + ' (continued)', pageWidth, { align: 'center', titleFontSize: 24 });
+          renderTableSubset(tailCols, headerBottomY2 + 18);
         } else {
-          // Very tight spacing for 9+ columns with wide supplier column
-          if (headerLower.includes('id')) return 12;
-          if (headerLower.includes('name')) return 30;
-          if (headerLower.includes('type') || headerLower.includes('category')) return 18;
-          if (headerLower.includes('quantity')) return 16;
-          if (headerLower.includes('unit')) return 12;
-          if (headerLower.includes('cost') || headerLower.includes('price')) return 20;
-          if (headerLower.includes('supplier')) return 45; // MUCH LARGER WIDTH for full supplier names
-          if (headerLower.includes('status')) return 18;
-          if (headerLower.includes('date') || headerLower.includes('created')) return 18;
-          return Math.max(15, availableWidth / totalCols);
+          // Single table layout (original path)
+          renderTableSubset(columns, (pdf.lastAutoTable?.finalY ? pdf.lastAutoTable.finalY : tableStartY));
         }
-      });
-      
-      let xStart = 12;
-      
-      // Professional header design
-      pdf.setFillColor(...BRAND_COLORS.grayVeryLight);
-      pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight + 2, 'F');
-      
-      pdf.setDrawColor(...BRAND_COLORS.border);
-      pdf.setLineWidth(1);
-      pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight + 2, 'S');
-      
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setTextColor(...BRAND_COLORS.white);
-      
-      let x = xStart + 2;
-      headers.forEach((header, i) => {
-        const headerText = String(header);
-        const colWidth = columnWidths[i];
+        usedAutoTable = true;
+      } catch (autoTableError) {
+        console.error('AutoTable failed, falling back to manual renderer:', autoTableError);
+      }
+
+      if (!usedAutoTable) {
+        // Enhanced manual table creation as fallback with better spacing
+        let yPosition = (typeof headerBottomY !== 'undefined' ? headerBottomY + 20 : 95);
+        const rowHeight = 12;
+        const availableWidth = pageWidth - 24;
         
-        // Center align header text in the column
-        pdf.text(headerText, x + (colWidth / 2), yPosition, { align: 'center', maxWidth: colWidth - 4 });
-        x += colWidth;
-      });
-      
-      yPosition += rowHeight + 2;
-      
-      // Enhanced data rows with colorful styling
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      
-      rows.forEach((row, rowIndex) => {
-        // Professional alternate row backgrounds
-        if (rowIndex % 2 === 0) {
-          pdf.setFillColor(250, 250, 250);
-          pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight, 'F');
-        }
-        
-        // Clean row borders
-        pdf.setDrawColor(...BRAND_COLORS.border);
-        pdf.setLineWidth(0.3);
-        pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight, 'S');
-        
-        x = xStart + 2;
-        row.forEach((cell, cellIndex) => {
-          const colWidth = columnWidths[cellIndex];
-          const cellText = String(cell);
+        // Dynamic column widths based on content type and total columns
+        const columnWidths = headers.map((header, index) => {
+          const headerLower = header.toLowerCase();
+          const totalCols = headers.length;
           
-          // Professional content formatting
-          if (cellText.includes('LKR') || cellText.includes('$') || cellText.includes('Rs')) {
-            pdf.setTextColor(...BRAND_COLORS.success);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text(cellText, x + colWidth - 2, yPosition, { align: 'right', maxWidth: colWidth - 4 });
-          } else if (cellIndex === 0) { // ID column
-            pdf.setTextColor(...BRAND_COLORS.dark);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text(cellText, x + (colWidth / 2), yPosition, { align: 'center', maxWidth: colWidth - 4 });
-          } else if (/^\d+(\.\d+)?$/.test(cellText)) { // Number columns
-            pdf.setTextColor(...BRAND_COLORS.dark);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text(cellText, x + colWidth - 2, yPosition, { align: 'right', maxWidth: colWidth - 4 });
+          if (totalCols <= 7) {
+            // Standard spacing for 7 or fewer columns
+            if (headerLower.includes('id')) return 18;
+            if (headerLower.includes('name')) return 38;
+            if (headerLower.includes('description')) return 45;
+            if (headerLower.includes('price') || headerLower.includes('cost')) return 22;
+            if (headerLower.includes('quantity') || headerLower.includes('stock')) return 18;
+            if (headerLower.includes('category')) return 22;
+            if (headerLower.includes('unit')) return 17;
+            return Math.max(20, availableWidth / totalCols);
+            } else if (columns.length === 8) {
+              // Tighter spacing for 8 columns with proper Supplier column width
+              if (headerLower.includes('id')) return 12;
+              if (headerLower.includes('name')) return 28;
+              if (headerLower.includes('type') || headerLower.includes('category')) return 18;
+              if (headerLower.includes('quantity')) return 14;
+              if (headerLower.includes('unit')) return 10;
+              if (headerLower.includes('cost') || headerLower.includes('price')) return 18;
+              if (headerLower.includes('supplier')) return 60; // widest
+              if (headerLower.includes('location')) return 48; // wider
+              if (headerLower.includes('last updated') || headerLower.includes('updated')) return 22;
+              if (headerLower.includes('status')) return 18;
+              return Math.max(16, availableWidth / totalCols);
           } else {
-            pdf.setTextColor(...BRAND_COLORS.dark);
-            pdf.setFont('helvetica', 'normal');
-            // Use text wrapping for long content
-            const lines = pdf.splitTextToSize(cellText, colWidth - 4);
-            pdf.text(lines[0] || cellText, x + 2, yPosition, { maxWidth: colWidth - 4 });
+            // Very tight spacing for 9+ columns with wide supplier column
+            if (headerLower.includes('id')) return 12;
+            if (headerLower.includes('name')) return 28;
+            if (headerLower.includes('type') || headerLower.includes('category')) return 16;
+            if (headerLower.includes('quantity')) return 14;
+            if (headerLower.includes('unit')) return 10;
+            if (headerLower.includes('cost') || headerLower.includes('price')) return 18;
+            if (headerLower.includes('supplier')) return 60; // MUCH LARGER WIDTH for full supplier names
+            if (headerLower.includes('location')) return 48; // Wider location column
+            if (headerLower.includes('last updated') || headerLower.includes('updated')) return 22;
+            if (headerLower.includes('status')) return 18;
+            if (headerLower.includes('date') || headerLower.includes('created')) return 18;
+            return Math.max(15, availableWidth / totalCols);
           }
+        });
+        
+        let xStart = 12;
+        
+        // Professional header design
+        pdf.setFillColor(...BRAND_COLORS.grayVeryLight);
+        pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight + 2, 'F');
+        
+        pdf.setDrawColor(...BRAND_COLORS.border);
+        pdf.setLineWidth(1);
+        pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight + 2, 'S');
+        
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(...BRAND_COLORS.white);
+        
+        let x = xStart + 2;
+        headers.forEach((header, i) => {
+          const headerText = String(header);
+          const colWidth = columnWidths[i];
           
+          // Center align header text in the column
+          pdf.text(headerText, x + (colWidth / 2), yPosition, { align: 'center', maxWidth: colWidth - 4 });
           x += colWidth;
         });
-        yPosition += rowHeight;
         
-        // Enhanced page break with header continuation
-        if (yPosition > pageHeight - 40) {
-          pdf.addPage();
-          yPosition = 40;
+        yPosition += rowHeight + 2;
+        
+        // Enhanced data rows with colorful styling
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        
+        rows.forEach((row, rowIndex) => {
+          // Professional alternate row backgrounds
+          if (rowIndex % 2 === 0) {
+            pdf.setFillColor(250, 250, 250);
+            pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight, 'F');
+          }
           
-          // Repeat professional header on new page
-          pdf.setFillColor(...BRAND_COLORS.grayVeryLight);
-          pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight + 2, 'F');
-          pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(...BRAND_COLORS.dark);
+          // Clean row borders
+          pdf.setDrawColor(...BRAND_COLORS.border);
+          pdf.setLineWidth(0.3);
+          pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight, 'S');
           
           x = xStart + 2;
-          headers.forEach((header, i) => {
-            const colWidth = columnWidths[i];
-            pdf.text(String(header), x + (colWidth / 2), yPosition, { align: 'center', maxWidth: colWidth - 4 });
+          row.forEach((cell, cellIndex) => {
+            const colWidth = columnWidths[cellIndex];
+            const cellText = String(cell);
+            
+            // Professional content formatting
+            if (cellText.includes('LKR') || cellText.includes('$') || cellText.includes('Rs')) {
+              pdf.setTextColor(...BRAND_COLORS.success);
+              pdf.setFont('helvetica', 'bold');
+              pdf.text(cellText, x + colWidth - 2, yPosition, { align: 'right', maxWidth: colWidth - 4 });
+            } else if (columns[0] && columns[0].key === 'id' && cellIndex === 0) { // ID column
+              pdf.setTextColor(...BRAND_COLORS.dark);
+              pdf.setFont('helvetica', 'bold');
+              pdf.text(cellText, x + (colWidth / 2), yPosition, { align: 'center', maxWidth: colWidth - 4 });
+            } else if (/^\d+(\.\d+)?$/.test(cellText)) { // Number columns
+              pdf.setTextColor(...BRAND_COLORS.dark);
+              pdf.setFont('helvetica', 'bold');
+              pdf.text(cellText, x + colWidth - 2, yPosition, { align: 'right', maxWidth: colWidth - 4 });
+            } else {
+              pdf.setTextColor(...BRAND_COLORS.dark);
+              pdf.setFont('helvetica', 'normal');
+              // Use text wrapping for long content
+              const lines = pdf.splitTextToSize(cellText, colWidth - 4);
+              pdf.text(lines[0] || cellText, x + 2, yPosition, { maxWidth: colWidth - 4 });
+            }
+            
             x += colWidth;
           });
-          yPosition += rowHeight + 2;
-        }
-      });
-    }
+          yPosition += rowHeight;
+          
+          // Enhanced page break with header continuation
+          if (yPosition > pageHeight - 40) {
+            pdf.addPage();
+            yPosition = 40;
+            
+            // Repeat professional header on new page
+            pdf.setFillColor(...BRAND_COLORS.grayVeryLight);
+            pdf.rect(xStart, yPosition - 6, pageWidth - 24, rowHeight + 2, 'F');
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(...BRAND_COLORS.dark);
+            
+            x = xStart + 2;
+            headers.forEach((header, i) => {
+              const colWidth = columnWidths[i];
+              pdf.text(String(header), x + (colWidth / 2), yPosition, { align: 'center', maxWidth: colWidth - 4 });
+              x += colWidth;
+            });
+            yPosition += rowHeight + 2;
+          }
+        });
+
+        // For summary positioning when using manual fallback
+        pdf.lastAutoTable = { finalY: yPosition };
+      }
     
     // Professional summary section (positioned safely above footer)
     if (data.length > 0) {
@@ -969,13 +920,15 @@ export const exportToExcel = async (data, title, columns, filename = 'export') =
       const header = (col.header || '').toLowerCase();
       if (header.includes('id')) return { width: 12 };
       if (header.includes('name')) return { width: 25 };
-      if (header.includes('supplier')) return { width: 30 }; // Much wider for supplier names
+      if (header.includes('supplier')) return { width: 40 }; // Much wider for supplier names
       if (header.includes('type') || header.includes('category')) return { width: 18 };
       if (header.includes('description')) return { width: 40 };
       if (header.includes('cost') || header.includes('price')) return { width: 15 };
       if (header.includes('quantity')) return { width: 12 };
       if (header.includes('unit')) return { width: 10 };
       if (header.includes('status')) return { width: 15 };
+      if (header.includes('location')) return { width: 36 }; // Wider location column
+      if (header.includes('last updated') || header.includes('updated')) return { width: 18 };
       if (header.includes('date')) return { width: 12 };
       return { width: 15 }; // Default width
     });
@@ -1061,7 +1014,6 @@ export const getInventoryColumns = () => [
  * Get common column definitions for supplies data
  */
 export const getSuppliesColumns = () => [
-  { header: 'ID', key: 'id' },
   { header: 'Supply Name', key: 'name' },
   { header: 'Type', key: 'type' },
   { header: 'Quantity', key: 'quantity' },
@@ -1089,8 +1041,6 @@ export const getInventoryDetailedColumns = () => [
   { header: 'Status', key: 'status' },
   { header: 'Supplier', key: 'supplier' },
   { header: 'Location', key: 'location' },
-  { header: 'Purchase Date', key: 'purchaseDate' },
-  { header: 'Expiry Date', key: 'expiryDate' },
   { header: 'Last Updated', key: 'lastUpdated' }
 ];
 
@@ -1098,7 +1048,6 @@ export const getInventoryDetailedColumns = () => [
  * Get common column definitions for products data
  */
 export const getProductsColumns = () => [
-  { header: 'ID', key: 'id' },
   { header: 'Product Name', key: 'name' },
   { header: 'Category', key: 'category' },
   { header: 'Description', key: 'description' },
@@ -1267,7 +1216,6 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report', page
     
     // Prepare table data with compact columns
     const tableColumns = [
-      { header: 'ID', dataKey: 'id' },
       { header: 'Product Name', dataKey: 'name' },
       { header: 'Category', dataKey: 'category' },
       { header: 'Description', dataKey: 'description' },
@@ -1291,7 +1239,6 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report', page
       }
       
       return {
-        id: product.id || '...N/A',
         name: product.name || 'Unknown',
         category: (product.category || 'uncategorized').replace('-', ' '),
         description: description,
@@ -1321,14 +1268,13 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report', page
         halign: 'center'
       },
       columnStyles: {
-        0: { cellWidth: 20 }, // ID
-        1: { cellWidth: 25 }, // Product Name
-        2: { cellWidth: 20 }, // Category
-        3: { cellWidth: 45 }, // Description
-        4: { cellWidth: 25 }, // Price
-        5: { cellWidth: 15 }, // Stock Qty
-        6: { cellWidth: 15 }, // Unit
-        7: { cellWidth: 20 }  // Status
+        0: { cellWidth: 30 }, // Product Name
+        1: { cellWidth: 20 }, // Category
+        2: { cellWidth: 45 }, // Description
+        3: { cellWidth: 22, halign: 'right' }, // Price
+        4: { cellWidth: 15, halign: 'center' }, // Stock Qty
+        5: { cellWidth: 15, halign: 'center' }, // Unit
+        6: { cellWidth: 20 }  // Status
       },
       alternateRowStyles: {
         fillColor: [248, 249, 250]
@@ -1516,7 +1462,7 @@ const renderBarChartToDataUrl = async (series, width = 800, height = 320, option
     }
 
     return canvas.toDataURL('image/png');
-  } catch { return null; }
+  } catch (e) { return null; }
 };
 
 const renderDonutChartToDataUrl = async (series, size = 340, options = {}) => {
@@ -1623,7 +1569,7 @@ const renderDonutChartToDataUrl = async (series, size = 340, options = {}) => {
     }
 
     return canvas.toDataURL('image/png');
-  } catch { return null; }
+  } catch (e) { return null; }
 };
 
 // Add branded FarmNex footer with page numbers on all pages
@@ -1764,7 +1710,7 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report with I
         } else {
           pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'F');
         }
-      } catch {
+      } catch (e) {
         pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'F');
       }
       
@@ -1777,7 +1723,7 @@ const headerBottomY = drawFarmNexPdfHeader(pdf, title || 'Products Report with I
         } else {
           pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'S');
         }
-      } catch {
+      } catch (e) {
         pdf.rect(leftMargin, yPosition, contentWidth, itemHeight, 'S');
       }
       
