@@ -455,7 +455,7 @@ export default function UpdateRecipe() {
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={() => nav("/recipes")}
+              onClick={() => nav('/farmerdashboard?tab=recipes')}
               className="rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
             >
               Cancel
