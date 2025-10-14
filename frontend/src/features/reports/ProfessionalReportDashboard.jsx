@@ -19,9 +19,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilePdf, faChartLine, faDownload } from '@fortawesome/free-solid-svg-icons';
 import BrandLogo from '../../components/BrandLogo.jsx';
 import { exportToPDF, exportToExcel, exportProductsToPDFWithImages, getProductsColumns, getInventoryColumns, getInventoryDetailedColumns } from '../../utils/exportUtils';
-import { inventoryAPI } from '../../services/inventoryAPI';
 import { productAPI } from '../../services/productAPI';
 import { reportAPI } from '../../services/reportAPI';
+import { farmSuppliesAPI } from '../../services/api.js';
 import ExportSplitButton from './ExportSplitButton';
 import OrderReport from './OrderReport';
 import { formatLKR } from '../../utils/currencyUtils';
@@ -55,6 +55,16 @@ const ProfessionalReportDashboard = () => {
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState(null);
 
+  // Dynamic preview for Inventory Analysis (products + supplies)
+  const [inventoryPreview, setInventoryPreview] = useState({
+    totalItems: 0,
+    inStock: 0,
+    low: 0,
+    out: 0,
+    totalValue: 0,
+    categoryBreakdown: [] // [{name, value(percent), amount, color}]
+  });
+
   const reportTypes = [
     {
       id: 'comprehensive',
@@ -79,7 +89,7 @@ const ProfessionalReportDashboard = () => {
     {
       id: 'inventory',
       name: 'Inventory Analysis Report',
-      description: 'Detailed stock and inventory insights',
+      description: 'Detailed stock and inventory insights (products + supplies)',
       icon: Package,
       color: 'bg-purple-500',
       pages: '5-6 pages',
@@ -126,12 +136,20 @@ const ProfessionalReportDashboard = () => {
   // Fetch dashboard data on component mount
   useEffect(() => {
     fetchDashboardData();
+    buildInventoryPreview();
     // Load persisted history for History tab
     try {
       const persisted = getReportHistory();
       setRecentReports(persisted);
     } catch (_) {}
   }, [reportConfig.dateRange]);
+
+  // Ensure live preview refreshes when switching to the Generate tab
+  useEffect(() => {
+    if (activeTab === 'generate') {
+      buildInventoryPreview();
+    }
+  }, [activeTab]);
 
   const fetchDashboardData = async () => {
     try {
@@ -232,6 +250,67 @@ const ProfessionalReportDashboard = () => {
     }
   };
 
+  // Build dynamic preview for the Inventory Analysis card using exact live data
+  const buildInventoryPreview = async () => {
+    try {
+      // Fetch products and supplies in parallel (use real supplies API)
+      const [prodRes, supRes] = await Promise.all([
+        productAPI.getAllProducts().catch(() => ({ success: false, data: [] })),
+        farmSuppliesAPI.getAllSupplies().catch(() => ({}))
+      ]);
+
+      const products = prodRes && prodRes.success ? (prodRes.data || []) : [];
+      const supplies = Array.isArray(supRes?.data) ? supRes.data : (Array.isArray(supRes) ? supRes : []);
+
+      // Compute counts and values
+      let totalItems = 0, inStock = 0, low = 0, out = 0, totalValue = 0;
+      const categoryMap = new Map(); // name => amount
+
+      // Products
+      products.forEach(p => {
+        // Be resilient to different product shapes
+        const qty = Number(p.stock?.current ?? p.stockQuantity ?? p.quantity ?? 0) || 0;
+        const min = Number(p.stock?.minimum ?? p.minStock ?? p.minimum ?? 5) || 5;
+        const price = Number(p.price) || 0;
+        totalItems += 1;
+        if (qty === 0) out += 1; else if (qty <= min) low += 1; else inStock += 1;
+        totalValue += qty * price;
+        const cat = (p.category || 'Other');
+        categoryMap.set(cat, (categoryMap.get(cat) || 0) + (qty * price));
+      });
+
+      // Supplies
+      supplies.forEach(s => {
+        // Handle multiple possible field names from different supply sources
+        const qty = Number(s.quantity ?? s.stock?.current ?? 0) || 0;
+        const min = Number(s.minQuantity ?? s.minimum ?? s.min ?? 5) || 5;
+        const unitPrice = typeof s.unitPrice === 'number' 
+          ? s.unitPrice 
+          : (typeof s.price === 'number' 
+              ? s.price 
+              : (parseFloat(s.unitPrice ?? s.price ?? s.unit_price) || 0));
+        totalItems += 1;
+        if (qty === 0) out += 1; else if (qty <= min) low += 1; else inStock += 1;
+        totalValue += qty * unitPrice;
+        const cat = (s.category || 'Other');
+        categoryMap.set(cat, (categoryMap.get(cat) || 0) + (qty * unitPrice));
+      });
+
+      // Build breakdown percentages
+      const totalAmount = Array.from(categoryMap.values()).reduce((s, v) => s + v, 0) || 1;
+      const colors = ['#10B981','#F59E0B','#8B5CF6','#EF4444','#6B7280','#3B82F6','#22C55E','#06B6D4'];
+      const breakdown = Array.from(categoryMap.entries())
+        .map(([name, amount], idx) => ({ name, amount, value: Math.round((amount / totalAmount) * 100), color: colors[idx % colors.length] }))
+        .sort((a,b) => b.amount - a.amount)
+        .slice(0, 6);
+
+      setInventoryPreview({ totalItems, inStock, low, out, totalValue, categoryBreakdown: breakdown });
+    } catch (e) {
+      console.warn('Inventory preview build failed:', e);
+      setInventoryPreview(prev => ({ ...prev, categoryBreakdown: [] }));
+    }
+  };
+
 const handleGenerateReport = async (reportType, format = 'pdf') => {
     setLoading(true);
     try {
@@ -271,7 +350,7 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
           updatedAt: p.updatedAt || '',
           status,
           image: p.images?.[0] || p.image || null,
-          revenue: price * Math.max(currentStock / 2, 1),
+          revenue: price * currentStock,
         };
       });
 
@@ -302,9 +381,9 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
         if (reportType === 'inventory') {
           const invCols = getInventoryDetailedColumns();
 
-          // Fetch farm supplies to include in inventory analysis
-          const suppliesRes = await inventoryAPI.getSupplies();
-          const supplies = suppliesRes && suppliesRes.success ? (suppliesRes.data || []) : [];
+          // Fetch farm supplies to include in inventory analysis (live API)
+          const suppliesRes = await farmSuppliesAPI.getAllSupplies().catch(() => ({}));
+          const supplies = Array.isArray(suppliesRes?.data) ? suppliesRes.data : (Array.isArray(suppliesRes) ? suppliesRes : []);
 
           const productRows = imageExportData.map(p => ({
             productName: p.name,
@@ -325,29 +404,25 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
           }));
 
           const supplyRows = supplies.map(s => {
-            const qty = s.quantity || 0;
-            const unitPrice = typeof s.unitPrice === 'number' ? s.unitPrice : (typeof s.price === 'number' ? s.price : parseFloat(s.price) || 0);
-            const minQty = s.minQuantity || 5;
-            const status = s.status === 'maintenance' ? 'Maintenance Required'
-              : (s.expiryDate && new Date(s.expiryDate) < new Date() ? 'Expired'
-              : (qty === 0 ? 'Out of Stock' : (qty <= minQty ? 'Low Stock' : 'In Stock')));
+            const qty = Number(s.quantity) || 0;
+            const unitPriceRaw = typeof s.unitPrice === 'number' ? s.unitPrice : (typeof s.price === 'number' ? s.price : parseFloat(s.unitPrice || s.price) || 0);
             return {
               productName: s.name,
               type: 'Supply',
               category: s.category,
               quantity: qty,
               unit: s.unit || '',
-              min: minQty,
+              min: s.minQuantity || '',
               max: s.maxQuantity || '',
-              pricePerUnit: `LKR ${unitPrice.toFixed(2)}`,
-              totalValue: `LKR ${(qty * unitPrice).toFixed(2)}`,
-              status,
-              supplier: s.supplier || s.supplier?.name || '',
-              location: s.location || '',
-              purchaseDate: s.purchaseDate || '',
-              expiryDate: s.expiryDate || '',
-              lastUpdated: s.updatedAt || s.createdAt || ''
-            };
+              pricePerUnit: `LKR ${unitPriceRaw.toFixed(2)}`,
+              totalValue: `LKR ${(qty * unitPriceRaw).toFixed(2)}`,
+              status: s.status || '',
+            supplier: (typeof s.supplier === 'object' ? (s.supplier?.name || '') : (s.supplier || '')),
+            location: s.location || s.storage?.location || '',
+            purchaseDate: s.purchaseDate || s.lastRestocked || s.createdAt || '',
+            expiryDate: s.expiryDate || '',
+            lastUpdated: s.updatedAt || s.createdAt || ''
+          };
           });
 
           const rows = [...productRows, ...supplyRows];
@@ -407,9 +482,9 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
         // Inventory-focused table including farm supplies
         const invCols = getInventoryDetailedColumns();
 
-        // Fetch farm supplies to include
-        const suppliesRes = await inventoryAPI.getSupplies();
-        const supplies = suppliesRes && suppliesRes.success ? (suppliesRes.data || []) : [];
+        // Fetch farm supplies to include (live API)
+        const suppliesRes = await farmSuppliesAPI.getAllSupplies().catch(() => ({}));
+        const supplies = Array.isArray(suppliesRes?.data) ? suppliesRes.data : (Array.isArray(suppliesRes) ? suppliesRes : []);
 
         const productRows = imageExportData.map(p => ({
           productName: p.name,
@@ -430,26 +505,22 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
         }));
 
         const supplyRows = supplies.map(s => {
-          const qty = s.quantity || 0;
-          const unitPrice = typeof s.unitPrice === 'number' ? s.unitPrice : (typeof s.price === 'number' ? s.price : parseFloat(s.price) || 0);
-          const minQty = s.minQuantity || 5;
-          const status = s.status === 'maintenance' ? 'Maintenance Required'
-            : (s.expiryDate && new Date(s.expiryDate) < new Date() ? 'Expired'
-            : (qty === 0 ? 'Out of Stock' : (qty <= minQty ? 'Low Stock' : 'In Stock')));
+          const qty = Number(s.quantity) || 0;
+          const unitPriceRaw = typeof s.unitPrice === 'number' ? s.unitPrice : (typeof s.price === 'number' ? s.price : parseFloat(s.unitPrice || s.price) || 0);
           return {
             productName: s.name,
             type: 'Supply',
             category: s.category,
             quantity: qty,
             unit: s.unit || '',
-            min: minQty,
+            min: s.minQuantity || '',
             max: s.maxQuantity || '',
-            pricePerUnit: `LKR ${unitPrice.toFixed(2)}`,
-            totalValue: `LKR ${(qty * unitPrice).toFixed(2)}`,
-            status,
-            supplier: s.supplier || s.supplier?.name || '',
-            location: s.location || '',
-            purchaseDate: s.purchaseDate || '',
+            pricePerUnit: `LKR ${unitPriceRaw.toFixed(2)}`,
+            totalValue: `LKR ${(qty * unitPriceRaw).toFixed(2)}`,
+            status: s.status || '',
+            supplier: (typeof s.supplier === 'object' ? (s.supplier?.name || '') : (s.supplier || '')),
+            location: s.location || s.storage?.location || '',
+            purchaseDate: s.purchaseDate || s.lastRestocked || s.createdAt || '',
             expiryDate: s.expiryDate || '',
             lastUpdated: s.updatedAt || s.createdAt || ''
           };
@@ -459,18 +530,41 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
 
         // Build an inventory-specific summary including supplies
         const totalItems = rows.length;
-        const lowItems = rows.filter(r => r.status === 'Low Stock').length;
-        const outItems = rows.filter(r => r.status === 'Out of Stock').length;
+        // Derive low/out/in using numeric thresholds for accuracy
+        const productsLow = imageExportData.filter(p => (Number(p.stockQuantity) || 0) > 0 && (Number(p.stockQuantity) || 0) <= (Number(p.minStock) || 5)).length;
+        const suppliesLow = supplies.filter(s => (Number(s.quantity) || 0) > 0 && (Number(s.quantity) || 0) <= (Number(s.minQuantity) || 5)).length;
+        const lowItems = productsLow + suppliesLow;
+        const productsOut = imageExportData.filter(p => (Number(p.stockQuantity) || 0) === 0).length;
+        const suppliesOut = supplies.filter(s => (Number(s.quantity) || 0) === 0).length;
+        const outItems = productsOut + suppliesOut;
         const inItems = totalItems - lowItems - outItems;
-        const totalValueAll = rows.reduce((s, r) => s + (Number((r.totalValue || '').toString().replace(/[^\d.]/g, '')) || 0), 0);
+        // Compute totals using raw numeric values to avoid parsing issues
+        const productsTotalValue = imageExportData.reduce((sum, p) => sum + (Number(p.price) || 0) * (Number(p.stockQuantity) || 0), 0);
+        const suppliesTotalValue = supplies.reduce((sum, s) => {
+          const qty = Number(s.quantity) || 0;
+          const unitPrice = typeof s.unitPrice === 'number' ? s.unitPrice : (typeof s.price === 'number' ? s.price : parseFloat(s.price) || 0);
+          return sum + qty * unitPrice;
+        }, 0);
+        const totalValueAll = productsTotalValue + suppliesTotalValue;
+        // Ensure the reported Total Value matches the rows shown in the table
+        const parseMoney = (v) => Number(String(v || '').toString().replace(/[^\d.\-]/g, '')) || 0;
+        const totalValueFromRows = rows.reduce((sum, r) => {
+          const rowTotal = r.totalValue ? parseMoney(r.totalValue) : (parseMoney(r.pricePerUnit) * (Number(r.quantity) || 0));
+          return sum + rowTotal;
+        }, 0);
         const inventorySummary = {
           title: 'Inventory Summary',
           metrics: [
             { label: 'Total Items', value: totalItems },
             { label: 'In Stock', value: inItems },
-            { label: 'Low Stock', value: lowItems },
-            { label: 'Out of Stock', value: outItems },
-            { label: 'Total Value', value: `LKR ${Math.round(totalValueAll).toLocaleString()}` },
+            { label: 'Low Stock (Total)', value: lowItems },
+            { label: 'Out of Stock (Total)', value: outItems },
+            { label: 'Products Low Stock', value: productsLow },
+            { label: 'Supplies Low Stock', value: suppliesLow },
+            { label: 'Products Value', value: `LKR ${Math.round(productsTotalValue).toLocaleString()}` },
+            { label: 'Supplies Value', value: `LKR ${Math.round(suppliesTotalValue).toLocaleString()}` },
+            { label: 'Total Value (Rows)', value: `LKR ${Math.round(totalValueFromRows).toLocaleString()}` },
+            { label: 'Total Value (All)', value: `LKR ${Math.round(totalValueAll).toLocaleString()}` },
           ],
           sections: ['Summary','Inventory Table','Analytics Snapshots']
         };
@@ -689,12 +783,37 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
               </div>
             </div>
 
+            {report.id === 'inventory' && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+                <div className="flex items-center justify-between bg-green-50 text-green-700 px-3 py-2 rounded-lg text-xs font-semibold">
+                  <span>Total Items</span>
+                  <span>{inventoryPreview.totalItems}</span>
+                </div>
+                <div className="flex items-center justify-between bg-blue-50 text-blue-700 px-3 py-2 rounded-lg text-xs font-semibold">
+                  <span>In Stock</span>
+                  <span>{inventoryPreview.inStock}</span>
+                </div>
+                <div className="flex items-center justify-between bg-amber-50 text-amber-700 px-3 py-2 rounded-lg text-xs font-semibold">
+                  <span>Low Stock</span>
+                  <span>{inventoryPreview.low}</span>
+                </div>
+                <div className="flex items-center justify-between bg-red-50 text-red-700 px-3 py-2 rounded-lg text-xs font-semibold">
+                  <span>Out of Stock</span>
+                  <span>{inventoryPreview.out}</span>
+                </div>
+                <div className="flex items-center justify-between bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg text-xs font-semibold col-span-2 md:col-span-1">
+                  <span>Total Value</span>
+                  <span>{formatLKR(inventoryPreview.totalValue)}</span>
+                </div>
+              </div>
+            )}
+
             {/* Inline analytics preview */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               {/* Mini Bar Chart */}
               <div className="h-44 bg-gray-50 border border-gray-200 rounded-xl p-3">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={categoryBreakdown.map(c => ({ name: c.name, value: c.value }))}>
+                  <BarChart data={(report.id === 'inventory' ? inventoryPreview.categoryBreakdown : categoryBreakdown).map(c => ({ name: c.name, value: c.value }))}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="name" stroke="#6b7280" tickLine={false} axisLine={{ stroke: '#e5e7eb' }} tick={{ fontSize: 11 }} />
                     <YAxis stroke="#6b7280" tickLine={false} axisLine={{ stroke: '#e5e7eb' }} tick={{ fontSize: 11 }} />
@@ -710,8 +829,8 @@ const handleGenerateReport = async (reportType, format = 'pdf') => {
                   <PieChart>
                     <Tooltip formatter={(v, n) => [v + '%', n]} />
                     <Legend verticalAlign="bottom" height={24} wrapperStyle={{ fontSize: 11 }} />
-                    <Pie data={categoryBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={30} outerRadius={55} paddingAngle={2}>
-                      {categoryBreakdown.map((entry, index) => (
+                    <Pie data={(report.id === 'inventory' ? inventoryPreview.categoryBreakdown : categoryBreakdown)} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={30} outerRadius={55} paddingAngle={2}>
+                      {(report.id === 'inventory' ? inventoryPreview.categoryBreakdown : categoryBreakdown).map((entry, index) => (
                         <Cell key={`cell-mini-${index}`} fill={entry.color} />
                       ))}
                     </Pie>

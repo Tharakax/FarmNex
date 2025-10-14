@@ -1,4 +1,4 @@
-import React, { useState, Suspense, useEffect } from 'react';
+﻿import React, { useState, Suspense, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom'; // 
 import { getLoggedInUser, getRoleDisplayName } from '../utils/userUtils';
 import sessionManager from '../utils/sessionManager';
@@ -53,13 +53,6 @@ const cropYieldData = [
   { month: 'Dec', yield: 35 }
 ];
 
-const recentActivities = [
-  { id: 1, activity: 'Harvested winter wheat from Field A', date: '2024-12-20', time: '14:30' },
-  { id: 2, activity: 'Applied organic fertilizer to vegetable plots', date: '2024-12-20', time: '09:15' },
-  { id: 3, activity: 'Veterinary checkup for dairy cattle', date: '2024-12-19', time: '11:45' },
-  { id: 4, activity: 'Maintenance on irrigation system', date: '2024-12-19', time: '08:20' },
-  { id: 5, activity: 'Planted cover crops in Field C', date: '2024-12-18', time: '15:30' }
-];
 
 // Reusable Card Component
 const Card = ({ children, className = "" }) => {
@@ -273,40 +266,6 @@ const ChartSection = () => {
   );
 };
 
-// Activity Table Component
-const ActivityTable = () => {
-  return (
-    <Card>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-gray-800">Recent Farm Activities</h3>
-        <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
-          View All
-        </button>
-      </div>
-      
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-medium text-gray-600">Activity</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-600">Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentActivities.map((activity) => (
-              <tr key={activity.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className="py-4 px-4 text-gray-800">{activity.activity}</td>
-                <td className="py-4 px-4 text-gray-600">{activity.date}</td>
-                <td className="py-4 px-4 text-gray-600">{activity.time}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  );
-};
 
 // Sidebar Component
 const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed, toggleCollapse, onMenuSelect }) => {
@@ -703,7 +662,6 @@ const FarmerDashboard = () => {
                   </div>
                 </div>
               </div>
-              <ActivityTable />
             </div>
           );
       }
