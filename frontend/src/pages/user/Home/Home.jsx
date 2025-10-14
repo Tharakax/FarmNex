@@ -26,7 +26,9 @@ import {
   Download,
   Phone,
   Mail,
-  Clock
+  Clock,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import DashboardFeedbackForm from '../../../features/dashboard/DashboardFeedbackForm';
 import DashboardFeedbackList from '../../../features/dashboard/DashboardFeedbackList';
@@ -48,6 +50,7 @@ const CustomerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
   const [cartItemCount, setCartItemCount] = useState(0);
   const [viewMode, setViewMode] = useState('grid');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -439,6 +442,15 @@ const CustomerDashboard = () => {
 
             {/* Right Navigation */}
             <div className="flex items-center gap-4">
+              {/* Sidebar Toggle Button */}
+              <button
+                onClick={() => setSidebarVisible(!sidebarVisible)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                title={sidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+              >
+                {sidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+              </button>
+              
               <NotificationBell />
 
               {/* User Profile Dropdown */}
@@ -530,7 +542,7 @@ const CustomerDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar Navigation */}
-          <div className={`md:w-64 ${showMobileMenu ? 'block' : 'hidden md:block'}`}>
+          <div className={`${sidebarVisible ? 'md:w-64' : 'md:w-0'} ${showMobileMenu ? 'block' : sidebarVisible ? 'block md:block' : 'hidden md:block'} transition-all duration-300 overflow-hidden`}>
             <div className="bg-white rounded-xl shadow-sm border p-4">
               <nav className="space-y-2">
                 {navItems.map(item => {
@@ -565,7 +577,7 @@ const CustomerDashboard = () => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1">
+          <div className={`flex-1 ${!sidebarVisible ? 'md:ml-0' : ''} transition-all duration-300`}>
             <div className="bg-white rounded-xl shadow-sm border p-6">
               {renderContent()}
             </div>
