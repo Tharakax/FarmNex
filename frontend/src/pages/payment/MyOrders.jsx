@@ -14,6 +14,13 @@ const MyOrders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [dateSelectionType, setDateSelectionType] = useState('range'); // 'range' or 'specific'
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [specificDate, setSpecificDate] = useState('');
 
   // Order states from order.js schema
   const orderStates = {
@@ -68,7 +75,30 @@ const MyOrders = () => {
     
     try {
       // Filter orders based on active tab
-      const reportOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
+      let reportOrders = activeTab === 'all' ? orders : orders.filter(order => order.status === activeTab);
+      
+      // Apply date filtering based on selection type
+      if (dateSelectionType === 'specific' && specificDate) {
+        const selectedDate = new Date(specificDate);
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        reportOrders = reportOrders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= startOfDay && orderDate <= endOfDay;
+        });
+      } else if (dateSelectionType === 'range' && dateRange.startDate && dateRange.endDate) {
+        const startDate = new Date(dateRange.startDate);
+        const endDate = new Date(dateRange.endDate);
+        endDate.setHours(23, 59, 59, 999); // Include the entire end date
+        
+        reportOrders = reportOrders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= startDate && orderDate <= endDate;
+        });
+      }
       
       // Define column structure for orders export
       const orderColumns = [
@@ -111,8 +141,16 @@ const MyOrders = () => {
       const deliveredOrders = reportOrders.filter(order => order.status === 'delivered').length;
       const totalRefunds = reportOrders.reduce((sum, order) => sum + Number(order.refundAmount || 0), 0);
 
-      // Generate filename
-      const fileName = `orders-report-${activeTab}-${new Date().toISOString().split('T')[0]}`;
+      // Generate filename with date filtering if provided
+      let fileName = `orders-report-${activeTab}-${new Date().toISOString().split('T')[0]}`;
+      if (dateSelectionType === 'specific' && specificDate) {
+        const dateStr = specificDate.replace(/-/g, '');
+        fileName = `orders-report-${activeTab}-${dateStr}`;
+      } else if (dateSelectionType === 'range' && dateRange.startDate && dateRange.endDate) {
+        const startDateStr = dateRange.startDate.replace(/-/g, '');
+        const endDateStr = dateRange.endDate.replace(/-/g, '');
+        fileName = `orders-report-${activeTab}-${startDateStr}-to-${endDateStr}`;
+      }
       
       // Use standardized export function with correct parameter order
       await exportToPDF(
@@ -145,6 +183,23 @@ const MyOrders = () => {
     } finally {
       setGeneratingPDF(false);
     }
+  };
+
+  // Handle date range changes
+  const handleDateRangeChange = (field, value) => {
+    setDateRange(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Clear date selection
+  const clearDateSelection = () => {
+    setDateRange({
+      startDate: '',
+      endDate: ''
+    });
+    setSpecificDate('');
   };
 
   const filteredOrders = orders.filter(order => 
@@ -309,29 +364,168 @@ const MyOrders = () => {
             </div>
             
             {/* PDF Download Button */}
-            <button
-              onClick={generatePDF}
-              disabled={generatingPDF || orders.length === 0}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                generatingPDF || orders.length === 0
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {generatingPDF ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Download size={16} />
-                  Download Report
-                </>
-              )}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowDateRange(!showDateRange)}
+                className="flex items-center gap-2 px-3 py-1 text-sm text-green-600 hover:text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors"
+              >
+                <Calendar size={14} />
+                {(dateRange.startDate && dateRange.endDate) || specificDate ? 'Date Filter Active' : 'Select Date Filter'}
+              </button>
+              <button
+                onClick={generatePDF}
+                disabled={generatingPDF || orders.length === 0}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  generatingPDF || orders.length === 0
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {generatingPDF ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Download Report
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Date Selection */}
+        {showDateRange && (
+          <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 mb-6">
+            {/* Date Selection Type */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-green-700 mb-2">Date Filter Type</label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="range"
+                    checked={dateSelectionType === 'range'}
+                    onChange={(e) => setDateSelectionType(e.target.value)}
+                    className="mr-2 text-green-600 focus:ring-green-500"
+                  />
+                  Date Range
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    value="specific"
+                    checked={dateSelectionType === 'specific'}
+                    onChange={(e) => setDateSelectionType(e.target.value)}
+                    className="mr-2 text-green-600 focus:ring-green-500"
+                  />
+                  Specific Date
+                </label>
+              </div>
+            </div>
+
+            {/* Date Range Selection */}
+            {dateSelectionType === 'range' && (
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-green-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={dateRange.startDate}
+                    onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-green-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={dateRange.endDate}
+                    onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
+                    min={dateRange.startDate || undefined}
+                    className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Specific Date Selection */}
+            {dateSelectionType === 'specific' && (
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-green-700 mb-1">Select Date</label>
+                  <input
+                    type="date"
+                    value={specificDate}
+                    onChange={(e) => setSpecificDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
+                <div className="flex-1"></div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={clearDateSelection}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setShowDateRange(false)}
+                className="px-3 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                Done
+              </button>
+            </div>
+
+            {/* Filter Status */}
+            {(dateRange.startDate || dateRange.endDate || specificDate) && (
+              <div className="mt-3 p-2 bg-green-50 rounded-md">
+                <p className="text-sm text-green-700">
+                  <strong>Active Filter:</strong> {
+                    dateSelectionType === 'specific' 
+                      ? `Specific Date: ${specificDate}`
+                      : `Date Range: ${dateRange.startDate || 'No start date'} to ${dateRange.endDate || 'No end date'}`
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Order Summary Stats */}
+        {orders.length > 0 && (
+          <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">{orders.length}</p>
+              <p className="text-sm text-green-600">Total Orders</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">
+                Rs. {orders.reduce((sum, order) => sum + Math.max(0, order.total - Number(order.refundAmount || 0)), 0).toFixed(2)}
+              </p>
+              <p className="text-sm text-green-600">Total Spent (net)</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">
+                {orders.filter(order => order.status === 'delivered').length}
+              </p>
+              <p className="text-sm text-green-600">Delivered</p>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+              <p className="text-2xl font-bold text-green-900">
+                {orders.filter(order => !order.paymentcompleted).length}
+              </p>
+              <p className="text-sm text-green-600">Pending Payment</p>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border border-green-200 mb-6 overflow-hidden">
@@ -544,33 +738,6 @@ const MyOrders = () => {
           )}
         </div>
 
-        {/* Order Summary Stats */}
-        {orders.length > 0 && (
-          <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">{orders.length}</p>
-              <p className="text-sm text-green-600">Total Orders</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">
-                Rs. {orders.reduce((sum, order) => sum + Math.max(0, order.total - Number(order.refundAmount || 0)), 0).toFixed(2)}
-              </p>
-              <p className="text-sm text-green-600">Total Spent (net)</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">
-                {orders.filter(order => order.status === 'delivered').length}
-              </p>
-              <p className="text-sm text-green-600">Delivered</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-              <p className="text-2xl font-bold text-green-900">
-                {orders.filter(order => !order.paymentcompleted).length}
-              </p>
-              <p className="text-sm text-green-600">Pending Payment</p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
