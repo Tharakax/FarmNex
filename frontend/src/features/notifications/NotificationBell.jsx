@@ -639,7 +639,7 @@ const NotificationBell = ({ className = "" }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Blurred background */}
           <div 
-            className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+            className="absolute inset-0 backdrop-blur-sm"
             onClick={closeModal}
           ></div>
           
