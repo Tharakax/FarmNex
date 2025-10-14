@@ -378,7 +378,6 @@ export const saveShipping = async (req, res) => {
     });
   }
 };
-// Add these functions to your orderController.js
 
 // Get all orders - SECURED: Admin only
 export const getAllOrders = async (req, res) => {
@@ -547,7 +546,8 @@ export const refundOrder = async (req, res) => {
     if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
     // Only allow refunds for Stripe/credit card payments
-    if (!order.paymentMethod || order.paymentMethod !== 'credit_card') {
+    const paymentMethod = (order.paymentMethod || '').toLowerCase().replace(/\s+/g, '_');
+    if (!paymentMethod || (paymentMethod !== 'credit_card' && paymentMethod !== 'creditcard')) {
       return res.status(400).json({ 
         success: false, 
         message: 'Refunds are only supported for credit card payments processed through Stripe' 
