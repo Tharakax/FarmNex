@@ -57,7 +57,7 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['credit_card'],
+    enum: ['credit_card', 'cash_on_delivery'],
     required: false,
     default: 'credit_card',
   },
@@ -150,7 +150,11 @@ const orderSchema = new mongoose.Schema({
     cardBrand: String,
     last4: String,
     source: String, 
-    error: String 
+    error: String,
+    // Cash on delivery specific fields
+    codFee: Number,
+    totalWithCod: Number,
+    status: String
   },
 }, {
   timestamps: true, 

@@ -217,8 +217,12 @@ export const savePayment = async (req, res) => {
     const { id } = req.params;
     const { paymentMethod, paymentCompleted, paymentDetails } = req.body;
 
+    console.log('savePayment called with:', { id, paymentMethod, paymentCompleted, paymentDetails });
+    console.log('User:', req.user ? { id: req.user.id, email: req.user.email, role: req.user.role } : 'No user');
+
     // 🔒 SECURITY CHECK: Authentication required
     if (!req.user) {
+      console.log('No user found in request');
       return res.status(401).json({
         success: false,
         message: 'Authentication required'
@@ -251,6 +255,8 @@ export const savePayment = async (req, res) => {
       }
     }
 
+    console.log('Updating order with:', { paymentMethod, paymentCompleted, paymentDetails });
+    
     order.paymentMethod = paymentMethod;
     order.paymentcompleted = paymentCompleted;
     if (paymentDetails) {
@@ -259,7 +265,9 @@ export const savePayment = async (req, res) => {
     order.status = paymentCompleted ? 'processing' : 'pending';
     order.updatedAt = new Date();
 
+    console.log('About to save order...');
     const updatedOrder = await order.save();
+    console.log('Order saved successfully:', updatedOrder._id);
 
     res.status(200).json({
       success: true,
@@ -268,10 +276,12 @@ export const savePayment = async (req, res) => {
     });
   } catch (error) {
     console.error('Error saving payment information:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to save payment information',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

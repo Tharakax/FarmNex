@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, Package, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getCart, updateQuantity, removeFromCart } from '../../utils/cart';
+import { getLoggedInUser } from '../../utils/userUtils';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const DashboardShoppingCart = ({ onBrowseProducts }) => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -56,13 +59,83 @@ const DashboardShoppingCart = ({ onBrowseProducts }) => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handleProceedToCheckout = () => {
+  const handleProceedToCheckout = async () => {
     if (cartItems.length === 0) {
       toast.error('Your cart is empty');
       return;
     }
-    // Navigate to checkout page
-    navigate('/cart');
+
+    try {
+      setCheckoutLoading(true);
+      toast.loading('Processing checkout...', { id: 'checkout' });
+
+      // Calculate totals
+      const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+      const tax = subtotal * 0.08; // 8% tax
+      const shipping = subtotal > 2000 ? 0 : 150; // Free shipping over Rs 2000
+      const discount = subtotal > 3000 ? subtotal * 0.05 : 0; // 5% discount over Rs 3000
+      const total = subtotal + tax + shipping - discount;
+
+      // Get current user
+      const currentUser = getLoggedInUser();
+
+      // Prepare order data from cart
+      const orderData = {
+        items: cartItems.map(item => ({
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          description: item.description ? item.description.substring(0, 200) : ''
+        })),
+        subtotal: subtotal,
+        tax: tax,
+        shipping: shipping,
+        discount: discount,
+        total: total,
+        status: 'pending',
+        // Pre-fill contact using logged-in user when available
+        contactEmail: currentUser?.email || '',
+        contactName: currentUser?.name || ''
+      };
+
+      // Prepare headers with auth token
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Make API request to create order
+      const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+      const response = await axios.post(`${API_BASE_URL}/api/order`, orderData, { headers });
+
+      if (response.data.success) {
+        // Clear the cart
+        localStorage.setItem("cart", JSON.stringify([]));
+        setCartItems([]);
+        
+        toast.success('Order created successfully!', { id: 'checkout' });
+        
+        // Navigate to shipping page with order ID
+        navigate(`/shipping/${response.data.order._id}`);
+      } else {
+        toast.error(response.data.message || 'Failed to create order', { id: 'checkout' });
+      }
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message, { id: 'checkout' });
+      } else {
+        toast.error('An error occurred during checkout. Please try again.', { id: 'checkout' });
+      }
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   if (loading) {
@@ -199,10 +272,24 @@ onClick={() => onBrowseProducts ? onBrowseProducts() : navigate('/customerdash')
 
         <button
           onClick={handleProceedToCheckout}
-          className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition-all font-semibold hover:scale-105 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+          disabled={checkoutLoading}
+          className={`w-full py-3 rounded-lg transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
+            checkoutLoading 
+              ? 'bg-gray-400 text-white cursor-not-allowed' 
+              : 'bg-green-500 text-white hover:bg-green-600 hover:scale-105'
+          }`}
         >
-          Proceed to Checkout
-          <ArrowRight className="w-5 h-5" />
+          {checkoutLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              Processing...
+            </>
+          ) : (
+            <>
+              Proceed to Checkout
+              <ArrowRight className="w-5 h-5" />
+            </>
+          )}
         </button>
       </div>
 

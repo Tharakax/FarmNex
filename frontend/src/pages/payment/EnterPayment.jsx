@@ -594,30 +594,44 @@ export default function EnterPayment() {
     try {
       // Show loading dialog
       const loadingAlert = showLoading(
-        'Processing Payment',
-        `Processing your ${paymentMethod.replace('_', ' ')} payment. Please do not close this page...`
+        paymentMethod === 'cash_on_delivery' ? 'Placing Order' : 'Processing Payment',
+        paymentMethod === 'cash_on_delivery' 
+          ? 'Placing your order with cash on delivery option. Please do not close this page...'
+          : `Processing your ${paymentMethod.replace('_', ' ')} payment. Please do not close this page...`
       );
 
       // Prepare payment data based on selected method
       let paymentData = {
         paymentMethod: paymentMethod,
-        paymentCompleted: paymentMethod !== 'credit_card' // For non-Stripe payments
+        paymentCompleted: paymentMethod === 'credit_card' // Only credit card payments are completed immediately
       };
 
       // Add method-specific data
       if (paymentMethod === 'cash_on_delivery') {
         paymentData.paymentDetails = {
           codFee: 50,
-          totalWithCod: orderData.total + 50
+          totalWithCod: orderData.total + 50,
+          status: 'pending_payment'
         };
-        // For COD, mark as completed since no immediate payment is required
-        paymentData.paymentCompleted = true;
+        // For COD, payment is not completed until delivery
+        paymentData.paymentCompleted = false;
+      }
+
+      // Prepare headers with auth token
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
 
       // Save payment information to the order
       const response = await axios.put(
         `${import.meta.env.VITE_BACKEND_URL}/api/order/payment/${orderId}`,
-        paymentData
+        paymentData,
+        { headers }
       );
 
       // Close loading dialog
@@ -626,6 +640,13 @@ export default function EnterPayment() {
       }
 
       if (response.data.success) {
+        if (paymentMethod === 'cash_on_delivery') {
+          // Show success message for COD
+          await showSuccess(
+            'Order Placed Successfully!', 
+            `Your order has been placed successfully. You will pay Rs. ${finalTotal.toFixed(2)} (including Rs. 50 COD fee) when your order is delivered. Our delivery team will contact you soon.`
+          );
+        }
         handlePaymentSuccess();
       } else {
         throw new Error(response.data.message || 'Payment processing failed');
