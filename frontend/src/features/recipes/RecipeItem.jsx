@@ -18,6 +18,8 @@ const resolveImageUrl = (img) => {
   // Fallback: assume file under uploads
   // Fallback: assume file under uploads
     // Fallback: assume file under uploads
+      // Fallback: assume file under uploads
+
 
   return `${BASE}/uploads/${s}`;
 };
