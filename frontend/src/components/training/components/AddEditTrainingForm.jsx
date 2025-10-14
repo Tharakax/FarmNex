@@ -400,43 +400,58 @@ const AddEditTrainingForm = ({
   };
 
   const handleSubmit = async (e) => {
-    console.log('=== FORM SUBMIT STARTED ===');
-    console.log('Event:', e);
-    console.log('Form data:', formData);
-    console.log('Selected file:', selectedFile);
+    console.log('\n🚀 === FORM SUBMIT STARTED ===');
+    console.log('📄 Event type:', e?.type);
+    console.log('📝 Raw form data:', JSON.stringify(formData, null, 2));
+    console.log('📎 Selected file details:', selectedFile ? {
+      name: selectedFile.name,
+      size: selectedFile.size,
+      type: selectedFile.type,
+      lastModified: selectedFile.lastModified
+    } : 'No file selected');
+    console.log('🔧 Editing material?', !!editingMaterial);
+    console.log('🔧 onSave function:', typeof onSave);
     
     e.preventDefault();
-    console.log('Form validation starting...');
+    console.log('🔍 Form validation starting...');
 
     const { isValid, alertErrors } = validateForm();
-    console.log('Form validation result:', isValid);
-    console.log('Validation issues:', alertErrors);
+    console.log('✅ Form validation result:', isValid);
+    console.log('⚠️  Validation issues:', alertErrors);
     
     if (!isValid) {
-      console.log('Form validation failed - showing SweetAlert');
-      showValidationError(alertErrors, 'Please Fix These Issues');
+      console.log('❌ Form validation failed - showing SweetAlert');
+      await showValidationError(alertErrors, 'Please Fix These Issues');
       return;
     }
     
-    console.log('Form validation passed - proceeding with save');
+    console.log('✅ Form validation passed - proceeding with save');
     
     try {
       const submitData = {
         ...formData,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        createdBy: formData.createdBy || 'Frontend User' // Ensure createdBy is present
       };
       
-      console.log('Final submit data:', submitData);
-      console.log('onSave function:', typeof onSave, onSave);
+      console.log('📦 Final submit data prepared:', JSON.stringify(submitData, null, 2));
+      console.log('🚀 onSave function type:', typeof onSave);
+      console.log('🚀 onSave function exists:', !!onSave);
       
       if (!onSave) {
-        throw new Error('onSave function is not provided!');
+        const error = 'onSave function is not provided!';
+        console.error('❌', error);
+        throw new Error(error);
       }
       
-      console.log('Calling onSave function...');
-      await onSave(submitData, selectedFile);
+      console.log('🚀 Calling onSave function with:', {
+        dataKeys: Object.keys(submitData),
+        filePresent: !!selectedFile
+      });
       
-      console.log('onSave completed successfully');
+      const result = await onSave(submitData, selectedFile);
+      
+      console.log('✅ onSave completed successfully, result:', result);
       
       // Show enhanced success message with recommendations
       const recommendations = [];
@@ -451,16 +466,24 @@ const AddEditTrainingForm = ({
         recommendations.push('Consider adding more detailed content for better engagement');
       }
       
+      let successResult = null;
       if (recommendations.length > 0) {
-        showValidationSuccess(
+        successResult = await showValidationSuccess(
           `Training material ${editingMaterial ? 'updated' : 'created'} successfully!`,
           recommendations
         );
       } else {
-        showSuccess(
+        successResult = await showSuccess(
           `Training material ${editingMaterial ? 'updated' : 'created'} successfully!`,
           'Success!'
         );
+      }
+      
+      // Close the modal after showing success message and user clicked Continue/OK
+      console.log('Success alert dismissed, closing form modal...');
+      if (successResult && successResult.isConfirmed !== false) {
+        console.log('Calling onClose to close modal...');
+        onClose();
       }
     } catch (error) {
       console.error('Error saving material:', error);

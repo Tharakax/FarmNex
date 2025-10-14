@@ -1,0 +1,429 @@
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import NotificationItem from "../../features/notifications/NotificationItem";
+//import Navigation from "../../components/navigation";
+import { exportToPDF } from "../../utils/exportUtils";
+
+const API_URL = "http://localhost:3000/api/notifications";
+
+const AUDIENCE_OPTIONS = [
+  { value: "FARMER", label: "🌾 Farmer", desc: "FarmStaff & Manager" },
+  { value: "USER", label: "🛒 User", desc: "Customer & DeliveryStaff" },
+  { value: "BOTH", label: "👥 Farmer & User", desc: "" }
+];
+
+const TYPE_OPTIONS = [
+  { value: "ALERT", label: "🚨 Alert", desc: "Urgent notifications" },
+  { value: "OFFER", label: "🎉 Offer", desc: "Special deals" },
+  { value: "UPDATE", label: "📢 Update", desc: "General information" }
+];
+
+const PRIORITY_OPTIONS = [
+  { value: "HIGH", label: "🔴 High", desc: "Immediate attention" },
+  { value: "MEDIUM", label: "🟡 Medium", desc: "Moderate urgency" },
+  { value: "LOW", label: "🟢 Low", desc: "General information" }
+];
+
+function NotificationList() {
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [filteredNotifications, setFilteredNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedAudiences, setSelectedAudiences] = useState([]);
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [selectedPriorities, setSelectedPriorities] = useState([]);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      setIsLoading(true);
+      const res = await axios.get(API_URL);
+      setNotifications(res.data.notifications || []);
+      setFilteredNotifications(res.data.notifications || []);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  useEffect(() => {
+    let results = notifications;
+    
+    if (searchTerm) {
+      results = results.filter(notification => 
+        notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        notification.body.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        notification.notificationId.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (selectedAudiences.length > 0) {
+      results = results.filter(notification => 
+        selectedAudiences.includes(notification.audience)
+      );
+    }
+    
+    if (selectedTypes.length > 0) {
+      results = results.filter(notification => 
+        selectedTypes.includes(notification.type)
+      );
+    }
+    
+    if (selectedPriorities.length > 0) {
+      results = results.filter(notification => 
+        selectedPriorities.includes(notification.priority)
+      );
+    }
+    
+    setFilteredNotifications(results);
+  }, [notifications, searchTerm, selectedAudiences, selectedTypes, selectedPriorities]);
+
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`${API_URL}/${id}`);
+      fetchNotifications();
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  const toggleAudience = (audience) => {
+    setSelectedAudiences(prev => 
+      prev.includes(audience) 
+        ? prev.filter(a => a !== audience) 
+        : [...prev, audience]
+    );
+  };
+
+  const toggleType = (type) => {
+    setSelectedTypes(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type) 
+        : [...prev, type]
+    );
+  };
+
+  const togglePriority = (priority) => {
+    setSelectedPriorities(prev => 
+      prev.includes(priority) 
+        ? prev.filter(p => p !== priority) 
+        : [...prev, priority]
+    );
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedAudiences([]);
+    setSelectedTypes([]);
+    setSelectedPriorities([]);
+  };
+
+  const hasActiveFilters = searchTerm || selectedAudiences.length > 0 || 
+                          selectedTypes.length > 0 || selectedPriorities.length > 0;
+
+  const handleDownloadPDF = async () => {
+    if (!filteredNotifications || filteredNotifications.length === 0) {
+      alert("No notifications available to download.");
+      return;
+    }
+
+    // Build subtitle from active filters
+    let filtersInfo = "All notifications";
+    if (hasActiveFilters) {
+      const parts = [];
+      if (searchTerm) parts.push(`Search: "${searchTerm}"`);
+      if (selectedAudiences.length > 0) parts.push(`Audience: ${selectedAudiences.join(", ")}`);
+      if (selectedTypes.length > 0) parts.push(`Type: ${selectedTypes.join(", ")}`);
+      if (selectedPriorities.length > 0) parts.push(`Priority: ${selectedPriorities.join(", ")}`);
+      filtersInfo = parts.join(" • ");
+    }
+
+    // Normalize data for export
+    const data = filteredNotifications.map((n, idx) => ({
+      no: idx + 1,
+      title: n.title || "Untitled",
+      content: n.body || "-",
+      audience: n.audience || "N/A",
+      type: n.type || "N/A",
+      priority: n.priority || "N/A",
+      created: n.createdAt ? new Date(n.createdAt).toLocaleString() : "N/A",
+    }));
+
+    const columns = [
+      { header: "#", key: "no" },
+      { header: "Title", key: "title" },
+      { header: "Content", key: "content" },
+      { header: "Audience", key: "audience" },
+      { header: "Type", key: "type" },
+      { header: "Priority", key: "priority" },
+      { header: "Created", key: "created" },
+    ];
+
+    // Build summary metrics similar to other reports
+    const countBy = (arr, key, val) => arr.filter(n => (n[key] || "").toUpperCase() === val).length;
+    const metrics = [
+      { label: "Total", value: data.length },
+      { label: "Farmers", value: countBy(filteredNotifications, "audience", "FARMER") },
+      { label: "Users", value: countBy(filteredNotifications, "audience", "USER") },
+      { label: "Alerts", value: countBy(filteredNotifications, "type", "ALERT") },
+      { label: "Offers", value: countBy(filteredNotifications, "type", "OFFER") },
+      { label: "Updates", value: countBy(filteredNotifications, "type", "UPDATE") },
+    ];
+
+    try {
+      await exportToPDF(
+        data,
+        "Notifications Report",
+        columns,
+        "notifications_report",
+        "reports",
+        {
+          subtitle: filtersInfo,
+          summary: { title: "Overview", metrics },
+        }
+      );
+    } catch (e) {
+      console.error("PDF export failed:", e);
+      alert("PDF export failed. See console for details.");
+    }
+  };
+
+  return (
+    <div>
+      {/*<Navigation />*/}
+      <div className="max-w-7xl mx-auto px-4 pt-30 sm:px-6 lg:px-8 py-10">
+        {/* Header Section - Balanced Layout */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          {/* Left Side - Title */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              aria-label="Back to Admin Dashboard"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                <path fillRule="evenodd" d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            
+            <h1 className=" md:text-2xl font-bold tracking-tight ">
+              <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
+                Notification Management
+              </span>
+            </h1>
+          
+          </div>
+
+          {/* Right Side - Search and Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            {/* Search Bar */}
+            <div className="relative flex-1 md:flex-initial">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search notifications..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-4 py-2.5 text-sm rounded-lg border border-gray-300 
+                           focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 
+                           bg-white text-gray-900 placeholder-gray-500"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              {/* Download PDF Button */}
+              {filteredNotifications.length > 0 && (
+                <button
+                  onClick={handleDownloadPDF}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
+                           border border-gray-300 bg-white text-gray-700 shadow-sm
+                           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                           transition-colors duration-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                  Download All (PDF)
+                </button>
+              )}
+
+              {/* Add Notification Button */}
+              <Link to="/notifications/add" className="flex">
+                <button
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
+                             bg-emerald-600 text-white shadow-sm
+                             hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                             transition-colors duration-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="CurrentColor">
+                    <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Add Recipe
+                </button>
+              </Link>
+
+              {/* Mobile Filter Button */}
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="md:hidden inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg
+                           bg-white text-gray-700 border border-gray-300 shadow-sm
+                           hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clipRule="evenodd" />
+                </svg>
+                Filters
+                {hasActiveFilters && (
+                  <span className="bg-emerald-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {selectedAudiences.length + selectedTypes.length + selectedPriorities.length + (searchTerm ? 1 : 0)}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Rest of the component remains the same */}
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className={`${isFilterOpen ? 'block' : 'hidden'} md:block w-full md:w-64 shrink-0`}>
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-semibold text-gray-900">Filters</h2>
+                {hasActiveFilters && (
+                  <button 
+                    onClick={clearFilters}
+                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                  >
+                    Clear All
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Audience</h3>
+                  <div className="space-y-3">
+                    {AUDIENCE_OPTIONS.map(option => (
+                      <label key={option.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={selectedAudiences.includes(option.value)}
+                          onChange={() => toggleAudience(option.value)}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-700">{option.label}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{option.desc}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Type</h3>
+                  <div className="space-y-3">
+                    {TYPE_OPTIONS.map(option => (
+                      <label key={option.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={selectedTypes.includes(option.value)}
+                          onChange={() => toggleType(option.value)}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-700">{option.label}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{option.desc}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Priority</h3>
+                  <div className="space-y-3">
+                    {PRIORITY_OPTIONS.map(option => (
+                      <label key={option.value} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={selectedPriorities.includes(option.value)}
+                          onChange={() => togglePriority(option.value)}
+                          className="rounded text-emerald-600 focus:ring-emerald-500 mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium text-gray-700">{option.label}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{option.desc}</div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-6">
+                  <p className="text-sm text-gray-600">
+                    {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''} found
+                    {hasActiveFilters && ' (filtered)'}
+                  </p>
+                </div>
+
+                <div className={filteredNotifications.length > 0 ? "grid gap-6 sm:grid-cols-1 lg:grid-cols-1" : ""}>
+                  {filteredNotifications.length > 0 ? (
+                    filteredNotifications.map((notification) => (
+                      <NotificationItem
+                        key={notification._id}
+                        notification={notification}
+                        onDelete={handleDelete}
+                      />
+                    ))
+                  ) : (
+                    <div className="col-span-full rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      <p className="mt-4 text-gray-500">No notifications found. Try adjusting your filters.</p>
+                      {hasActiveFilters && (
+                        <button
+                          onClick={clearFilters}
+                          className="mt-2 text-emerald-600 hover:text-emerald-700 font-medium text-sm"
+                        >
+                          Clear all filters
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default NotificationList;

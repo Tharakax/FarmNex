@@ -193,6 +193,7 @@ function AddLivestockPlan() {
                 <option value="Sheep">Sheep</option>
                 <option value="Chicken">Chicken</option>
                 <option value="Pig">Pig</option>
+                <option value="Umar">Umar</option>
               </select>
             </div>
 

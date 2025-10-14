@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -27,7 +26,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <div className="h-16 w-16 text-red-500 mx-auto mb-4 text-6xl">⚠️</div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Something went wrong
             </h2>
@@ -57,7 +56,7 @@ class ErrorBoundary extends React.Component {
               onClick={() => this.setState({ hasError: false, error: null, errorInfo: null })}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 mx-auto"
             >
-              <RefreshCw className="h-4 w-4" />
+              <span>🔄</span>
               <span>Try Again</span>
             </button>
 

@@ -1,6 +1,7 @@
 // frontend/src/pages/AdminQA.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from "sweetalert2";
 import { getQuestions, replyToQuestion, updateQuestion, deleteQuestion, generateReport } 
  from "../../../api/questionApi";
 
@@ -120,14 +121,45 @@ const AdminQA = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) return;
-    try {
-      await deleteQuestion(id);
-      fetchQuestions();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  try {
+    // Step 1: Confirmation popup
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you really want to delete this question? This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    // Step 2: If user cancels, stop
+    if (!result.isConfirmed) return;
+
+    // Step 3: Optional loading popup
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    // Step 4: Delete the question
+    await deleteQuestion(id);
+
+    // Step 5: Refresh questions
+    fetchQuestions();
+
+    // Step 6: Success alert
+    Swal.fire("Deleted!", "The question has been deleted.", "success");
+
+  } catch (err) {
+    console.error(err);
+
+    // Step 7: Error alert
+    Swal.fire("Error!", err.message || "Failed to delete question.", "error");
+  }
+};
 
   const handleDownloadReport = async (format) => {
     try {
@@ -182,34 +214,23 @@ const AdminQA = () => {
       <div className="bg-white shadow-lg border-b-4 border-green-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/admin')}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </div>
+        </div>
+      </div>
+
+      {/* Page Title Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center shadow-lg">
+                <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
                 </svg>
-                <span>Back to Admin</span>
-              </button>
-              <div className="hidden md:flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800">Admin Q&A Panel</h2>
-                  <p className="text-sm text-gray-600">Manage farmer questions and replies</p>
-                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2 text-green-600">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="font-semibold">Smart Farm Management</span>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Q&A Panel</h1>
+            <p className="text-gray-600">Manage farmer questions and replies</p>
           </div>
         </div>
       </div>

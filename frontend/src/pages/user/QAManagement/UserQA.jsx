@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getQuestions, askQuestion, updateQuestion, deleteQuestion } 
   from "../../../api/questionApi";
-
+import Swal from "sweetalert2";
 const UserQA = () => {
   const navigate = useNavigate();
   const [questions, setQuestions] = useState([]);
@@ -110,14 +110,43 @@ const UserQA = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) return;
-    try {
-      await deleteQuestion(id);
-      fetchQuestions();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  try {
+    // Step 1: Confirmation popup
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you really want to delete this question? This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    // Step 2: Stop if user cancels
+    if (!result.isConfirmed) return;
+
+    // Step 3: Optional loading popup
+    Swal.fire({
+      title: "Deleting...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    // Step 4: Call delete API
+    await deleteQuestion(id);
+
+    // Step 5: Refresh questions list
+    fetchQuestions();
+
+    // Step 6: Success alert
+    Swal.fire("Deleted!", "The question has been deleted successfully.", "success");
+
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error!", err.message || "Failed to delete question.", "error");
+  }
+};
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {

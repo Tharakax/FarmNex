@@ -3,10 +3,33 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";
 import crypto from "crypto";
+import sessionService from "../services/sessionService.js";
 
-// Get all users 
+// Helper function for role checking (case-insensitive)
+const isAdmin = (userRole) => {
+  const role = userRole?.toLowerCase();
+  return role === 'admin' || role === 'superadmin';
+};
+
+// Get all users - SECURED: Admin only
 export const getAllUsers = async (req, res, next) => {
   try {
+    //  CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // CRITICAL SECURITY CHECK: Admin only access
+    if (!isAdmin(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. Admin privileges required.' 
+      });
+    }
+
     const users = await User.find(); //fetch all user collection from DB
     //await → waits until DB finishes fetching
     if (!users || users.length === 0) {
@@ -262,7 +285,12 @@ export const verifyOTP = async (req, res) => {
     user.isVerified = true;
     await user.save();
 
-    //gen jwt
+    // Create new session and invalidate any existing sessions
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent') || 'unknown';
+    const sessionData = await sessionService.createSession(user._id, ipAddress, userAgent);
+
+    //gen jwt with session ID
     const token = jwt.sign(
       { 
         id: user._id,  // Using 'id' to match the changePassword function
@@ -270,7 +298,8 @@ export const verifyOTP = async (req, res) => {
         name: user.fullName,  // Include user's full name
         fullName: user.fullName,  // Include fullName for compatibility
         email: user.email,  // Include user's email
-        role: user.role 
+        role: user.role,
+        sessionId: sessionData.sessionId  // Include session ID in token
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
@@ -301,10 +330,29 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
-// Get user by id
+// Get user by id - SECURED: Own profile or admin only
 export const getById = async (req, res, next) => {
   const id = req.params.id;
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Users can only view their own profile or admin can view any
+    const isOwner = String(req.user._id) === String(id) || String(req.user.id) === String(id);
+    const userIsAdmin = isAdmin(req.user.role);
+    
+    if (!isOwner && !userIsAdmin) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. You can only view your own profile.' 
+      });
+    }
+
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
     return res.status(200).json({ user });
@@ -312,14 +360,33 @@ export const getById = async (req, res, next) => {
     console.log(err);
     return res.status(500).json({ message: "Error retrieving user" });
   }
-};           
+};
 
-// Update user by id
+// Update user by id - SECURED: Own profile or admin only
 export const updateUser = async (req, res, next) => {
   const id = req.params.id;
   const { fullName, phone, age, username, address } = req.body;
 
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // 🔒 SECURITY CHECK: Users can only update their own profile or admin can update any
+    const isOwner = String(req.user._id) === String(id) || String(req.user.id) === String(id);
+    const userIsAdmin = isAdmin(req.user.role);
+    
+    if (!isOwner && !userIsAdmin) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. You can only update your own profile.' 
+      });
+    }
+
     const user = await User.findByIdAndUpdate(
       id,
       { fullName, phone, age, username, address },
@@ -333,10 +400,34 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-// Delete user by ID
+// Delete user by ID - SECURED: Admin only (users cannot delete themselves for data integrity)
 export const deleteUser = async (req, res, next) => {
   const id = req.params.id;
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    // 🔒 CRITICAL SECURITY CHECK: Admin only for user deletion
+    if (!isAdmin(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. Admin privileges required for user deletion.' 
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (String(req.user._id) === String(id) || String(req.user.id) === String(id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Cannot delete your own account.' 
+      });
+    }
+
     const user = await User.findByIdAndDelete(id);
     if (!user) return res.status(400).json({ message: "User not deleted" });
     return res.status(200).json({ user });
@@ -375,6 +466,323 @@ export const changePassword = async (req, res, next) => {
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: "Failed to change password" });
+  }
+};
+
+// Logout function
+export const logoutUser = async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    const userId = req.user.id || req.user._id;
+    
+    // Clear the user's session
+    await sessionService.clearSession(userId);
+
+    console.log(`✅ User logged out successfully: ${userId}`);
+    
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully"
+    });
+
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Logout failed",
+      error: error.message
+    });
+  }
+};
+
+// Check session status
+export const checkSessionStatus = async (req, res) => {
+  try {
+    // Check if user is authenticated
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No active session' 
+      });
+    }
+
+    const userId = req.user.id || req.user._id;
+    const sessionId = req.user.sessionId;
+    
+    if (!sessionId) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No session ID found' 
+      });
+    }
+
+    // Validate current session
+    const isValidSession = await sessionService.validateSession(userId, sessionId);
+    
+    if (!isValidSession) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Session expired or invalid' 
+      });
+    }
+
+    const sessionInfo = await sessionService.getSessionInfo(userId);
+    
+    return res.status(200).json({
+      success: true,
+      message: "Session is valid",
+      sessionInfo: {
+        loginTime: sessionInfo?.loginTime,
+        lastActivity: sessionInfo?.lastActivity
+      },
+      user: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role
+      }
+    });
+
+  } catch (error) {
+    console.error("Session check error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Session check failed",
+      error: error.message
+    });
+  }
+};
+
+// Admin: Force logout a specific user (Admin only)
+export const forceLogoutUser = async (req, res) => {
+  try {
+    // Check if user is authenticated and is admin
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    if (!isAdmin(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. Admin privileges required.' 
+      });
+    }
+
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'User ID is required' 
+      });
+    }
+
+    // Prevent admin from force-logging out themselves
+    const requestingUserId = req.user.id || req.user._id;
+    if (String(requestingUserId) === String(userId)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Cannot force logout your own session' 
+      });
+    }
+    
+    // Clear the target user's session
+    await sessionService.clearSession(userId);
+
+    console.log(`✅ Admin ${requestingUserId} force-logged out user ${userId}`);
+    
+    return res.status(200).json({
+      success: true,
+      message: `User session terminated successfully`
+    });
+
+  } catch (error) {
+    console.error("Force logout error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Force logout failed",
+      error: error.message
+    });
+  }
+};
+
+// Admin: Get all active sessions (Admin only)
+export const getActiveSessions = async (req, res) => {
+  try {
+    // Check if user is authenticated and is admin
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    if (!isAdmin(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. Admin privileges required.' 
+      });
+    }
+
+    // Get users with active sessions
+    const usersWithSessions = await User.find({
+      'currentSession.sessionId': { $ne: null },
+      'currentSession.loginTime': { $exists: true }
+    }).select('fullName email role currentSession');
+
+    const activeSessions = usersWithSessions.map(user => ({
+      userId: user._id,
+      name: user.fullName,
+      email: user.email,
+      role: user.role,
+      sessionId: user.currentSession.sessionId,
+      loginTime: user.currentSession.loginTime,
+      lastActivity: user.currentSession.lastActivity,
+      ipAddress: user.currentSession.ipAddress,
+      userAgent: user.currentSession.userAgent
+    }));
+    
+    return res.status(200).json({
+      success: true,
+      message: "Active sessions retrieved successfully",
+      sessions: activeSessions,
+      totalActiveSessions: activeSessions.length
+    });
+
+  } catch (error) {
+    console.error("Get active sessions error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve active sessions",
+      error: error.message
+    });
+  }
+};
+
+// Admin: Cleanup expired sessions (Admin only)
+export const cleanupExpiredSessions = async (req, res) => {
+  try {
+    // Check if user is authenticated and is admin
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Authentication required' 
+      });
+    }
+
+    if (!isAdmin(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Access denied. Admin privileges required.' 
+      });
+    }
+    
+    // Clean up expired sessions
+    const cleanedCount = await sessionService.cleanupExpiredSessions();
+
+    console.log(`✅ Admin ${req.user.id} cleaned up ${cleanedCount} expired sessions`);
+    
+    return res.status(200).json({
+      success: true,
+      message: `Cleaned up ${cleanedCount} expired sessions`,
+      cleanedSessionsCount: cleanedCount
+    });
+
+  } catch (error) {
+    console.error("Cleanup expired sessions error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to cleanup expired sessions",
+      error: error.message
+    });
+  }
+};
+
+// exports
+// Direct login for frontend (password-based without OTP)
+export const directLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    console.log(`🔐 Direct login attempt for: ${email}`);
+    
+    // Normalize email
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      console.log(`❌ User not found: ${email}`);
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
+
+    console.log(`👤 User found: ${user.email} (Role: ${user.role})`);
+
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      console.log(`❌ Invalid password for: ${email}`);
+      return res.status(401).json({ 
+        success: false,
+        message: "Invalid credentials" 
+      });
+    }
+
+    console.log(`✅ Password correct for: ${email}`);
+
+    // Create new session and invalidate any existing sessions
+    const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+    const userAgent = req.get('User-Agent') || 'unknown';
+    const sessionData = await sessionService.createSession(user._id, ipAddress, userAgent);
+
+    // Generate JWT token directly (no OTP required) with session ID
+    const token = jwt.sign(
+      { 
+        id: user._id,
+        userId: user._id,
+        name: user.fullName,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        sessionId: sessionData.sessionId
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    console.log(`🎫 JWT token generated for: ${email}`);
+    console.log(`🚀 Login successful for: ${user.email} (Role: ${user.role})`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      user: {
+        _id: user._id,
+        id: user._id,
+        name: user.fullName,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role
+      }
+    });
+
+  } catch (error) {
+    console.error("Direct login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Login failed",
+      error: error.message
+    });
   }
 };
 

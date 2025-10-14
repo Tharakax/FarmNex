@@ -3,9 +3,14 @@ import UserMe from '../models/usermodel.js';
 // Get all payment methods for a user
 export const getUserPaymentMethods = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
     if (!req.user) {
-      req.user = { id: '65d5e8f9a8b4c5d3e8f7a1b1' }; // Use a real user ID from your DB
-    }    
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const paymentMethods = await Payment.find({ user: req.user.id })
       .sort('-isDefault -createdAt');
     
@@ -26,9 +31,14 @@ export const getUserPaymentMethods = async (req, res) => {
 // Get a specific payment method
 export const getPaymentMethod = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
     if (!req.user) {
-      req.user = { id: '65d5e8f9a8b4c5d3e8f7a1b1' }; // Use a real user ID from your DB
-    }    
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const paymentMethod = await Payment.findOne({
       _id: req.params.id,
       user: req.user.id
@@ -57,9 +67,14 @@ export const getPaymentMethod = async (req, res) => {
 // Add a new payment method
 export const addPaymentMethod = async (req, res) => {
   try {
- if (!req.user) {
-      req.user = { id: '65d5e8f9a8b4c5d3e8f7a1b1' }; // Use a real user ID from your DB
-    }    
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const {
       paymentMethodId,
       cardBrand,
@@ -117,9 +132,14 @@ export const addPaymentMethod = async (req, res) => {
 // Update a payment method
 export const updatePaymentMethod = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
     if (!req.user) {
-      req.user = { id: '65d5e8f9a8b4c5d3e8f7a1b1' }; // Use a real user ID from your DB
-    }    
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const {
       billingDetails,
       isDefault
@@ -171,9 +191,14 @@ export const updatePaymentMethod = async (req, res) => {
 // Delete a payment method
 export const deletePaymentMethod = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
     if (!req.user) {
-      req.user = { id: '65d5e8f9a8b4c5d3e8f7a1b1' }; // Use a real user ID from your DB
-    }    
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const paymentMethod = await Payment.findOneAndDelete({
       _id: req.params.id,
       user: req.user.id
@@ -202,6 +227,14 @@ export const deletePaymentMethod = async (req, res) => {
 // Set a payment method as default
 export const setDefaultPaymentMethod = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const paymentMethod = await Payment.findOne({
       _id: req.params.id,
       user: req.user.id
@@ -234,6 +267,14 @@ export const setDefaultPaymentMethod = async (req, res) => {
 // Get user's default payment method
 export const getDefaultPaymentMethod = async (req, res) => {
   try {
+    // 🔒 CRITICAL SECURITY CHECK: Authentication required
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+    
     const paymentMethod = await Payment.getDefault(req.user.id);
 
     if (!paymentMethod) {

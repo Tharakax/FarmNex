@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmNex - Test Login Helper</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background: #f0f9ff;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 { color: #059669; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+            font-size: 14px;
+        }
+        button { 
+            background: #059669; 
+            color: white; 
+            padding: 12px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover { background: #047857; }
+        .clear-btn { background: #dc2626; }
+        .clear-btn:hover { background: #b91c1c; }
+        .success { color: #059669; font-weight: bold; }
+        .error { color: #dc2626; font-weight: bold; }
+        .current-user { 
+            background: #f0f9ff; 
+            border: 1px solid #059669; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-top: 20px;
+        }
+        .instructions {
+            background: #fef3c7;
+            border: 1px solid #d97706;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 FarmNex - Login Helper</h1>
+        
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li><strong>Set User Data:</strong> Fill in the form below and click "Set User Data"</li>
+                <li><strong>Open Admin Dashboard:</strong> Navigate to your admin dashboard</li>
+                <li><strong>Refresh Dashboard:</strong> The sidebar should now show the correct user info</li>
+                <li><strong>Clear Data:</strong> Use "Clear User Data" to reset</li>
+            </ol>
+        </div>
+
+        <form id="userForm">
+            <div class="form-group">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" value="Umar Ahamed" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="umarahamed852@gmail.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Role:</label>
+                <select id="role">
+                    <option value="admin">Administrator</option>
+                    <option value="farmer">Farmer</option>
+                    <option value="user">User</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="profileImage">Profile Image URL (optional):</label>
+                <input type="url" id="profileImage" value="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face">
+            </div>
+            
+            <div style="text-align: center; margin-top: 25px;">
+                <button type="submit">✅ Set User Data</button>
+                <button type="button" class="clear-btn" onclick="clearUserData()">🗑️ Clear User Data</button>
+            </div>
+        </form>
+        
+        <div id="message" style="margin-top: 15px; text-align: center;"></div>
+        
+        <div id="currentUser" class="current-user" style="display: none;">
+            <h3>👤 Current User Data:</h3>
+            <div id="userDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        // Authentication utilities
+        function setCurrentUser(userData) {
+            try {
+                localStorage.setItem('currentUser', JSON.stringify(userData));
+                
+                const token = btoa(JSON.stringify({
+                    ...userData,
+                    exp: Date.now() + (24 * 60 * 60 * 1000),
+                    iat: Date.now()
+                }));
+                
+                localStorage.setItem('token', `Bearer.${token}.signature`);
+                return true;
+            } catch (error) {
+                console.error('Error storing user data:', error);
+                return false;
+            }
+        }
+
+        function getCurrentUser() {
+            try {
+                const userData = localStorage.getItem('currentUser');
+                return userData ? JSON.parse(userData) : null;
+            } catch (error) {
+                console.error('Error getting current user:', error);
+                return null;
+            }
+        }
+
+        function clearCurrentUser() {
+            try {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('token');
+                sessionStorage.removeItem('authToken');
+                return true;
+            } catch (error) {
+                console.error('Error clearing user data:', error);
+                return false;
+            }
+        }
+
+        // Form submission
+        document.getElementById('userForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userData = {
+                id: `admin-${Date.now()}`,
+                name: document.getElementById('name').value,
+                fullName: document.getElementById('name').value,
+                firstName: document.getElementById('name').value.split(' ')[0],
+                lastName: document.getElementById('name').value.split(' ').slice(1).join(' '),
+                email: document.getElementById('email').value,
+                role: document.getElementById('role').value,
+                isAdmin: document.getElementById('role').value === 'admin',
+                profileImage: document.getElementById('profileImage').value || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+                loginTime: new Date().toISOString()
+            };
+
+            if (setCurrentUser(userData)) {
+                showMessage('✅ User data set successfully! You can now refresh your admin dashboard.', 'success');
+                showCurrentUser();
+            } else {
+                showMessage('❌ Failed to set user data. Please try again.', 'error');
+            }
+        });
+
+        function clearUserData() {
+            if (clearCurrentUser()) {
+                showMessage('🗑️ User data cleared successfully!', 'success');
+                hideCurrentUser();
+            } else {
+                showMessage('❌ Failed to clear user data. Please try again.', 'error');
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = message;
+            messageDiv.className = type;
+            
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+                messageDiv.className = '';
+            }, 5000);
+        }
+
+        function showCurrentUser() {
+            const user = getCurrentUser();
+            if (user) {
+                const userDetails = `
+                    <strong>Name:</strong> ${user.name}<br>
+                    <strong>Email:</strong> ${user.email}<br>
+                    <strong>Role:</strong> ${user.role}<br>
+                    <strong>Login Time:</strong> ${new Date(user.loginTime).toLocaleString()}
+                `;
+                document.getElementById('userDetails').innerHTML = userDetails;
+                document.getElementById('currentUser').style.display = 'block';
+            }
+        }
+
+        function hideCurrentUser() {
+            document.getElementById('currentUser').style.display = 'none';
+        }
+
+        // Load current user on page load
+        window.onload = function() {
+            const user = getCurrentUser();
+            if (user) {
+                document.getElementById('name').value = user.name || '';
+                document.getElementById('email').value = user.email || '';
+                document.getElementById('role').value = user.role || 'admin';
+                document.getElementById('profileImage').value = user.profileImage || '';
+                showCurrentUser();
+            }
+        };
+    </script>
+</body>
+</html>

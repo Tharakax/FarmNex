@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { addToCart } from "../../utils/cart.js";
 import { productAPI } from "../../services/productAPI";
 import toast , { Toaster } from "react-hot-toast";
+import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
 
 export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
@@ -119,22 +120,6 @@ export default function ProductsPage() {
                     <Navigation></Navigation>
                 </div>
             <div className="max-w-7xl pt-30 mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">Fresh Farm Products</h1>
-                    <p className="text-xl text-gray-600 mb-8">Discover premium quality crops and animal products from local farms</p>
-                    
-                    {/* Explore More Button */}
-                    <button 
-                        onClick={() => Navigate('/login')}
-                        className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl mb-8"
-                    >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Explore More Features
-                    </button>
-                </div>
 
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Mobile Filter Toggle */}
@@ -278,11 +263,9 @@ export default function ProductsPage() {
                                             {product.images && product.images.length > 0 ? (
                                                 <img 
                                                     className="h-56 w-full object-cover group-hover:scale-110 transition-transform duration-300" 
-                                                    src={product.images[0]} 
+                                                    src={resolveProductImage(product.images && product.images[0], product.name)} 
                                                     alt={product.name}
-                                                    onError={(e) => {
-                                                        e.target.src = '/placeholder-image.png';
-                                                    }}
+                                                    onError={(e) => handleImageError(e, 320, 224, product.name)}
                                                 />
                                             ) : (
                                                 <div className="h-56 w-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">

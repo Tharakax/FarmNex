@@ -178,6 +178,7 @@ export const productAPI = {
     }
   },
 
+
   // Delete product
   deleteProduct: async (id) => {
     try {

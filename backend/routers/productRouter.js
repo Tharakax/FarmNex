@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { getAllProducts, saveProduct, getProductById, deleteProduct, editProduct} from '../controllers/productController.js';
+import { getAllProducts, saveProduct, getProductById, deleteProduct, editProduct } from '../controllers/productController.js';
 
 const router = express.Router();
 

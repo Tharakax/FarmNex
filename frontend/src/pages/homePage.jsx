@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { ShoppingCart, Leaf, Star, Users, Truck, Shield, ArrowRight, Menu, X, BookOpen, Video, FileText, Award } from 'lucide-react';
-import { FaLeaf } from 'react-icons/fa';
+import BrandLogo from '../components/BrandLogo.jsx';
 import Navigation from '../components/navigation';
 import SimpleChatbot from '../components/chatbot/SimpleChatbot';
 import PublishedTrainingSection from '../components/training/components/PublishedTrainingSection';
 import { NavLink } from 'react-router-dom';
+import TestimonialsSection from '../components/TestimonialsSection'; // Adjust path as needed
 
 
 
@@ -38,7 +39,7 @@ const HomePage = () => {
     }
   ];
 
-  const testimonials = [
+  /*const testimonials = [
     {
       name: "Sarah Johnson",
       text: "The freshest farm products I've ever purchased! FarmNex has become my go-to for all farm produce.",
@@ -53,8 +54,8 @@ const HomePage = () => {
       name: "Emma Rodriguez",
       text: "Amazing selection of both crops and animal products. Everything stays fresh for weeks!",
       rating: 5
-    }
-  ];
+    } 
+  ];*/
 
   const trainingHighlights = [
     {
@@ -62,7 +63,7 @@ const HomePage = () => {
       title: "Video Tutorials",
       description: "Step-by-step farming techniques from expert agriculturists",
       count: "50+ Videos",
-      color: "bg-blue-100 text-blue-600"
+      color: "bg-brand-light text-brand"
     },
     {
       icon: FileText,
@@ -142,7 +143,15 @@ const HomePage = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <NavLink to="/products">
-                  <button className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-green-700 hover:via-green-600 hover:to-emerald-700 transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
+                  <button className="text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" 
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(to right, #15803d, #16a34a, #22c55e)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)';
+                  }}
+                  style={{
+                    background: 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)',
                     boxShadow: '0 8px 25px rgba(34, 197, 94, 0.6), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
                     transform: 'perspective(500px) rotateX(-5deg)',
                     filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))'
@@ -151,7 +160,18 @@ const HomePage = () => {
                   </button>
                 </NavLink>
                 <NavLink to="/training">
-                  <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-green-600 transition-all backdrop-blur-sm inline-flex items-center transform hover:scale-105 hover:-rotate-1 transform-gpu" style={{
+                  <button className="text-white px-8 py-3 rounded-lg font-semibold transition-all backdrop-blur-sm inline-flex items-center transform hover:scale-105 hover:-rotate-1 transform-gpu"
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#15803d';
+                    e.target.style.borderColor = '#15803d';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#16a34a';
+                    e.target.style.borderColor = '#16a34a';
+                  }}
+                  style={{
+                    backgroundColor: '#16a34a',
+                    border: '2px solid #16a34a',
                     boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3)',
                     transform: 'perspective(500px) rotateX(-5deg)',
                     backgroundColor: 'rgba(0, 0, 0, 0.2)',
@@ -162,8 +182,16 @@ const HomePage = () => {
                   </button>
                 </NavLink>
                 <NavLink to="/login">
-                  <button className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:via-blue-600 hover:to-indigo-700 transition-all backdrop-blur-sm inline-flex items-center transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
-                    boxShadow: '0 8px 25px rgba(59, 130, 246, 0.6), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+                  <button className="text-white px-8 py-3 rounded-lg font-semibold transition-all backdrop-blur-sm inline-flex items-center transform hover:scale-105 hover:rotate-1 transform-gpu"
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'linear-gradient(to right, #15803d, #16a34a, #22c55e)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)';
+                  }}
+                  style={{
+                    background: 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)',
+                    boxShadow: '0 8px 25px rgba(34, 197, 94, 0.6), 0 4px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
                     transform: 'perspective(500px) rotateX(-5deg)',
                     filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.5))'
                   }}>
@@ -206,7 +234,7 @@ const HomePage = () => {
               <div className="flex items-center justify-center mb-6">
                 <div className="transform hover:scale-110 transition-all duration-300">
                   <div className="relative">
-                    <FaLeaf className="h-16 w-16 text-green-600 drop-shadow-lg" />
+                    <BrandLogo size={64} className="drop-shadow-lg" />
                     <div className="absolute inset-0 bg-white rounded-full border-2 border-green-200 -z-10"></div>
                   </div>
                 </div>
@@ -224,21 +252,21 @@ const HomePage = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
                 <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
                   <div className="flex justify-center mb-4">
-                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
+                    <BrandLogo size={32} className="opacity-80" />
                   </div>
                   <h3 className="font-semibold text-green-700 mb-2">Fresh & Natural</h3>
                   <p className="text-sm text-gray-600">Direct from farm to your table</p>
                 </div>
                 <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
                   <div className="flex justify-center mb-4">
-                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
+                    <BrandLogo size={32} className="opacity-80" />
                   </div>
                   <h3 className="font-semibold text-green-700 mb-2">Sustainable Farming</h3>
                   <p className="text-sm text-gray-600">Environmentally conscious practices</p>
                 </div>
                 <div className="text-center p-6 rounded-xl bg-white/80 backdrop-blur-sm border border-green-100 hover:shadow-lg transition-all duration-300 hover:transform hover:scale-105">
                   <div className="flex justify-center mb-4">
-                    <FaLeaf className="h-8 w-8 text-green-600 opacity-80" />
+                    <BrandLogo size={32} className="opacity-80" />
                   </div>
                   <h3 className="font-semibold text-green-700 mb-2">Expert Training</h3>
                   <p className="text-sm text-gray-600">Professional agricultural education</p>
@@ -279,11 +307,11 @@ const HomePage = () => {
                 boxShadow: '0 8px 32px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
                 transform: 'perspective(500px) rotateX(-2deg)'
               }}>
-                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
+                <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-secondary-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
                   boxShadow: '0 8px 25px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255,255,255,0.8)',
                   transform: 'perspective(300px) rotateX(-10deg)'
                 }}>
-                  <Leaf className="h-8 w-8 text-green-600" />
+                  <Leaf className="h-8 w-8 text-brand" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Quality Assured</h3>
                 <p className="text-gray-600">Premium quality farm products including fresh crops and ethically sourced animal products.</p>
@@ -295,11 +323,11 @@ const HomePage = () => {
                 boxShadow: '0 8px 32px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
                 transform: 'perspective(500px) rotateX(-2deg)'
               }}>
-                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
+                <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-secondary-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
                   boxShadow: '0 8px 25px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255,255,255,0.8)',
                   transform: 'perspective(300px) rotateX(-10deg)'
                 }}>
-                  <Truck className="h-8 w-8 text-green-600" />
+                  <Truck className="h-8 w-8 text-brand" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Fast Delivery</h3>
                 <p className="text-gray-600">Same-day delivery available to ensure maximum freshness.</p>
@@ -311,11 +339,11 @@ const HomePage = () => {
                 boxShadow: '0 8px 32px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
                 transform: 'perspective(500px) rotateX(-2deg)'
               }}>
-                <div className="w-16 h-16 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
+                <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-secondary-200 rounded-full flex items-center justify-center mx-auto mb-4 transform-gpu" style={{
                   boxShadow: '0 8px 25px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255,255,255,0.8)',
                   transform: 'perspective(300px) rotateX(-10deg)'
                 }}>
-                  <Shield className="h-8 w-8 text-green-600" />
+                  <Shield className="h-8 w-8 text-brand" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Quality Guarantee</h3>
                 <p className="text-gray-600">100% satisfaction guarantee or your money back.</p>
@@ -380,7 +408,16 @@ const HomePage = () => {
             
             <div className="text-center">
               <NavLink to="/training">
-                <button className="bg-gradient-to-r from-green-600 to-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-600 transition-all transform hover:scale-105 shadow-lg inline-flex items-center">
+                <button className="text-white px-8 py-3 rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg inline-flex items-center"
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(to right, #15803d, #16a34a, #22c55e)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)';
+                }}
+                style={{
+                  background: 'linear-gradient(to right, #16a34a, #22c55e, #4ade80)',
+                }}>
                   <BookOpen className="mr-2 h-5 w-5" />
                   Explore All Training Materials
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -439,17 +476,6 @@ const HomePage = () => {
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
-                    <div className="flex items-center mb-2">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-gray-600 text-sm ml-2">({product.rating})</span>
-                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-2xl font-bold text-green-600">{product.price}</span>
                       <button className="text-white px-4 py-2 rounded-lg hover:shadow-xl transition-all transform hover:scale-105 hover:-rotate-1 transform-gpu" style={{
@@ -479,45 +505,8 @@ const HomePage = () => {
         </section>
 
         {/* Testimonials with Background Image */}
-        <section 
-          className="py-16 relative"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.95)), url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1920&h=1080&fit=crop&crop=center')`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundAttachment: 'fixed'
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
-              <p className="text-gray-600">Join thousands of satisfied customers who trust FarmNex</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial, index) => (
-                <div key={index} className="p-6 rounded-xl hover:shadow-2xl transition-all transform hover:scale-105 hover:rotate-1 transform-gpu" style={{
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(34, 197, 94, 0.03) 100%)',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 10px 40px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
-                  transform: 'perspective(600px) rotateX(-2deg)'
-                }}>
-                  <div className="flex items-center mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 mb-4 italic">"{testimonial.text}"</p>
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3 shadow-md">
-                      <Users className="h-5 w-5 text-green-600" />
-                    </div>
-                    <span className="font-semibold text-gray-900">{testimonial.name}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <section >
+          <TestimonialsSection />
         </section>
 
         {/* CTA Section with Dynamic Background */}
@@ -566,7 +555,7 @@ const HomePage = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
                 <div className="flex items-center space-x-2 mb-4">
-                  <FaLeaf className="h-8 w-8 text-green-400" />
+                  <BrandLogo size={32} />
                   <span className="text-2xl font-bold">FarmNex</span>
                 </div>
                 <p className="text-gray-300">

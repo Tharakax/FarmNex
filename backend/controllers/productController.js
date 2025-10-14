@@ -181,6 +181,7 @@ export async function getProductById(req, res) {
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
+
     res.status(200).json(product);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching product', error: error.message });
@@ -274,3 +275,4 @@ export async function editProduct(req, res) {
     });
   }
 };
+

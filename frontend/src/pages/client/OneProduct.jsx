@@ -2,7 +2,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Navigation from "../../components/navigation";
-import { FaArrowLeft, FaShoppingCart, FaStar, FaStarHalfAlt, FaRegStar, FaTag, FaClock, FaWarehouse } from "react-icons/fa";
+import { FaArrowLeft, FaShoppingCart, FaTag, FaClock, FaWarehouse } from "react-icons/fa";
 
 export default function OneProduct() {
     const [product, setProduct] = useState(null);
@@ -56,26 +56,6 @@ export default function OneProduct() {
         // You can integrate with your cart context/state management here
     };
 
-    const renderStars = (rating) => {
-        const stars = [];
-        const fullStars = Math.floor(rating);
-        const hasHalfStar = rating % 1 !== 0;
-        
-        for (let i = 0; i < fullStars; i++) {
-            stars.push(<FaStar key={i} className="text-yellow-400" />);
-        }
-        
-        if (hasHalfStar) {
-            stars.push(<FaStarHalfAlt key="half" className="text-yellow-400" />);
-        }
-        
-        const remainingStars = 5 - Math.ceil(rating);
-        for (let i = 0; i < remainingStars; i++) {
-            stars.push(<FaRegStar key={`empty-${i}`} className="text-gray-300" />);
-        }
-        
-        return stars;
-    };
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -203,17 +183,6 @@ export default function OneProduct() {
                         {/* Product Name */}
                         <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
 
-                        {/* Rating */}
-                        {product.ratings > 0 && (
-                            <div className="flex items-center space-x-2">
-                                <div className="flex items-center space-x-1">
-                                    {renderStars(product.ratings)}
-                                </div>
-                                <span className="text-gray-600">
-                                    {product.ratings.toFixed(1)} ({product.numOfReviews} review{product.numOfReviews !== 1 ? 's' : ''})
-                                </span>
-                            </div>
-                        )}
 
                         {/* Price */}
                         <div className="space-y-2">
@@ -335,39 +304,6 @@ export default function OneProduct() {
                     </div>
                 </div>
 
-                {/* Reviews Section */}
-                {product.reviews && product.reviews.length > 0 && (
-                    <div className="mt-16">
-                        <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
-                            
-                            <div className="space-y-6">
-                                {product.reviews.map((review, index) => (
-                                    <div key={index} className="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
-                                        <div className="flex items-start space-x-4">
-                                            <div className="flex-shrink-0">
-                                                <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                                    <span className="text-purple-600 font-medium">
-                                                        {review.name.charAt(0).toUpperCase()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-2 mb-2">
-                                                    <h4 className="font-medium text-gray-900">{review.name}</h4>
-                                                    <div className="flex items-center space-x-1">
-                                                        {renderStars(review.rating)}
-                                                    </div>
-                                                </div>
-                                                <p className="text-gray-700">{review.comment}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

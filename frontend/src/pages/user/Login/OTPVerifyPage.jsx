@@ -93,6 +93,7 @@ const OtpVerification = () => {
         localStorage.setItem("userRole", user.role);
         localStorage.setItem("userId", user._id || user.id);
         localStorage.setItem("userName", user.name || user.fullName);
+        localStorage.setItem("userEmail", user.email);
         
         // Clean up pending data
         localStorage.removeItem("pendingUserEmail");

@@ -9,17 +9,14 @@ import { fileURLToPath } from "url";
 
 dotenv.config();
 
-
-
 //import 
-
-
 import productRouter from './routers/productRouter.js';
 import orderRouter from './routers/orderRouter.js';
 import trainingRouter from './routers/trainingRoutes.js';
 import farmSupplyRouter from './routers/farmSupplyRouter.js';
 import reportRouter from './routers/reportRoutes.js';
 import paymentRouter from './routers/paymentRouter.js';
+import feedbackRouter from './routers/feedbackRoutes.js';
 import questionRoute from "./routers/questionRoute.js"; //umar
 import userroute from "./routers/userroute.js";//umar
 import cropRoutes from './routers/cropRoutes.js';
@@ -30,21 +27,34 @@ const __dirname = path.dirname(__filename);
 
 import soilRouter from './routers/soilRouter.js';
 import chatbotRouter from './routers/chatbotRouter.js';
-
 import stripeRouter from './routers/stripeRouter.js';
-
+import notificationRouter from './routers/NotificationRoute.js';
 
 const app = express();
 
 //umar
-// Middleware
-app.use(express.json());
+// Middleware - Use bodyParser with increased limits for all requests
 app.use(cors());
-// Routes
-app.use("/users", userroute);
-app.use("/api/questions", questionRoute);
+// Increased limits for large payloads (including order data)
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 // Static folder for image uploads
 app.use("/imageupload", express.static(path.join(__dirname, "imageupload")));
+
+// Public routes (before authentication)
+// Import login controllers for public routes
+import { loginUser, loginWithOTPStep1, verifyOTP, directLogin } from './controllers/usercontrol.js';
+
+// Public login routes (accessible without authentication)
+app.post("/users/login", loginUser); // OTP-based login
+app.post("/users/login-otp-step1", loginWithOTPStep1);
+app.post("/users/verify-otp", verifyOTP);
+app.post("/users/verifyOTP", verifyOTP);
+
+// Additional routes for frontend compatibility
+app.post("/api/user/login", directLogin); // Direct password-based login for frontend
+app.post("/api/user/login-otp-step1", loginWithOTPStep1);
+app.post("/api/user/verify-otp", verifyOTP);
 
 
 
@@ -82,10 +92,6 @@ const connectDB = async () => {
 };
 
 connectDB();
-app.use(cors());
-// Increased limits for large file uploads (videos, etc.)
-app.use(bodyParser.json({ limit: '500mb' }));
-app.use(bodyParser.urlencoded({ limit: '500mb', extended: true }));
 // Serve static files before JWT auth to allow public access to uploads
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res, path, stat) => {
@@ -131,11 +137,30 @@ app.get('/api/training/published/:id', async (req, res) => {
   }
 });
 
+// Health check endpoint (no authentication required)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Server is running', 
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// REMOVED TEMPORARY TESTING ENDPOINTS FOR SECURITY
+
 // Public chatbot routes (no authentication required)
 app.use("/api/chatbot", chatbotRouter);
 
+// Order routes (supports both guest and authenticated users) - Before auth for admin access
+app.use("/api/order", orderRouter);
+app.use("/orders", orderRouter); // Direct route for admin dashboard compatibility
+
 // Apply JWT auth for all other routes
 app.use(JWTauth)
+
+// Protected routes (after authentication middleware)
+app.use("/users", userroute);
+app.use("/api/questions", questionRoute);
 
 
 // Test route for video files
@@ -166,11 +191,15 @@ app.get('/test-video/:filename', (req, res) => {
 
 
 app.use("/api/product", productRouter)
-app.use("/api/order", orderRouter)
 app.use("/api/training", trainingRouter)
 app.use("/api/farmsupplies", farmSupplyRouter)
 app.use("/api/reports", reportRouter)
 app.use("/api/payment", paymentRouter)
+app.use("/api/feedback", feedbackRouter)
+
+// Recipes API
+import recipeRouter from './routers/recipeRouter.js';
+app.use('/api/recipes', recipeRouter)
 
 app.use("/api", soilRouter)
 
@@ -180,7 +209,13 @@ app.use('/api/stripe', stripeRouter);
 app.use("/api/crop", cropRoutes);
 app.use("/api/livestock", livestockRoutes);
 
-app.listen(3000,()=>{
-    console.log("Server has started , running on port 3000");
+// Notification Routes
+app.use("/api/notifications", notificationRouter);
 
-})
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server has started, running on port ${PORT}`);
+    console.log(`Health check available at: http://localhost:${PORT}/api/health`);
+    console.log(`Order API available at: http://localhost:${PORT}/api/order`);
+    console.log(`LLM provider: ${process.env.LLM_PROVIDER || 'none'} (model: ${process.env.LLM_MODEL || 'default'})`);
+});

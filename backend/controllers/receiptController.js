@@ -121,4 +121,73 @@ export const generateReceiptPDF = async (req, res) => {
       error: error.message
     });
   }
-};  
+};
+
+// Generate Credit Note PDF for refunds (compact)
+export const generateCreditNotePDF = async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
+    const refunded = Number(order.refundAmount || 0);
+    if (refunded <= 0) {
+      return res.status(400).json({ success: false, message: 'No refund recorded for this order' });
+    }
+
+    const doc = new PDFDocument({ margin: 20, size: 'A4', layout: 'portrait' });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=credit-note-${orderId}.pdf`);
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(14).font('Helvetica-Bold').text('FarmNex - Credit Note', 50, 20, { align: 'center' });
+    doc.fontSize(8).font('Helvetica').text('Refund Confirmation', 50, 40, { align: 'center' });
+    doc.moveTo(50, 55).lineTo(550, 55).stroke();
+
+    let y = 65;
+    doc.fontSize(9);
+    doc.font('Helvetica-Bold').text('Credit Note for Order:', 50, y);
+    doc.font('Helvetica').text(order._id.toString(), 170, y);
+    doc.font('Helvetica-Bold').text('Date:', 360, y);
+    doc.font('Helvetica').text(new Date(order.refundAt || new Date()).toLocaleDateString(), 400, y);
+
+    y += 15;
+    doc.font('Helvetica-Bold').text('Customer:', 50, y);
+    doc.font('Helvetica').text(order.contactName || 'N/A', 120, y);
+    doc.text(order.contactEmail || 'N/A', 120, y + 12);
+
+    // Refund details
+    y += 28;
+    doc.moveTo(50, y).lineTo(550, y).stroke();
+    doc.font('Helvetica-Bold').text('REFUND DETAILS', 50, y + 5);
+    doc.moveTo(50, y + 15).lineTo(550, y + 15).stroke();
+
+    y += 25;
+    doc.font('Helvetica-Bold').text('Refund Amount:', 50, y);
+    doc.font('Helvetica').text(`Rs. ${refunded.toFixed(2)}`, 150, y);
+    doc.font('Helvetica-Bold').text('Status:', 300, y);
+    doc.font('Helvetica').text(order.refundStatus || 'processed', 350, y);
+
+    y += 15;
+    doc.font('Helvetica-Bold').text('Method:', 50, y);
+    doc.font('Helvetica').text(order.refundMethod || order.paymentMethod || 'manual', 150, y);
+    doc.font('Helvetica-Bold').text('Transaction ID:', 300, y);
+    doc.font('Helvetica').text(order.refundTxnId || 'N/A', 380, y);
+
+    // Summary footer
+    const footerY = 750;
+    doc.moveTo(50, footerY).lineTo(550, footerY).stroke();
+    doc.fontSize(7).text('This credit note confirms a refund for the above order.', { align: 'right' });
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, { align: 'right' });
+
+    doc.end();
+  } catch (error) {
+    console.error('Error generating credit note:', error);
+    res.status(500).json({ success: false, message: 'Error generating credit note', error: error.message });
+  }
+};

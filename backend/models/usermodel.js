@@ -60,6 +60,29 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['Active', 'Inactive'],
       default: 'Active'
+    },
+    // Session management fields
+    currentSession: {
+      sessionId: {
+        type: String,
+        default: null
+      },
+      loginTime: {
+        type: Date,
+        default: null
+      },
+      lastActivity: {
+        type: Date,
+        default: null
+      },
+      ipAddress: {
+        type: String,
+        default: null
+      },
+      userAgent: {
+        type: String,
+        default: null
+      }
     }
   },
   { collection: "usermodels" } 

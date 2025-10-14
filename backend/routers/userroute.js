@@ -9,23 +9,32 @@ import {
   changePassword,
   loginWithOTPStep1,
   verifyOTP,
+  logoutUser,
+  checkSessionStatus,
+  forceLogoutUser,
+  getActiveSessions,
+  cleanupExpiredSessions,
 } from "../controllers/usercontrol.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getAllUsers); // Get all users
-router.post("/", addAllUsers); // Add user
-router.post("/login", loginUser); // Login route sends OTP
-router.get("/:id", getById);
-router.put("/:id", updateUser); // Update user
-router.delete("/:id", deleteUser); // Delete user
+router.get("/", getAllUsers); // Get all users - SECURED by global middleware
+router.post("/", addAllUsers); // Add user - for admins to create users  
+router.get("/:id", getById); // SECURED by global middleware
+router.put("/:id", updateUser); // Update user - SECURED by global middleware
+router.delete("/:id", deleteUser); // Delete user - SECURED by global middleware
 
-router.post("/login-otp-step1", loginWithOTPStep1);  
-router.post("/verifyOTP", verifyOTP);  
-router.post("/verify-otp", verifyOTP);  
+// Login routes moved to public routes in main app
 
 router.post("/change-password", authMiddleware, changePassword); // Change password for user
+router.post("/logout", logoutUser); // Logout user - SECURED by global middleware
+router.get("/session/status", checkSessionStatus); // Check session status - SECURED by global middleware
+
+// Admin session management routes - SECURED by global middleware
+router.post("/admin/force-logout/:userId", forceLogoutUser); // Force logout user - Admin only
+router.get("/admin/active-sessions", getActiveSessions); // Get all active sessions - Admin only
+router.post("/admin/cleanup-sessions", cleanupExpiredSessions); // Cleanup expired sessions - Admin only
 
 // Debug endpoint to check if user exists
 router.get("/debug/:email", async (req, res) => {
