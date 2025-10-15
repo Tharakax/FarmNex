@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import Navigation from "../../components/navigation";
 
 const AUDIENCE_OPTIONS = ["FARMER", "USER", "BOTH"];
 const TYPE_OPTIONS = ["ALERT", "OFFER", "UPDATE"];
@@ -12,7 +11,6 @@ export default function UpdateNotification() {
   const { id } = useParams();
 
   const [inputs, setInputs] = useState({
-    notificationId: "",
     title: "",
     body: "",
     audience: "USER",
@@ -32,7 +30,6 @@ export default function UpdateNotification() {
         const n = res.data?.notification || {};
 
         setInputs({
-          notificationId: n.notificationId || "",
           title: n.title || "",
           body: n.body || "",
           audience: ((n.audience === "ADMIN" || n.audience === "ALL") ? "BOTH" : (n.audience || "USER")),
@@ -53,16 +50,18 @@ export default function UpdateNotification() {
 
     if (!inputs.title.trim()) {
       newErrors.title = "Title is required";
-    } else if (inputs.title.length < 3) {
-      newErrors.title = "Title must be at least 3 characters long";
-    } else if (inputs.title.length > 120) {
-      newErrors.title = "Title must be less than 120 characters";
+    } else if (!/^[a-zA-Z\s.,!?'"()-]+$/.test(inputs.title)) {
+      newErrors.title = "Title contains invalid characters";
+    } else if (inputs.title.length < 5) {
+      newErrors.title = "Title must be at least 5 characters long";
+    } else if (inputs.title.length > 100) {
+      newErrors.title = "Title must be less than 100 characters";
     }
 
     if (!inputs.body.trim()) {
       newErrors.body = "Body is required";
-    } else if (inputs.body.length < 5) {
-      newErrors.body = "Body must be at least 5 characters long";
+    } else if (inputs.body.length < 10) {
+      newErrors.body = "Body must be at least 10 characters long";
     } else if (inputs.body.length > 10000) {
       newErrors.body = "Body must be less than 10000 characters";
     }
@@ -73,7 +72,7 @@ export default function UpdateNotification() {
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : value;
+    const newValue = type === "checkbox" ? checked : value;
     setInputs((s) => ({ ...s, [name]: newValue }));
 
     if (errors[name]) {
@@ -129,19 +128,8 @@ export default function UpdateNotification() {
 
   return (
     <div>
-      <Navigation />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-36 md:pt-32">
-        <div className="mb-6 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => nav('/admin')}
-            aria-label="Back to Admin Dashboard"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-              <path fillRule="evenodd" d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z" clipRule="evenodd" />
-            </svg>
-          </button>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-20 md:pt-16">
+        <div className="mb-4 text-center">
           <h1 className="text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
               Update Notification
@@ -160,17 +148,35 @@ export default function UpdateNotification() {
             </p>
             <button
               type="button"
-              onClick={() => nav("/notifications")}
+              onClick={() => {
+              
+                (async () => {
+                  try {
+                    const res = await axios.get(`http://localhost:3000/api/notifications/${id}`);
+                    const n = res.data?.notification || {};
+                    setInputs({
+                      title: n.title || "",
+                      body: n.body || "",
+                      audience: ((n.audience === "ADMIN" || n.audience === "ALL") ? "BOTH" : (n.audience || "USER")),
+                      type: n.type || "UPDATE",
+                      priority: n.priority || "MEDIUM",
+                      sendEmail: n.sendEmail || false,
+                      emailSent: n.emailSent || false,
+                    });
+                    setErrors({});
+                  } catch (err) {
+                    console.error("Failed to reset form:", err);
+                  }
+                })();
+              }}
               className="text-emerald-700 text-sm hover:underline"
             >
-              Back to list
+              Reset form
             </button>
           </div>
 
           <div className="p-6 grid grid-cols-1 gap-6">
             <div className="space-y-5">
-              
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Title *
@@ -208,7 +214,6 @@ export default function UpdateNotification() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Audience *
@@ -216,9 +221,9 @@ export default function UpdateNotification() {
                   <div className="flex flex-col gap-3">
                     {AUDIENCE_OPTIONS.map((a) => {
                       const audienceInfo = {
-                        'FARMER': { desc: '', icon: '🌾', label: 'Farmer' },
-                        'USER': { desc: '', icon: '🛒', label: 'User' },
-                        'BOTH': { desc: '', icon: '👥', label: 'Farmer & User' },
+                        FARMER: { desc: "", icon: "🌾", label: "Farmer" },
+                        USER: { desc: "", icon: "🛒", label: "User" },
+                        BOTH: { desc: "", icon: "👥", label: "Farmer & User" },
                       };
                       return (
                         <label
@@ -235,7 +240,10 @@ export default function UpdateNotification() {
                           />
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{audienceInfo[a]?.icon} {audienceInfo[a]?.label || a}</span>
+                              <span className="font-medium">
+                                {audienceInfo[a]?.icon}{" "}
+                                {audienceInfo[a]?.label || a}
+                              </span>
                             </div>
                             <div className="text-xs text-gray-500 mt-0.5">
                               {audienceInfo[a]?.desc}
@@ -247,7 +255,6 @@ export default function UpdateNotification() {
                   </div>
                 </div>
 
-               
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Type *
@@ -272,7 +279,6 @@ export default function UpdateNotification() {
                   </div>
                 </div>
 
-              
                 <div className="rounded-xl border border-gray-200 p-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Priority *
@@ -297,6 +303,7 @@ export default function UpdateNotification() {
                   </div>
                 </div>
               </div>
+              
 
               {/* Email Notification Checkbox */}
               <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
@@ -314,14 +321,15 @@ export default function UpdateNotification() {
                       📧 Send Email Notifications
                     </label>
                     <p className="text-sm text-gray-600 mt-1">
-                      When enabled, this notification will also be sent via email to all users in the selected audience who have email notifications enabled.
+                      When enabled, this notification will also be sent via
+                      email to all users in the selected audience.
                     </p>
+                    
                     {inputs.emailSent && (
-                      <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-                        ✅ <span>Email has already been sent for this notification</span>
+                      <div className="text-sm font-medium text-red-400 mt-1">
+                        <span>Email has already been sent for this notification</span>
                       </div>
                     )}
-                  
                   </div>
                 </div>
               </div>
@@ -344,7 +352,7 @@ export default function UpdateNotification() {
                          hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500
                          active:scale-[0.98] transition disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Update Notification"}
+              {isSubmitting ? "Updating..." : "Update Notification"}
             </button>
           </div>
         </form>

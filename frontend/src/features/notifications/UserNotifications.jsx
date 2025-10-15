@@ -76,7 +76,7 @@ const UserNotifications = () => {
 
   return (
     <div className="space-y-6">
-      {/* User-specific header */}
+      {/* User-header */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
@@ -94,7 +94,7 @@ const UserNotifications = () => {
         </div>
       </div>
 
-      {/* User-specific stats */}
+      {/* User-stats */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
@@ -184,14 +184,14 @@ const UserNotifications = () => {
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-4">
                       <span className="flex items-center gap-1">
-                        📅 {formatDate(notification.createdAt)}
+                        {formatDate(notification.createdAt)}
                       </span>
                       <span className="flex items-center gap-1">
-                        🎯 {notification.audience === 'USER' ? 'Users Only' : 'All Users'}
+                        {notification.audience === 'USER' ? 'Users Only' : 'All Users'}
                       </span>
                       {notification.emailSent && (
                         <span className="flex items-center gap-1 text-blue-600">
-                          ✅ Email Sent
+                          Email Sent
                         </span>
                       )}
                     </div>
