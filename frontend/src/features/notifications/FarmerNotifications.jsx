@@ -76,7 +76,7 @@ const FarmerNotifications = () => {
 
   return (
     <div className="space-y-6">
-      {/* Farmer-specific header */}
+      {/* Farmer-header */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div>
@@ -94,7 +94,7 @@ const FarmerNotifications = () => {
         </div>
       </div>
 
-      {/* Farmer-specific stats */}
+      {/* Farmer-stats */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-4 border border-green-200 shadow-sm">
@@ -179,14 +179,14 @@ const FarmerNotifications = () => {
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <div className="flex items-center gap-4">
                       <span className="flex items-center gap-1">
-                        📅 {formatDate(notification.createdAt)}
+                        {formatDate(notification.createdAt)}
                       </span>
                       <span className="flex items-center gap-1">
-                        🎯 {notification.audience === 'FARMER' ? 'Farmers Only' : 'All Users'}
+                        {notification.audience === 'FARMER' ? 'Farmers Only' : 'All Users'}
                       </span>
                       {notification.emailSent && (
                         <span className="flex items-center gap-1 text-green-600">
-                          ✅ Email Sent
+                          Email Sent
                         </span>
                       )}
                     </div>

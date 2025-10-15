@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import Navigation from '../../components/navigation';
 import MediaUpload from "../../utils/medialUpload";
-import { Clock, ChevronLeft } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 const MEAL_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Snacks", "Dessert"];
 const TYPE_OPTIONS = ["Vegetarian", "Non-Vegetarian"];
@@ -18,22 +17,37 @@ export default function UpdateRecipe() {
     ingredients: "",
     type: "Vegetarian",
     meal: [],
-    time: "",
+    timeCount: "",
+    timeUnit: "minutes",
     image: "",
   });
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [displayTime, setDisplayTime] = useState("");
 
-  // fetch existing
+  // Fetch existing recipe
   useEffect(() => {
     (async () => {
       try {
         const res = await axios.get(`http://localhost:3000/api/recipes/${id}`);
         const r = res.data?.recipe || {};
+
+        let timeCount = "";
+        if (r.time) {
+          if (r.time.includes("hour")) {
+            const hoursMatch = r.time.match(/(\d+)\s*h/);
+            const minsMatch = r.time.match(/(\d+)\s*min/);
+            const hours = hoursMatch ? parseInt(hoursMatch[1]) : 0;
+            const minutes = minsMatch ? parseInt(minsMatch[1]) : 0;
+            timeCount = (hours * 60 + minutes).toString();
+          } else {
+            const minsMatch = r.time.match(/(\d+)/);
+            timeCount = minsMatch ? minsMatch[1] : "";
+          }
+        }
 
         setInputs({
           title: r.title || "",
@@ -50,11 +64,13 @@ export default function UpdateRecipe() {
                 .map((s) => s.trim())
                 .filter(Boolean)
             : [],
-          time: r.time || "",
+          timeCount: timeCount,
+          timeUnit: "minutes",
           image: r.image || "",
         });
 
         setImagePreview(r.image || null);
+        setDisplayTime(r.time || "");
       } catch (err) {
         console.error("Failed to fetch recipe:", err);
         alert("Failed to load recipe.");
@@ -65,45 +81,80 @@ export default function UpdateRecipe() {
   const validateForm = () => {
     const newErrors = {};
 
-
+    // Title
     if (!inputs.title.trim()) {
       newErrors.title = "Title is required";
-    } else if (inputs.title.length < 3) {
-      newErrors.title = "Title must be at least 3 characters long";
+    } else if (!/^[A-Za-z\s'’\-.]+$/.test(inputs.title)) {
+      newErrors.title = "Title can only contain letters and common symbols.";
+    } else if (inputs.title.length < 5) {
+      newErrors.title = "Title must be at least 5 characters long";
+    } else if (inputs.title.length > 100) {
+      newErrors.title = "Title must not exceed 100 characters";
     }
 
+    // Description
     if (!inputs.description.trim()) {
-      newErrors.description = "Description is required";
+      newErrors.description = "Please enter a description for your recipe";
+    } else if (!/^[A-Za-z0-9\s.,'’"!?:;()°×\-–\/\n]+$/.test(inputs.description)) {
+      newErrors.description =
+        "Description contains invalid characters. Use letters, numbers, and common punctuation only";
     } else if (inputs.description.length < 10) {
-      newErrors.description = "Description must be at least 10 characters long";
+      newErrors.description =
+        "Description is too short. Please write at least 10 characters";
+    } else if (inputs.description.length > 1000) {
+      newErrors.description =
+        "Description is too long. Maximum 1000 characters allowed";
     }
 
+    // Ingredients
     if (!inputs.ingredients.trim()) {
       newErrors.ingredients = "Ingredients are required";
-    } else if (
-      inputs.ingredients.split(",").filter((i) => i.trim()).length < 2
-    ) {
-      newErrors.ingredients =
-        "Please provide at least 2 ingredients separated by commas";
+    } else {
+      const ingredientList = inputs.ingredients
+        .split(",")
+        .filter((i) => i.trim());
+      if (ingredientList.length < 2) {
+        newErrors.ingredients =
+          "Please provide at least 2 ingredients separated by commas";
+      } else if (ingredientList.length > 50) {
+        newErrors.ingredients = "Maximum 50 ingredients allowed";
+      }
+
+      // Validate
+      const longIngredient = ingredientList.find(
+        (ing) => ing.trim().length > 20
+      );
+      if (longIngredient) {
+        newErrors.ingredients =
+          "Each ingredient must not exceed 20 characters";
+      }
     }
 
-    if (!inputs.type) {
-      newErrors.type = "Please choose a type";
-    }
-
-    if (!Array.isArray(inputs.meal) || inputs.meal.length === 0) {
+    // Meal
+    if (inputs.meal.length === 0) {
       newErrors.meal = "Please select at least one meal type";
+    } else if (inputs.meal.length > 3) {
+      newErrors.meal = "Maximum 3 meal types allowed";
     }
 
-    if (!inputs.time.trim()) {
-      newErrors.time = "Please provide the time (e.g., 30 mins)";
+    // Time validation
+    if (!inputs.timeCount.trim()) {
+      newErrors.time = "Please provide the preparation time";
+    } else {
+      const timeValue = parseInt(inputs.timeCount);
+      if (isNaN(timeValue) || timeValue <= 0) {
+        newErrors.time = "Time must be a positive number";
+      } else if (timeValue > 240) {
+        newErrors.time = "Time value is too large";
+      }
     }
 
+    // Image
     if (!imageFile && !inputs.image) {
       newErrors.image = "Please upload an image";
     } else if (imageFile) {
       if (!imageFile.type.startsWith("image/")) {
-        newErrors.image = "Please select a valid image file";
+        newErrors.image = "Please select a valid image file (JPEG, PNG, etc.)";
       } else if (imageFile.size > 5 * 1024 * 1024) {
         newErrors.image = "Image must be less than 5MB";
       }
@@ -113,19 +164,76 @@ export default function UpdateRecipe() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const formatTimeDisplay = (minutes) => {
+    if (!minutes) return "";
+
+    const mins = parseInt(minutes);
+    if (isNaN(mins)) return "";
+
+    if (mins < 60) {
+      return `${mins} min${mins !== 1 ? "s" : ""}`;
+    } else {
+      const hours = Math.floor(mins / 60);
+      const remainingMinutes = mins % 60;
+
+      if (remainingMinutes === 0) {
+        return `${hours} hour${hours !== 1 ? "s" : ""}`;
+      } else {
+        return `${hours} h  ${remainingMinutes} min${
+          remainingMinutes !== 1 ? "s" : ""
+        }`;
+      }
+    }
+  };
+
   const onChange = (e) => {
     const { name, value } = e.target;
-    setInputs((s) => ({ ...s, [name]: value }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+
+    if (name === "timeCount") {
+      // Allow only digits and empty string
+      if (value === "" || /^\d+$/.test(value)) {
+        setInputs((s) => ({ ...s, [name]: value, timeUnit: "minutes" }));
+
+        // Update display time
+        if (value === "") {
+          setDisplayTime("");
+        } else {
+          setDisplayTime(formatTimeDisplay(value));
+        }
+      }
+    } else {
+      setInputs((s) => ({ ...s, [name]: value }));
+    }
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+    if (name === "timeCount" && errors.time) {
+      setErrors((prev) => ({ ...prev, time: "" }));
+    }
   };
 
   const onMealToggle = (name) => {
     setInputs((s) => {
-      const set = new Set(s.meal || []);
-      set.has(name) ? set.delete(name) : set.add(name);
+      const set = new Set(s.meal);
+      if (set.has(name)) {
+        set.delete(name);
+      } else {
+        if (set.size >= 3) {
+          setErrors((prev) => ({
+            ...prev,
+            meal: "Maximum 3 meal types allowed",
+          }));
+          return s;
+        }
+        set.add(name);
+      }
       return { ...s, meal: Array.from(set) };
     });
-    if (errors.meal) setErrors((prev) => ({ ...prev, meal: "" }));
+
+    if (errors.meal) {
+      setErrors((prev) => ({ ...prev, meal: "" }));
+    }
   };
 
   const onClearMeals = () => setInputs((s) => ({ ...s, meal: [] }));
@@ -138,6 +246,7 @@ export default function UpdateRecipe() {
       setErrors((prev) => ({ ...prev, image: "Please select an image file" }));
       return;
     }
+
     if (file.size > 5 * 1024 * 1024) {
       setErrors((prev) => ({ ...prev, image: "Image must be less than 5MB" }));
       return;
@@ -145,6 +254,7 @@ export default function UpdateRecipe() {
 
     setImageFile(file);
     setErrors((prev) => ({ ...prev, image: "" }));
+
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
@@ -157,9 +267,36 @@ export default function UpdateRecipe() {
     setErrors((prev) => ({ ...prev, image: "Please upload an image" }));
   };
 
+  const setQuickTime = (minutes) => {
+    setInputs((s) => ({
+      ...s,
+      timeCount: minutes.toString(),
+      timeUnit: "minutes",
+    }));
+    setDisplayTime(formatTimeDisplay(minutes.toString()));
+
+    if (errors.time) {
+      setErrors((prev) => ({ ...prev, time: "" }));
+    }
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+
+    if (!validateForm()) {
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        const element = document.querySelector(`[name="${firstErrorField}"]`);
+        if (element) {
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          element.focus();
+        }
+      }
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -167,24 +304,27 @@ export default function UpdateRecipe() {
 
       if (imageFile) {
         finalImageUrl = await MediaUpload(imageFile);
+      } else if (!finalImageUrl) {
+        finalImageUrl = "https://via.placeholder.com/600x400?text=Recipe";
       }
+
+      const formattedTime = displayTime;
 
       const payload = {
         image: finalImageUrl,
-        title: String(inputs.title),
-        description: String(inputs.description),
-        ingredients: String(inputs.ingredients)
+        title: inputs.title.trim(),
+        description: inputs.description.trim(),
+        ingredients: inputs.ingredients
           .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean),
-        type: String(inputs.type),
+          .map((ing) => ing.trim())
+          .filter((ing) => ing),
+        type: inputs.type,
         meal: Array.isArray(inputs.meal)
           ? inputs.meal
-          : String(inputs.meal)
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean),
-        time: String(inputs.time),
+          : String(inputs.meal).split(","),
+        time: formattedTime,
+        timeCount: parseInt(inputs.timeCount),
+        timeUnit: "minutes",
       };
 
       await axios.put(`http://localhost:3000/api/recipes/${id}`, payload, {
@@ -194,39 +334,29 @@ export default function UpdateRecipe() {
       nav("/farmerdashboard?tab=recipes");
     } catch (error) {
       console.error("Update failed:", error);
-      alert(
-        error?.response?.data?.message ||
-          error?.response?.data?.error ||
-          "Failed to update recipe. Please try again."
-      );
+      let errorMessage = "Failed to update recipe.";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const getCharacterCount = (field, max) => {
+    const value = inputs[field] || "";
+    return `${value.length}/${max}`;
+  };
+
   return (
     <div>
-      <Navigation />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-36 md:pt-32">
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            type="button"
-            aria-label="Go back"
-            onClick={() => {
-              try {
-                if (window.history.length > 1) {
-                  nav(-1);
-                } else {
-                  nav('/farmerdashboard?tab=recipes', { replace: true });
-                }
-              } catch (err) {
-                nav('/farmerdashboard?tab=recipes', { replace: true });
-              }
-            }}
-            className="inline-flex items-center justify-center p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 active:scale-[0.98] transition-all duration-200 shadow-sm hover:shadow-md"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-20">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
               Update Recipe
@@ -241,33 +371,39 @@ export default function UpdateRecipe() {
         >
           <div className="bg-emerald-50/60 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <p className="text-sm text-emerald-800">
-              Edit details below. Fields marked * are required.
+              Edit the details below. Fields marked * are required.
             </p>
             <button
               type="button"
-              onClick={() => nav("/farmerdashboard?tab=recipes")}
+              onClick={() => {
+                window.location.reload();
+              }}
               className="text-emerald-700 text-sm hover:underline"
             >
-              Back to list
+              Reset changes
             </button>
           </div>
 
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left column */}
             <div className="space-y-5">
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title *
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Title *
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {getCharacterCount("title", 100)}
+                  </span>
+                </div>
                 <input
                   name="title"
                   value={inputs.title}
                   onChange={onChange}
+                  maxLength={100}
                   className={`w-full rounded-xl border px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
                     errors.title ? "border-red-500" : "border-gray-300"
                   }`}
-                  placeholder="e.g. Creamy Pesto Pasta"
+                  placeholder="e.g. Creamy Pasta"
                 />
                 {errors.title && (
                   <p className="mt-1 text-sm text-red-600">{errors.title}</p>
@@ -275,13 +411,19 @@ export default function UpdateRecipe() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description *
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Description *
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {getCharacterCount("description", 1000)}
+                  </span>
+                </div>
                 <textarea
                   name="description"
                   value={inputs.description}
                   onChange={onChange}
+                  maxLength={1000}
                   className={`w-full min-h-28 rounded-xl border px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
                     errors.description ? "border-red-500" : "border-gray-300"
                   }`}
@@ -295,13 +437,19 @@ export default function UpdateRecipe() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Ingredients * (comma separated)
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Ingredients * (comma separated)
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {getCharacterCount("ingredients", 2000)}
+                  </span>
+                </div>
                 <textarea
                   name="ingredients"
                   value={inputs.ingredients}
                   onChange={onChange}
+                  maxLength={2000}
                   className={`w-full min-h-24 rounded-xl border px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
                     errors.ingredients ? "border-red-500" : "border-gray-300"
                   }`}
@@ -312,12 +460,14 @@ export default function UpdateRecipe() {
                     {errors.ingredients}
                   </p>
                 )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Separate ingredients with commas. Minimum 2 ingredients,
+                  maximum 50.
+                </p>
               </div>
             </div>
 
-            {/* Right column */}
             <div className="space-y-6">
-              {/* Image */}
               <div className="rounded-xl border border-gray-200 p-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Image *
@@ -347,14 +497,12 @@ export default function UpdateRecipe() {
                     </button>
                   </div>
                 )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Maximum file size: 5MB. Supported formats: JPEG, PNG, etc.
+                </p>
               </div>
 
-              {/* Type (radio) */}
-              <div
-                className={`rounded-xl border p-4 ${
-                  errors.type ? "border-red-500" : "border-gray-200"
-                }`}
-              >
+              <div className="rounded-xl border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-medium text-gray-700">
                     Type *
@@ -375,12 +523,8 @@ export default function UpdateRecipe() {
                     </label>
                   ))}
                 </div>
-                {errors.type && (
-                  <p className="mt-1 text-sm text-red-600">{errors.type}</p>
-                )}
               </div>
 
-              {/* Meal (checkbox) */}
               <div
                 className={`rounded-xl border p-4 ${
                   errors.meal ? "border-red-500" : "border-gray-200"
@@ -388,7 +532,8 @@ export default function UpdateRecipe() {
               >
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-700">
-                    Meal *
+                    Meal *{" "}
+                    {inputs.meal.length > 0 && `(${inputs.meal.length}/3)`}
                   </label>
                   <button
                     type="button"
@@ -405,50 +550,98 @@ export default function UpdateRecipe() {
                         type="checkbox"
                         checked={inputs.meal.includes(m)}
                         onChange={() => onMealToggle(m)}
-                        className="text-emerald-600 focus:ring-emerald-500"
+                        disabled={
+                          !inputs.meal.includes(m) && inputs.meal.length >= 3
+                        }
+                        className="text-emerald-600 focus:ring-emerald-500 disabled:opacity-50"
                       />
-                      <span className="text-sm text-gray-700">{m}</span>
+                      <span
+                        className={`text-sm ${
+                          !inputs.meal.includes(m) && inputs.meal.length >= 3
+                            ? "text-gray-400"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {m}
+                      </span>
                     </label>
                   ))}
                 </div>
                 {errors.meal && (
                   <p className="mt-1 text-sm text-red-600">{errors.meal}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Select 1-3 meal types
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Time *
+                  Preparation Time (minutes) *
                 </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    name="time"
-                    value={inputs.time}
-                    onChange={onChange}
-                    className={`w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
-                      errors.time ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="e.g. 30 mins"
-                  />
+                <div className="flex gap-3">
+                  <div className="relative flex-1">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      name="timeCount"
+                      value={inputs.timeCount}
+                      onChange={onChange}
+                      maxLength={4}
+                      className={`w-full rounded-xl border pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none ${
+                        errors.time ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="e.g. 30"
+                    />
+                  </div>
                 </div>
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  {['10 mins','20 mins','30 mins','45 mins','60 mins'].map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setInputs((s) => ({ ...s, time: t }))}
-                      className={`px-3 py-1 rounded-full text-xs border ${inputs.time===t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
+
+                {/* Display formatted time */}
+                {displayTime && (
+                  <div className="mt-2 p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <p className="text-sm text-emerald-800 font-medium">
+                      Time: {displayTime}
+                    </p>
+                  </div>
+                )}
+
                 {errors.time && (
                   <p className="mt-1 text-sm text-red-600">{errors.time}</p>
                 )}
-              </div>
 
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-2">Quick select:</p>
+                  <div className="flex gap-5 flex-wrap">
+                    {[10, 15, 30, 45].map((minutes) => (
+                      <button
+                        key={minutes}
+                        type="button"
+                        onClick={() => setQuickTime(minutes)}
+                        className={`px-3 py-1 rounded-full text-xs border ${
+                          inputs.timeCount === minutes.toString()
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        {minutes}m
+                      </button>
+                    ))}
+                    {[60, 120].map((minutes) => (
+                      <button
+                        key={minutes}
+                        type="button"
+                        onClick={() => setQuickTime(minutes)}
+                        className={`px-3 py-1 rounded-full text-xs border ${
+                          inputs.timeCount === minutes.toString()
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        {formatTimeDisplay(minutes)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
