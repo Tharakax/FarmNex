@@ -7,15 +7,11 @@ const BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
 const resolveImageUrl = (img) => {
   if (!img) return null;
   let s = String(img).trim();
-  // Normalize Windows backslashes to forward slashes
   s = s.replace(/\\/g, '/');
-  // Already absolute
   if (/^https?:\/\//i.test(s)) return s;
-  // Leading slash => backend + path
   if (s.startsWith('/')) return `${BASE}${s}`;
-  // Common relative forms
   if (s.startsWith('uploads/')) return `${BASE}/${s}`;
-  // Fallback: assume file under uploads
+
   return `${BASE}/uploads/${s}`;
 };
 
@@ -25,7 +21,6 @@ export default function RecipeItem({ recipe, onDelete, readOnly = false, onViewD
   };
 
   const handleCardClick = (e) => {
-    // Don't trigger if clicking on buttons or links
     if (e.target.closest('button') || e.target.closest('a')) {
       return;
     }
@@ -87,7 +82,7 @@ export default function RecipeItem({ recipe, onDelete, readOnly = false, onViewD
               {meals.slice(0, 3).map((m) => (
                 <span
                   key={m}
-                  className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-700"
+                  className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-[11px] text-gray-900"
                 >
                   {m}
                 </span>
