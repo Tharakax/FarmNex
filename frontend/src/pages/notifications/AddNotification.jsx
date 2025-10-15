@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Navigation from "../../components/navigation";
 
 const AUDIENCE_OPTIONS = ["FARMER", "USER", "BOTH"];
 const TYPE_OPTIONS = ["ALERT", "OFFER", "UPDATE"];
@@ -18,7 +17,6 @@ export default function AddNotification() {
     sendEmail: false,
   });
 
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
 
@@ -27,16 +25,18 @@ export default function AddNotification() {
 
     if (!inputs.title.trim()) {
       newErrors.title = "Title is required";
-    } else if (inputs.title.length < 3) {
-      newErrors.title = "Title must be at least 3 characters long";
-    } else if (inputs.title.length > 120) {
-      newErrors.title = "Title must be less than 120 characters";
+    } else if (!/^[a-zA-Z\s.,!?'"()-]+$/.test(inputs.title)) {
+      newErrors.title = "Title contains invalid characters";
+    } else if (inputs.title.length < 5) {
+      newErrors.title = "Title must be at least 5 characters long";
+    } else if (inputs.title.length > 100) {
+      newErrors.title = "Title must be less than 100 characters";
     }
 
     if (!inputs.body.trim()) {
       newErrors.body = "Body is required";
-    } else if (inputs.body.length < 5) {
-      newErrors.body = "Body must be at least 5 characters long";
+    } else if (inputs.body.length < 10) {
+      newErrors.body = "Body must be at least 10 characters long";
     } else if (inputs.body.length > 10000) {
       newErrors.body = "Body must be less than 10000 characters";
     }
@@ -103,28 +103,8 @@ export default function AddNotification() {
 
   return (
     <div>
-      <Navigation />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pt-36 md:pt-32">
-        <div className="mb-6 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => nav("/admin")}
-            aria-label="Back to Admin Dashboard"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="h-5 w-5"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10.53 4.47a.75.75 0 010 1.06L5.31 10.75H21a.75.75 0 010 1.5H5.31l5.22 5.22a.75.75 0 11-1.06 1.06l-6.5-6.5a.75.75 0 010-1.06l6.5-6.5a.75.75 0 011.06 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pt-20 md:pt-16">
+        <div className="mb-4 text-center">
           <h1 className="text-3xl font-extrabold tracking-tight">
             <span className="bg-gradient-to-r from-emerald-600 to-green-500 bg-clip-text text-transparent">
               Create Notification
@@ -305,9 +285,12 @@ export default function AddNotification() {
                     </label>
                     <p className="text-sm text-gray-600 mt-1">
                       When enabled, this notification will also be sent via
-                      email to all users in the selected audience who have email
-                      notifications enabled.
+                      email to all users in the selected audience.
                     </p>
+
+                    <p className="text-sm font-medium text-red-400 mt-1">
+                     Once sent, the delivered email cannot be changed 
+                     </p>
                   </div>
                 </div>
               </div>
