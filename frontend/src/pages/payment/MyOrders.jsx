@@ -21,6 +21,7 @@ const MyOrders = () => {
     endDate: ''
   });
   const [specificDate, setSpecificDate] = useState('');
+  const [paymentFilter, setPaymentFilter] = useState('all'); // 'all', 'pending', 'completed'
 
   // Order states from order.js schema
   const orderStates = {
@@ -202,9 +203,20 @@ const MyOrders = () => {
     setSpecificDate('');
   };
 
-  const filteredOrders = orders.filter(order => 
-    activeTab === 'all' || order.status === activeTab
-  );
+  const filteredOrders = orders.filter(order => {
+    // Filter by tab (order status)
+    const tabMatch = activeTab === 'all' || order.status === activeTab;
+
+    // Filter by payment status
+    let paymentMatch = true;
+    if (paymentFilter === 'pending') {
+      paymentMatch = !order.paymentcompleted;
+    } else if (paymentFilter === 'completed') {
+      paymentMatch = !!order.paymentcompleted;
+    }
+
+    return tabMatch && paymentMatch;
+  });
 
   const getStatusBadge = (status) => {
     const stateInfo = orderStates[status] || orderStates.pending;
@@ -362,7 +374,18 @@ const MyOrders = () => {
               <h1 className="text-3xl font-bold text-green-900 mb-2">My Orders</h1>
               <p className="text-green-700">Track and manage all your orders</p>
             </div>
-            
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-green-700 mr-2">Payment:</label>
+              <select
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+                className="px-3 py-2 border border-green-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending Payment</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
             {/* PDF Download Button */}
             <div className="flex flex-col gap-2">
               <button
