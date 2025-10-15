@@ -118,14 +118,6 @@ const TrainingManagementComponent = React.lazy(() =>
     })
 );
 
-const RecipesPanel = React.lazy(() =>
-  import('../features/recipes/RecipesPanel')
-    .catch(error => {
-      console.error('Failed to load RecipesPanel:', error);
-      return { default: () => <ErrorFallback error={error} componentName="Recipes" /> };
-    })
-);
-
 const AskQuestionForm = React.lazy(() =>
   import('./user/QAManagement/UserQA.jsx').catch(error => {
     console.error('Failed to load AskQuestionForm:', error);
@@ -429,7 +421,7 @@ const Header = ({ toggleSidebar }) => {
           </button>
           <h4 className="text-xl sm:text-2xl font-semibold text-gray-800">
            <span className="text-green-600 font-bold">Welcome, </span>{' '}
-           <span className="text-gray-700">{currentUser.name} 🎉 </span>
+           <span className="text-gray-700">{currentUser.name}</span>
           </h4>
         </div>
         
