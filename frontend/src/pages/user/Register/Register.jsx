@@ -306,7 +306,7 @@ function Register() {
         // Allow only letters and spaces while typing
         const value = e.target.value;
         if (/^[a-zA-Z\s]*$/.test(value)) {
-          handleChange(e); 
+          handleChange(e); // update only if valid 
         }
       }}
       onKeyDown={(e) => {
