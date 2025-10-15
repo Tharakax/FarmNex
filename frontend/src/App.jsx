@@ -129,6 +129,7 @@ function App() {
             <Route path="/oneProduct/:id" element={<OneProduct />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/shipping/:orderId" element={<EnterShipping />} />
+            <Route path="/shipping/direct" element={<EnterShipping />} />
             <Route path="/payment/:orderId" element={<EnterPayment />} />
             <Route path="/payment-methods" element={<PaymentCardsManager />} />
             <Route path="/order-success/:orderId" element={<PaymentSuccess />} />

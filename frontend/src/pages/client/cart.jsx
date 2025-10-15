@@ -232,39 +232,18 @@ const navigate = useNavigate();
       };
 
       console.log('Order data prepared:', orderData);
+      
+      // Store order data in localStorage for shipping page
       localStorage.setItem("orderData", JSON.stringify(orderData));
       
-      // Prepare headers - include auth token if available
-      const headers = {
-        'Content-Type': 'application/json'
-      };
+      // Clear the cart
+      handleClearCart();
       
-      // Try to get auth token from localStorage or sessionStorage
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log('Auth token found and added to headers');
-      } else {
-        console.log('No auth token found - proceeding as guest checkout');
-      }
+      console.log("Redirecting to shipping details...");
       
-      // Make API request with retry logic
-      const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/order`;
-      console.log('Making request to:', apiUrl);
-      
-      const response = await makeRequestWithRetry(apiUrl, orderData, { headers });
-      
-      console.log('Checkout response:', response.data);
-      
-      // If successful, clear the cart and redirect to order confirmation
-      if (response.data.success) {
-        handleClearCart();
-        console.log("Order created successfully with ID:", response.data.order._id);
-        navigate(`/shipping/${response.data.order._id}`);
-      } else {
-        console.error('Checkout failed:', response.data.message);
-        alert(`Checkout failed: ${response.data.message || 'Unknown error'}`);
-      }
+      // Navigate directly to shipping page without creating order first
+      // We'll create the order on the shipping page after details are filled
+      navigate('/shipping/direct');
     } catch (error) {
       console.error('Error during checkout:', error);
       

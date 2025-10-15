@@ -110,22 +110,18 @@ const DashboardShoppingCart = ({ onBrowseProducts }) => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Make API request to create order
-      const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
-      const response = await axios.post(`${API_BASE_URL}/api/order`, orderData, { headers });
-
-      if (response.data.success) {
-        // Clear the cart
-        localStorage.setItem("cart", JSON.stringify([]));
-        setCartItems([]);
-        
-        toast.success('Order created successfully!', { id: 'checkout' });
-        
-        // Navigate to shipping page with order ID
-        navigate(`/shipping/${response.data.order._id}`);
-      } else {
-        toast.error(response.data.message || 'Failed to create order', { id: 'checkout' });
-      }
+      // Store order data in localStorage for shipping page
+      localStorage.setItem("orderData", JSON.stringify(orderData));
+      
+      // Clear the cart
+      localStorage.setItem("cart", JSON.stringify([]));
+      setCartItems([]);
+      
+      toast.success('Redirecting to shipping details...', { id: 'checkout' });
+      
+      // Navigate directly to shipping page without creating order first
+      // We'll create the order on the shipping page after details are filled
+      navigate('/shipping/direct');
     } catch (error) {
       console.error('Error during checkout:', error);
       if (error.response?.data?.message) {

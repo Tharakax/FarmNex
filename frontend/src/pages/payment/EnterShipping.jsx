@@ -46,12 +46,21 @@ export default function ShippingDetails() {
           const orderInfo = JSON.parse(storedOrderData);
           setOrderData(orderInfo);
           console.log("Order ID from URL:", orderId);
+          
+          // Pre-fill form with user data if available
+          if (orderInfo.contactEmail) {
+            setFormData(prev => ({
+              ...prev,
+              contactEmail: orderInfo.contactEmail || '',
+              contactName: orderInfo.contactName || ''
+            }));
+          }
         } else {
-          navigate('/cart');
+          navigate('/customerdash');
         }
       } catch (error) {
         console.error('Error loading order data:', error);
-        navigate('/cart');
+        navigate('/customerdash');
       }
     };
 
@@ -404,25 +413,65 @@ export default function ShippingDetails() {
         notes: formData.notes.trim()
       };
 
-      // Save shipping information to the order
-      const response = await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/order/shipping/${orderId}`,
-        shippingData
-      );
-
-      if (response.data.success) {
-        // Store updated order data
-        const updatedOrderData = {
+      // Check if this is a direct checkout (no existing order)
+      if (orderId === 'direct') {
+        // Create new order with shipping data
+        const orderDataWithShipping = {
           ...orderData,
           ...shippingData
         };
-        localStorage.setItem("orderData", JSON.stringify(updatedOrderData));
+
+        // Prepare headers with auth token
+        const headers = {
+          'Content-Type': 'application/json'
+        };
         
-        // Navigate to payment page
-        navigate(`/payment/${orderId}`);
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/order`,
+          orderDataWithShipping,
+          { headers }
+        );
+
+        if (response.data.success) {
+          // Store updated order data with order ID
+          const updatedOrderData = {
+            ...orderDataWithShipping,
+            _id: response.data.order._id
+          };
+          localStorage.setItem("orderData", JSON.stringify(updatedOrderData));
+          
+          // Navigate to payment page with new order ID
+          navigate(`/payment/${response.data.order._id}`);
+        } else {
+          console.error('Failed to create order:', response.data.message);
+          alert('Failed to create order. Please try again.');
+        }
       } else {
-        console.error('Failed to save shipping information:', response.data.message);
-        alert('Failed to save shipping information. Please try again.');
+        // Update existing order with shipping information
+        const response = await axios.put(
+          `${import.meta.env.VITE_BACKEND_URL}/api/order/shipping/${orderId}`,
+          shippingData
+        );
+
+        if (response.data.success) {
+          // Store updated order data
+          const updatedOrderData = {
+            ...orderData,
+            ...shippingData
+          };
+          localStorage.setItem("orderData", JSON.stringify(updatedOrderData));
+          
+          // Navigate to payment page
+          navigate(`/payment/${orderId}`);
+        } else {
+          console.error('Failed to save shipping information:', response.data.message);
+          alert('Failed to save shipping information. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Error saving shipping information:', error);
