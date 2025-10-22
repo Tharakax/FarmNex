@@ -103,8 +103,10 @@ export const showSuccess = async (message, title = 'Success!') => {
       title: title,
       text: message,
       icon: 'success',
-      confirmButtonText: 'OK',
-      confirmButtonColor: '#28a745'
+      confirmButtonText: '🚀 Continue',
+      confirmButtonColor: '#28a745',
+      allowOutsideClick: false,
+      allowEscapeKey: false
     });
   } catch (error) {
     console.error('❌ SweetAlert fire failed:', error);
@@ -260,12 +262,14 @@ export const showValidationSuccess = async (message, recommendations = []) => {
   
   try {
     return await swal.fire({
-      title: 'Success!',
+      title: '✅ Success!',
       html: htmlContent,
       icon: 'success',
-      confirmButtonText: 'Continue',
+      confirmButtonText: '🚀 Continue',
       confirmButtonColor: '#28a745',
-      width: '500px'
+      width: '500px',
+      allowOutsideClick: false,
+      allowEscapeKey: false
     });
   } catch (error) {
     console.error('❌ SweetAlert fire failed:', error);

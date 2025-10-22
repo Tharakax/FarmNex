@@ -4,13 +4,22 @@ import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, Heart } from 'lucide-react
 import { addToCart , removeFromCart , getCart , updateQuantity } from '../../utils/cart.js';
 import { useEffect } from 'react';
 import axios from 'axios';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { handleImageError, resolveProductImage } from '../../utils/imageUtils';
+import { getLoggedInUser } from '../../utils/userUtils';
+
+// Configure axios defaults
+axios.defaults.timeout = 10000; // 10 second timeout
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+
+// Using shared resolver from imageUtils
 
 export default function Cart() {
   const [cart, setCart] = useState([]);
   const [savedItems, setSavedItems] = useState([]);
   const [loading, setLoading] = useState(true);
-const Navigate = useNavigate();
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+const navigate = useNavigate();
   // Load cart data on component mount
   useEffect(() => {
     const loadCart = () => {
@@ -18,9 +27,12 @@ const Navigate = useNavigate();
         setLoading(true);
         const cartData =  getCart();
         setCart(cartData);
+        
+        // If cart is empty, stay on page and show empty state instead of redirecting
       } catch (error) {
         console.error("Error loading cart:", error);
         setCart([]);
+        // On error, keep user on cart page to allow retry
       } finally {
         setLoading(false);
       }
@@ -30,7 +42,7 @@ const Navigate = useNavigate();
 
     // Optional: Listen for storage changes from other tabs
 
-  }, []);
+  }, [navigate]);
 
   // Calculate totals
   const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -53,6 +65,11 @@ const Navigate = useNavigate();
     try {
       const updatedCart =  removeFromCart(productId);
       setCart(updatedCart);
+      
+      // Auto-redirect if cart becomes empty
+      if (!updatedCart || updatedCart.length === 0) {
+        // Optionally keep user on cart page; they can click Continue Shopping
+      }
     } catch (error) {
       console.error("Error removing item:", error);
     }
@@ -107,49 +124,178 @@ const Navigate = useNavigate();
     try {
       localStorage.setItem("cart", JSON.stringify([]));
       setCart([]);
+      
+      // Auto-redirect after clearing cart
+      // Stay on cart page; show it as empty
     } catch (error) {
       console.error("Error clearing cart:", error);
     }
   };
-  async function handleCheckout () {
-  try {
-    // Prepare order data from cart
-    const orderData = {
-      items: cart.map(item => ({
-        productId: item.productId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-        description: item.description || ''
-      })),
-      subtotal: subtotal,
-      tax: tax,
-      shipping: shipping,
-      discount: discount,
-      total: total,
-      status: 'pending'
-
-    };
-
-    localStorage.setItem("orderData", JSON.stringify(orderData));
-    const response = await axios.post(import.meta.env.VITE_BACKEND_URL+"/api/order", orderData);
-    
-    // If successful, clear the cart and redirect to order confirmation
-    if (response.data.success) {
-      handleClearCart();
-      console.log("Order id is :"+response.data.order._id)
-      Navigate(`/shipping/${response.data.order._id}`);
-
-    } else {
-      console.error('Checkout failed:', response.data.message);
-      // Show error message to user
+  // Retry function for network requests
+  const makeRequestWithRetry = async (url, data, options, maxRetries = 3, delay = 1000) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Attempt ${attempt} of ${maxRetries} - Making request to:`, url);
+        const response = await axios.post(url, data, {
+          ...options,
+          timeout: 10000 // 10 second timeout
+        });
+        return response;
+      } catch (error) {
+        console.log(`Attempt ${attempt} failed:`, error.message);
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Only retry on network errors, not server errors
+        if (error.response) {
+          // Server responded with an error status, don't retry
+          throw error;
+        }
+        
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 1.5; // Exponential backoff
+      }
     }
-  } catch (error) {
-    console.error('Error during checkout:', error);
-    // Show error message to user
-  }
-};
+  };
+
+  // Test server connectivity
+  const testServerConnection = async () => {
+    try {
+      const testUrl = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/health`;
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        timeout: 5000
+      });
+      return response.ok;
+    } catch (error) {
+      console.log('Server connectivity test failed:', error.message);
+      return false;
+    }
+  };
+
+  async function handleCheckout() {
+    try {
+      setCheckoutLoading(true);
+      console.log('Starting checkout process...');
+      
+      // Validate cart is not empty
+      if (!cart || cart.length === 0) {
+        alert('Your cart is empty. Please add items before checkout.');
+        return;
+      }
+
+      // Test server connectivity first
+      console.log('Testing server connectivity...');
+      const isServerReachable = await testServerConnection();
+      if (!isServerReachable) {
+        console.log('Server connectivity test failed, but proceeding with retry logic...');
+      }
+
+      // Prepare order data from cart - optimize payload size
+      const currentUser = getLoggedInUser();
+      const orderData = {
+        items: cart.map(item => {
+          // Preserve usable image without corrupting data URLs
+          let image = item.image;
+          if (typeof image === 'string') {
+            // if it's a backend path or full URL, keep as is
+            if (image.startsWith('http') || image.startsWith('/')) {
+              // ok
+            } else if (image.startsWith('data:image')) {
+              // keep full data URL (do NOT truncate)
+            } else if (Array.isArray(item.images) && item.images.length) {
+              // fallback to first product image if provided as array
+              image = item.images[0];
+            }
+          }
+          return ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image,
+            description: item.description ? item.description.substring(0, 200) : ''
+          });
+        }),
+        subtotal: subtotal,
+        tax: tax,
+        shipping: shipping,
+        discount: discount,
+        total: total,
+        status: 'pending',
+        // Pre-fill contact using logged-in user when available
+        contactEmail: currentUser?.email || undefined,
+        contactName: currentUser?.name || undefined
+      };
+
+      console.log('Order data prepared:', orderData);
+      localStorage.setItem("orderData", JSON.stringify(orderData));
+      
+      // Prepare headers - include auth token if available
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Try to get auth token from localStorage or sessionStorage
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || sessionStorage.getItem('authToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log('Auth token found and added to headers');
+      } else {
+        console.log('No auth token found - proceeding as guest checkout');
+      }
+      
+      // Make API request with retry logic
+      const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/api/order`;
+      console.log('Making request to:', apiUrl);
+      
+      const response = await makeRequestWithRetry(apiUrl, orderData, { headers });
+      
+      console.log('Checkout response:', response.data);
+      
+      // If successful, clear the cart and redirect to order confirmation
+      if (response.data.success) {
+        handleClearCart();
+        console.log("Order created successfully with ID:", response.data.order._id);
+        navigate(`/shipping/${response.data.order._id}`);
+      } else {
+        console.error('Checkout failed:', response.data.message);
+        alert(`Checkout failed: ${response.data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      
+      let errorMessage = 'An error occurred during checkout. Please try again.';
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error('Server response error:', error.response.data);
+        if (error.response.status === 413) {
+          errorMessage = 'Order data is too large. Please try with fewer items or contact support.';
+        } else {
+          errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error('No response received:', error.request);
+        errorMessage = 'Unable to connect to server. Please check your connection and try again.';
+      } else if (error.code === 'ECONNABORTED') {
+        // Request timeout
+        errorMessage = 'Request timed out. Please check your connection and try again.';
+      } else {
+        // Something else happened
+        console.error('Request setup error:', error.message);
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
   // Load saved items on mount
   useEffect(() => {
     try {
@@ -171,12 +317,7 @@ const Navigate = useNavigate();
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <button 
-              onClick={() => Navigate("/products")}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <ArrowLeft size={20} />
-                <span className="hidden sm:inline">Continue Shopping</span>
-              </button>
+              {/* Removed local back/continue button to avoid overlap with global back button */}
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Shopping Cart</h1>
             <div className="flex items-center space-x-4">
@@ -189,19 +330,7 @@ const Navigate = useNavigate();
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {cart.length === 0 && !loading ? (
-          /* Empty Cart State */
-          <div className="text-center py-16">
-            <ShoppingBag size={80} className="mx-auto text-gray-300 mb-6" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
-            <p className="text-gray-500 mb-8">Looks like you haven't added any items to your cart yet.</p>
-            <button 
-              onClick={() => Navigate("/products")}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-              Start Shopping
-            </button>
-          </div>
-        ) : loading ? (
+        {loading ? (
           /* Loading State */
           <div className="text-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -231,9 +360,10 @@ const Navigate = useNavigate();
                       <div className="flex items-start space-x-4">
                         <div className="flex-shrink-0">
                           <img
-                            src={item.image}
+                            src={resolveProductImage(item.image, item.name)}
                             alt={item.name}
                             className="w-24 h-24 object-cover rounded-lg bg-gray-100"
+                            onError={(e) => handleImageError(e, 96, 96, item.name || 'Product')}
                           />
                         </div>
 
@@ -316,9 +446,10 @@ const Navigate = useNavigate();
                       {savedItems.map((item) => (
                         <div key={item.productId} className="border rounded-lg p-4">
                           <img
-                            src={item.image}
+                            src={resolveProductImage(item.image, item.name)}
                             alt={item.name}
                             className="w-full h-32 object-cover rounded-md mb-3"
+                            onError={(e) => handleImageError(e, 200, 128, item.name || 'Product')}
                           />
                           <h4 className="font-medium text-gray-900 mb-1">{item.name}</h4>
                           <p className="text-sm text-gray-500 mb-2">LKR {item.price.toFixed(2)}</p>
@@ -384,12 +515,24 @@ const Navigate = useNavigate();
                   <div className="mt-6 space-y-3">
                     <button 
                     onClick={() => {handleCheckout()}}
-                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
-                      Proceed to Checkout
+                    disabled={checkoutLoading}
+                    className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+                      checkoutLoading 
+                        ? 'bg-gray-400 text-white cursor-not-allowed' 
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}>
+                      {checkoutLoading ? (
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          <span>Processing...</span>
+                        </div>
+                      ) : (
+                        'Proceed to Checkout'
+                      )}
                     </button>
                     
                     <button 
-                    onClick={() => {Navigate("/products")}}
+onClick={() => {navigate("/customerdash")}}
                     className="w-full bg-gray-100 text-gray-900 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors">
                       Continue Shopping
                     </button>

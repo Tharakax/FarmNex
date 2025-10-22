@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Eye, EyeOff, Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLeaf } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 
 const Login = () => {
@@ -21,7 +23,7 @@ const Login = () => {
 
   const validatePassword = (password) => {
     if (!password) return "Password is required";
-    if (password.length < 6) return "Password must be at least 6 characters";
+    if (password.length <= 8) return "Password must be at least 8 characters";
     return "";
   };
 
@@ -113,19 +115,19 @@ const Login = () => {
   };
 
 return (
-  <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 py-12 px-4 flex items-center justify-center">
+  <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 py-12 px-4 flex items-center justify-center">
     <div className="max-w-md w-full">
       <div className="text-center mb-8">
         <button 
           onClick={() => navigate(-1)}
-          className="inline-flex items-center text-green-600 hover:text-green-700 mb-6 transition-colors"
+          className="inline-flex items-center text-primary-600 text-brand hover:text-primary-700 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </button>
         <div className="flex items-center justify-center mb-6">
-          <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-            <Leaf className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 bg-brand-light rounded-xl flex items-center justify-center">
+            <FontAwesomeIcon icon={faLeaf} className="text-brand text-2xl" />
           </div>
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
@@ -146,14 +148,14 @@ return (
                 onChange={handleChange}
                 className={`w-full pl-11 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
                   errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' :
-                  inputs.email && !errors.email ? 'border-green-300 bg-green-50 focus:border-green-400' : 
-                  'border-gray-200 focus:border-green-400'
+                  inputs.email && !errors.email ? 'border-primary-300 bg-primary-50 focus:border-primary-400' : 
+                  'border-gray-200 focus:border-primary-400'
                 }`}
                 placeholder="Enter your email"
                 disabled={isSubmitting}
               />
               {inputs.email && !errors.email && (
-                <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
+                <CheckCircle className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-primary-500 text-brand" />
               )}
             </div>
             {errors.email && (
@@ -176,8 +178,8 @@ return (
                 onChange={handleChange}
                 className={`w-full pl-11 pr-12 py-3 border-2 rounded-xl focus:outline-none transition-all duration-300 ${
                   errors.password ? 'border-red-300 bg-red-50 focus:border-red-400' :
-                  inputs.password && !errors.password ? 'border-green-300 bg-green-50 focus:border-green-400' : 
-                  'border-gray-200 focus:border-green-400'
+                  inputs.password && !errors.password ? 'border-primary-300 bg-primary-50 focus:border-primary-400' : 
+                  'border-gray-200 focus:border-primary-400'
                 }`}
                 placeholder="Enter your password"
                 disabled={isSubmitting}
@@ -203,7 +205,7 @@ return (
             <button 
               type="button"
               onClick={() => navigate('/forgot-password')} 
-              className="text-sm text-green-600 hover:text-green-700 transition-colors"
+              className="text-sm text-primary-600 text-brand hover:text-primary-700 transition-colors"
               disabled={isSubmitting}
             >
               Forgot password?
@@ -216,7 +218,7 @@ return (
             className={`w-full py-4 rounded-xl font-semibold text-white transition-all duration-300 ${
               isSubmitting 
                 ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-green-600 hover:bg-green-700 hover:shadow-lg'
+                : 'bg-primary-600 bg-brand hover:bg-primary-700 hover:shadow-lg'
             }`}
           >
             {isSubmitting ? "Signing In..." : "Sign In"}
@@ -228,7 +230,7 @@ return (
           <button
             type="button"
             onClick={() => navigate("/register")}
-            className="text-green-600 font-semibold hover:text-green-700 transition-colors"
+            className="text-primary-600 text-brand font-semibold hover:text-primary-700 transition-colors"
             disabled={isSubmitting}
           >
             Sign up here

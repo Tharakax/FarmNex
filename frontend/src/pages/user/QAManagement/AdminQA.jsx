@@ -1,6 +1,7 @@
 // frontend/src/pages/AdminQA.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from "sweetalert2";
 import { getQuestions, replyToQuestion, updateQuestion, deleteQuestion, generateReport } 
  from "../../../api/questionApi";
 
@@ -120,20 +121,33 @@ const AdminQA = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this question? This action cannot be undone.')) return;
     try {
+      const result = await Swal.fire({
+        title: "Are you sure?",
+        text: "Do you really want to delete this question? This action cannot be undone.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "Cancel",
+      });
+
+      if (!result.isConfirmed) return;
+
+      Swal.fire({
+        title: "Deleting...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
       await deleteQuestion(id);
       fetchQuestions();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+      Swal.fire("Deleted!", "The question has been deleted.", "success");
 
-  const handleDownloadReport = async (format) => {
-    try {
-      await generateReport(format);
     } catch (err) {
-      alert(`Failed to generate ${format} report: ${err.message}`);
+      console.error(err);
+      Swal.fire("Error!", err.message || "Failed to delete question.", "error");
     }
   };
 
@@ -155,23 +169,515 @@ const AdminQA = () => {
     return { total, answered, pending };
   };
 
-  // Function to get full image URL
   const getImageUrl = (imagePath) => {
     if (!imagePath) return null;
-    // Remove leading slash if present and construct full URL
     const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
-    //return `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/${cleanPath}`;
     return `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'}/${cleanPath}`;
   };
 
-  // Open image in modal
   const openImageModal = (src, alt) => {
     setImageModal({ isOpen: true, src, alt });
   };
 
-  // Close image modal
   const closeImageModal = () => {
     setImageModal({ isOpen: false, src: '', alt: '' });
+  };
+
+  const generatePDFReport = () => {
+    const stats = getQuestionStats();
+    const reportDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const pdfContent = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmNex Q&A Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica', Arial, sans-serif;
+            background: #ffffff;
+            color: #1f2937;
+            line-height: 1.6;
+        }
+
+        :root {
+            --primary: #22c55e;
+            --success: #16a34a;
+            --dark: #1f2937;
+            --dark-medium: #4b5563;
+            --gray: #6b7280;
+            --border: #d1d5db;
+            --green-light: #d1fae5;
+        }
+
+        .pdf-header {
+            width: 100%;
+            max-width: 210mm;
+            padding: 15px;
+            background: #ffffff;
+            border-bottom: 2px solid var(--border);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 120px;
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .logo-tile {
+            width: 18px;
+            height: 18px;
+            background: var(--green-light);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-tile .fa-leaf {
+            color: var(--success);
+            font-size: 12px;
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 0;
+            line-height: 1;
+        }
+
+        .title-section {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .report-title {
+            font-size: 26px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 0 0 8px 0;
+            line-height: 1.2;
+        }
+
+        .report-subtitle {
+            font-size: 14px;
+            color: var(--dark-medium);
+            margin: 0 0 8px 0;
+            line-height: 1.2;
+        }
+
+        .contact-details {
+            text-align: center;
+            font-size: 9px;
+            color: var(--gray);
+            line-height: 1.4;
+        }
+
+        .contact-line {
+            margin: 2px 0;
+        }
+
+        .header-divider {
+            width: 100%;
+            height: 2px;
+            background: var(--border);
+            margin-top: 10px;
+            border: none;
+        }
+
+        .pdf-footer {
+            width: 100%;
+            max-width: 210mm;
+            height: 25px;
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            padding: 0 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            font-size: 7px;
+            color: var(--gray);
+            line-height: 1.2;
+        }
+
+        .footer-center {
+            font-size: 9px;
+            color: var(--gray);
+            text-align: center;
+        }
+
+        .footer-right {
+            font-size: 8px;
+            color: var(--gray);
+            text-align: right;
+        }
+
+        .content {
+            margin-top: 130px;
+            margin-bottom: 40px;
+            padding: 20px;
+            max-width: 210mm;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: var(--primary);
+            border-bottom: 3px solid var(--primary);
+            padding-bottom: 10px;
+            margin: 30px 0 20px 0;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: var(--green-light);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--dark-medium);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .question-card {
+            background: #ffffff;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .question-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .question-meta {
+            font-size: 10px;
+            color: var(--gray);
+            margin-bottom: 3px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .status-answered {
+            background: #d1fae5;
+            color: #16a34a;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .question-content {
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .reply-section {
+            background: #d1fae5;
+            border-left: 4px solid var(--success);
+            padding: 12px;
+            margin-top: 10px;
+            border-radius: 6px;
+        }
+
+        .reply-label {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--success);
+            margin-bottom: 8px;
+        }
+
+        .reply-content {
+            font-size: 12px;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+
+        .no-reply {
+            font-style: italic;
+            color: var(--gray);
+            font-size: 11px;
+        }
+
+        .summary-box {
+            background: #f9fafb;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            color: var(--dark-medium);
+            font-weight: 600;
+        }
+
+        .summary-value {
+            color: var(--dark);
+            font-weight: bold;
+        }
+
+        @media print {
+            .pdf-header {
+                position: fixed;
+                top: 0;
+            }
+            .pdf-footer {
+                position: fixed;
+                bottom: 0;
+            }
+            .content {
+                margin-top: 130px;
+                margin-bottom: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="pdf-header">
+        <div class="brand-row">
+            <div class="logo-tile">
+                <i class="fas fa-leaf"></i>
+            </div>
+            <h1 class="brand-name">FarmNex</h1>
+        </div>
+        <div class="title-section">
+            <h2 class="report-title">Q&A Management Report</h2>
+            <p class="report-subtitle">Comprehensive Overview of Farmer Questions & Admin Responses</p>
+        </div>
+        <div class="contact-details">
+            <div class="contact-line">No 8, Temple Road, Beralapanathra, Sri Lanka</div>
+            <div class="contact-line">Tel: 0742331740 • Email: farmnex@gmail.com</div>
+        </div>
+        <hr class="header-divider">
+    </header>
+
+    <main class="content">
+        <h3 class="section-title">📊 Overview Statistics</h3>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Questions</div>
+                <div class="stat-value">${stats.total}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Answered</div>
+                <div class="stat-value">${stats.answered}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending</div>
+                <div class="stat-value">${stats.pending}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Response Rate</div>
+                <div class="stat-value">${stats.total > 0 ? Math.round((stats.answered / stats.total) * 100) : 0}%</div>
+            </div>
+        </div>
+
+        <div class="summary-box">
+            <div class="summary-item">
+                <span class="summary-label">Report Generated On:</span>
+                <span class="summary-value">${reportDate}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Total Questions Received:</span>
+                <span class="summary-value">${stats.total}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Questions Answered:</span>
+                <span class="summary-value">${stats.answered}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Questions Awaiting Response:</span>
+                <span class="summary-value">${stats.pending}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Overall Response Rate:</span>
+                <span class="summary-value">${stats.total > 0 ? Math.round((stats.answered / stats.total) * 100) : 0}%</span>
+            </div>
+        </div>
+
+        <h3 class="section-title">✅ Answered Questions</h3>
+        ${questions
+          .filter(q => q.adminReply)
+          .map((q, index) => `
+            <div class="question-card">
+                <div class="question-header">
+                    <div>
+                        <div class="question-title">${index + 1}. ${q.title}</div>
+                        <div class="question-meta">👤 Asked by: ${q.authorName}</div>
+                        <div class="question-meta">📅 Date: ${formatDate(q.createdAt)}</div>
+                    </div>
+                    <span class="status-badge status-answered">✓ Answered</span>
+                </div>
+                <div class="question-content">
+                    <strong>Question:</strong><br>
+                    ${q.content}
+                </div>
+                <div class="reply-section">
+                    <div class="reply-label">📝 Admin Reply (${q.repliedAt ? formatDate(q.repliedAt) : 'Date unavailable'})</div>
+                    <div class="reply-content">${q.adminReply}</div>
+                </div>
+            </div>
+        `).join('')}
+
+        ${questions.filter(q => q.adminReply).length === 0 ? '<p style="text-align: center; color: #6b7280; padding: 20px;">No answered questions available.</p>' : ''}
+
+        <h3 class="section-title">⏳ Pending Questions</h3>
+        ${questions
+          .filter(q => !q.adminReply)
+          .map((q, index) => `
+            <div class="question-card">
+                <div class="question-header">
+                    <div>
+                        <div class="question-title">${index + 1}. ${q.title}</div>
+                        <div class="question-meta">👤 Asked by: ${q.authorName}</div>
+                        <div class="question-meta">📅 Date: ${formatDate(q.createdAt)}</div>
+                    </div>
+                    <span class="status-badge status-pending">⏳ Pending</span>
+                </div>
+                <div class="question-content">
+                    <strong>Question:</strong><br>
+                    ${q.content}
+                </div>
+                <div class="reply-section">
+                    <div class="no-reply">⚠️ Awaiting admin response</div>
+                </div>
+            </div>
+        `).join('')}
+
+        ${questions.filter(q => !q.adminReply).length === 0 ? '<p style="text-align: center; color: #6b7280; padding: 20px;">No pending questions. All questions have been answered!</p>' : ''}
+
+    </main>
+
+    <footer class="pdf-footer">
+        <div class="footer-left">
+            <div>FarmNex Farm Management System • No 8, Temple Road, Beralapanathra, Sri Lanka</div>
+            <div>Tel: 0742331740 • Email: farmnex@gmail.com</div>
+        </div>
+        <div class="footer-center">
+            Page 1 of 1
+        </div>
+        <div class="footer-right">
+            Generated: ${new Date().toLocaleString()}
+        </div>
+    </footer>
+</body>
+</html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(pdfContent);
+    printWindow.document.close();
+    
+    printWindow.onload = function() {
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    };
+  };
+
+  const handleDownloadReport = async (format) => {
+    if (format === 'pdf') {
+      try {
+        generatePDFReport();
+      } catch (err) {
+        Swal.fire('Error!', `Failed to generate PDF report: ${err.message}`, 'error');
+      }
+    } else if (format === 'excel') {
+      try {
+        await generateReport(format);
+      } catch (err) {
+        Swal.fire('Error!', `Failed to generate Excel report: ${err.message}`, 'error');
+      }
+    }
   };
 
   const stats = getQuestionStats();
@@ -182,34 +688,32 @@ const AdminQA = () => {
       <div className="bg-white shadow-lg border-b-4 border-green-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/admin')}
-                className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <button
+              onClick={() => navigate('/admin')}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Admin
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Page Title Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center shadow-lg">
+                <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
                 </svg>
-                <span>Back to Admin</span>
-              </button>
-              <div className="hidden md:flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800">Admin Q&A Panel</h2>
-                  <p className="text-sm text-gray-600">Manage farmer questions and replies</p>
-                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2 text-green-600">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="font-semibold">Smart Farm Management</span>
-            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-2">Admin Q&A Panel</h3>
+            <p className="text-gray-600">Manage farmer questions and replies</p>
           </div>
         </div>
       </div>

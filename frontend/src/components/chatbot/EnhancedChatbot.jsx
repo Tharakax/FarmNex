@@ -347,6 +347,74 @@ const EnhancedChatbot = () => {
                         <div className="whitespace-pre-wrap text-sm leading-relaxed">
                           {message.text}
                         </div>
+                        {/* Rich context rendering */}
+                        {message.type === 'bot' && message.contextData && (
+                          <div className="mt-3 space-y-3">
+                            {/* Training materials */}
+                            {Array.isArray(message.contextData?.trainingMaterials) && message.contextData.trainingMaterials.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-green-700 mb-1">Related training materials</p>
+                                <div className="grid grid-cols-1 gap-2">
+                                  {message.contextData.trainingMaterials.slice(0,3).map((t, idx) => (
+                                    <div key={t._id || idx} className="border border-green-100 rounded-lg p-2 bg-green-50/40">
+                                      <p className="text-sm font-medium text-gray-800">{t.title}</p>
+                                      <p className="text-xs text-gray-600">{t.category} • {t.type} • {t.difficulty}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Weather summary */}
+                            {(message.contextData?.forecast || message.contextData?.districtInfo) && (
+                              <div className="border border-blue-100 rounded-lg p-2 bg-blue-50/40">
+                                <p className="text-xs font-semibold text-blue-700 mb-1">Weather context</p>
+                                {message.contextData?.forecast && (
+                                  <p className="text-xs text-gray-700">Season: {message.contextData.forecast.season}</p>
+                                )}
+                                {message.contextData?.districtInfo?.recommendedCrops && (
+                                  <p className="text-xs text-gray-700">Recommended crops: {message.contextData.districtInfo.recommendedCrops.join(', ')}</p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Soil reading */}
+                            {message.contextData?.soilReading && (
+                              <div className="border border-amber-100 rounded-lg p-2 bg-amber-50/40">
+                                <p className="text-xs font-semibold text-amber-700 mb-1">Latest soil reading</p>
+                                <div className="text-xs text-gray-700">
+                                  <p>Moisture: {message.contextData.soilReading.moisture}%</p>
+                                  {message.contextData.soilReading.temperature !== undefined && (
+                                    <p>Temperature: {message.contextData.soilReading.temperature}°C</p>
+                                  )}
+                                  {message.contextData.soilReading.ph !== undefined && (
+                                    <p>pH: {message.contextData.soilReading.ph}</p>
+                                  )}
+                                  {message.contextData.moistureStatus && (
+                                    <p>Status: {message.contextData.moistureStatus}</p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Generic list (e.g., equipment, fertilizers, prices) */}
+                            {Array.isArray(message.contextData) && message.contextData.length > 0 && (
+                              <div>
+                                <p className="text-xs font-semibold text-gray-700 mb-1">Related items</p>
+                                <div className="space-y-1">
+                                  {message.contextData.slice(0,5).map((item, idx) => (
+                                    <div key={item._id || idx} className="text-xs text-gray-700 flex items-center justify-between border border-gray-100 rounded p-2 bg-white">
+                                      <span className="truncate mr-2">{item.name || item.title || 'Item'}</span>
+                                      {(item.price !== undefined && item.unit) && (
+                                        <span className="text-gray-600">LKR {item.price}/{item.unit}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         <div className="flex items-center justify-between mt-2">
                           <p className={`text-xs ${
                             message.type === 'user' ? 'text-green-100' : 'text-gray-500'

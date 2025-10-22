@@ -1,7 +1,7 @@
 // controllers/questionController.js - Fixed version
 import Question from "../models/questionModel.js";
 import User from "../models/usermodel.js";
-import { generatePDF, generateExcel } from "../utils/reportGenerator.js";
+import { generatePDF } from "../utils/reportGenerator.js";
 
 // Ask Question (with optional image)
 export const askQuestion = async (req, res) => {
@@ -183,7 +183,7 @@ export const deleteQuestion = async (req, res) => {
   }
 };
 
-// Generate PDF/Excel report
+// Generate PDF report (PDF only)
 export const generateReport = async (req, res) => {
   try {
     if (req.user.role !== "Admin") {
@@ -194,13 +194,9 @@ export const generateReport = async (req, res) => {
       .populate("author", "fullName email")
       .populate("repliedBy", "fullName email");
 
-    const format = req.query.format || "pdf";
+    // Only PDF now
+    await generatePDF(questions, res);
     
-    if (format === "excel") {
-      await generateExcel(questions, res);
-    } else {
-      await generatePDF(questions, res);
-    }
   } catch (err) {
     console.error('Error in generateReport:', err);
     return res.status(500).json({ 

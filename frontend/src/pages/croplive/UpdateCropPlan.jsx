@@ -230,7 +230,7 @@ function UpdateCropPlan() {
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                         value={formData.planName}
                                         onChange={handleChange}
-                                        required
+                                        disabled
                                     />
                                 </div>
                                 <div>
@@ -242,7 +242,7 @@ function UpdateCropPlan() {
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                         value={formData.cropType}
                                         onChange={handleChange}
-                                        required
+                                        disabled
                                     >
                                         <option value="">Select Crop Type</option>
                                         <option value="Tomato">Tomato</option>
@@ -262,7 +262,7 @@ function UpdateCropPlan() {
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                         value={formData.variety}
                                         onChange={handleChange}
-                                        required
+                                        disabled
                                     />
                                 </div>
                                 <div>
@@ -347,7 +347,7 @@ function UpdateCropPlan() {
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                         value={formData.plantingDate}
                                         onChange={handleChange}
-                                        required
+                                        disabled
                                     />
                                 </div>
                                 <div>
@@ -380,12 +380,14 @@ function UpdateCropPlan() {
                                             step="0.1"
                                             placeholder="0.0"
                                             min="0"
+                                            disabled  
                                         />
                                         <select
                                             name="areaSize.unit"
                                             className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                             value={formData.areaSize.unit}
                                             onChange={handleChange}
+                                            disabled
                                         >
                                             <option value="acres">Acres</option>
                                             <option value="hectares">Hectares</option>
@@ -401,6 +403,7 @@ function UpdateCropPlan() {
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                                         value={formData.soilType}
                                         onChange={handleChange}
+                                        disabled
                                     >
                                         <option value="">Select Soil Type</option>
                                         <option value="Sandy">Sandy</option>

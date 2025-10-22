@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "./ToastProvider.jsx";
 import { Calendar, Droplets, Sprout, MapPin, Beaker, Clock, Plus, Trash2, Leaf, ChevronUp, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -40,6 +40,46 @@ function AddCropPlan() {
   ]);
   const [status, setStatus] = useState("");
 
+    // Validation state
+    const [dateErrors, setDateErrors] = useState({ planting: "", harvest: "" });
+
+    // Helper for date comparison
+    const isDateBefore = (a, b) => new Date(a) < new Date(b);
+    const isDateAfter = (a, b) => new Date(a) > new Date(b);
+    const isDateEqualOrAfter = (a, b) => new Date(a) >= new Date(b);
+    const isDateEqualOrBefore = (a, b) => new Date(a) <= new Date(b);
+
+    // Smart validation logic
+    useEffect(() => {
+      let plantingErr = "";
+      let harvestErr = "";
+      if (!status) {
+        setDateErrors({ planting: "Select status", harvest: "" });
+        return;
+      }
+      if (status === "Planned") {
+        if (!plantingDate) plantingErr = "Planting date required";
+        else if (!isDateEqualOrAfter(plantingDate, today)) plantingErr = "Planting date must be today or later";
+        // Harvest date optional
+      } else if (status === "In Progress") {
+        if (!plantingDate) plantingErr = "Planting date required";
+        else if (!isDateEqualOrBefore(plantingDate, today)) plantingErr = "Planting date must be today or earlier";
+        if (!harvestDate) harvestErr = "Harvest date required";
+        else if (!isDateEqualOrAfter(harvestDate, today)) harvestErr = "Harvest date must be today or later";
+      } else if (status === "Completed") {
+        if (!plantingDate) plantingErr = "Planting date required";
+        else if (!isDateEqualOrBefore(plantingDate, today)) plantingErr = "Planting date must be today or earlier";
+        if (!harvestDate) harvestErr = "Harvest date required";
+        else if (!isDateEqualOrBefore(harvestDate, today)) harvestErr = "Harvest date must be today or earlier";
+        else if (!isDateEqualOrAfter(harvestDate, plantingDate)) harvestErr = "Harvest date must be after planting date";
+      } else if (status === "Delayed") {
+        if (!plantingDate) plantingErr = "Planting date required";
+        if (!harvestDate) harvestErr = "Harvest date required";
+        // No restriction: allow any harvest date (past or future)
+      }
+      setDateErrors({ planting: plantingErr, harvest: harvestErr });
+    }, [status, plantingDate, harvestDate, today]);
+
   const [Litres_of_water, setLitresOfWater] = useState("");
   const [Duration, setDuration] = useState("");
 
@@ -61,31 +101,40 @@ function AddCropPlan() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    // Validation
-    if (!pName || !cropType || !variety || !plantingDate || !harvestDate) {
+    // Basic required fields
+    if (!pName || !cropType || !variety) {
       addToast('Please fill in all required fields', 'error');
       return;
     }
-  
-    if (new Date(harvestDate) <= new Date(plantingDate)) {
-      addToast('Harvest date must be after planting date', 'error');
+    // Date validation
+    if (dateErrors.planting || dateErrors.harvest) {
+      addToast(dateErrors.planting || dateErrors.harvest, 'error');
       return;
     }
-  
-    const cycleDuration = Math.ceil(
-      (new Date(harvestDate) - new Date(plantingDate)) / (1000 * 60 * 60 * 24)
-    );
-  
+    // Status-based required fields
+    if (status === "Planned" && !plantingDate) {
+      addToast('Planting date required for Planned status', 'error');
+      return;
+    }
+    if (["In Progress", "Completed", "Delayed"].includes(status) && (!plantingDate || !harvestDate)) {
+      addToast('Both dates required for this status', 'error');
+      return;
+    }
+    // Fertilizer validation
     const hasEmptyFertilizerFields = fertilizers.some(
       (fer) => !fer.day || !fer.fertilizer || !fer.quantity || !fer.duration
     );
-  
     if (hasEmptyFertilizerFields) {
       addToast('Please fill all fields in fertilizer schedule', 'error');
       return;
     }
-  
+    // Duration calculation
+    let cycleDuration = 0;
+    if (plantingDate && harvestDate) {
+      cycleDuration = Math.ceil(
+        (new Date(harvestDate) - new Date(plantingDate)) / (1000 * 60 * 60 * 24)
+      );
+    }
     const newCropPlan = {
       planName: pName,
       cropType,
@@ -109,15 +158,10 @@ function AddCropPlan() {
       Litres_of_water,
       Duration,
     };
-  
     try {
-  // use 127.0.0.1 to avoid possible localhost resolution issues on some systems
-  const response = await axios.post("http://localhost:3000/api/crop/add", newCropPlan);
-  
+      const response = await axios.post("http://localhost:3000/api/crop/add", newCropPlan);
       if (response.status === 201 || response.status === 200) {
         addToast('New Crop Plan Added Successfully!', 'created');
-        
-        // Reset form
         setPName("");
         setCropType("");
         setVariety("");
@@ -130,20 +174,11 @@ function AddCropPlan() {
         setStatus("");
         setLitresOfWater("");
         setDuration("");
-  
-        navigate("/crops"); // Redirect to AllCropPlans page
-  }
+        navigate("/crops");
+      }
     } catch (error) {
       console.error("Failed to add crop plan:", error);
-      if (error.response) {
-        console.error("Status:", error.response.status);
-        console.error("Response data:", error.response.data);
-      } else if (error.request) {
-        console.error("No response received, request info:", error.request);
-      } else {
-        console.error("Error preparing request:", error.message);
-      }
-  addToast('Failed to add crop plan. Please try again.', 'error');
+      addToast('Failed to add crop plan. Please try again.', 'error');
     }
   };
 
@@ -175,20 +210,24 @@ function AddCropPlan() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
-                  <span>Plan Name</span>
-                  <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="text" 
-                  value={pName} 
-                  required 
-                  onChange={(e) => setPName(e.target.value)} 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                  placeholder="Enter plan name"
-                />
-              </div>
+             <div className="space-y-2">
+  <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+    <span>Plan Name</span>
+    <span className="text-red-500">*</span>
+  </label>
+  <input 
+    type="text" 
+    value={pName} 
+    required 
+    onChange={(e) => {
+      // Only allow letters and spaces
+      const filtered = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+      setPName(filtered);
+    }} 
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+    placeholder="Enter plan name"
+  />
+</div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
@@ -211,15 +250,20 @@ function AddCropPlan() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Variety</label>
-                <input 
-                  type="text" 
-                  value={variety} 
-                  onChange={(e) => setVariety(e.target.value)} 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
-                  placeholder="Enter variety"
-                />
-              </div>
+  <label className="text-sm font-medium text-gray-700">Variety</label>
+  <input 
+    type="text" 
+    value={variety} 
+    onChange={(e) => {
+      // Allow only letters and spaces
+      const filtered = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+      setVariety(filtered);
+    }} 
+    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+    placeholder="Enter variety"
+  />
+</div>
+
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
@@ -248,28 +292,39 @@ function AddCropPlan() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
                   <span>Planting Date</span>
-                  <span className="text-red-500">*</span>
+                  {(status === "Planned" || status === "In Progress" || status === "Completed" || status === "Delayed") && <span className="text-red-500">*</span>}
                 </label>
-                <input 
-                  type="date" 
-                  value={plantingDate} 
-                  required 
-                  onChange={(e) => setPlantingDate(e.target.value)} 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                <input
+                  type="date"
+                  value={plantingDate}
+                  required={status !== ""}
+                  onChange={(e) => setPlantingDate(e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white ${dateErrors.planting ? "border-red-400" : "border-gray-300"}`}
+                  min={status === "Planned" ? today : undefined}
+                  max={status === "Completed" ? today : undefined}
                 />
+                {dateErrors.planting && <span className="text-xs text-red-500">{dateErrors.planting}</span>}
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Harvest Date</label>
-                <input 
-                  type="date" 
-                  value={harvestDate} 
-                  onChange={(e) => setHarvestDate(e.target.value)} 
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white"
+                <label className="text-sm font-medium text-gray-700 flex items-center space-x-2">
+                  <span>Harvest Date</span>
+                  {(["In Progress", "Completed", "Delayed"].includes(status)) && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  type="date"
+                  value={harvestDate}
+                  required={(["In Progress", "Completed", "Delayed"].includes(status))}
+                  onChange={(e) => setHarvestDate(e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 hover:bg-white ${dateErrors.harvest ? "border-red-400" : "border-gray-300"}`}
+                  min={status === "In Progress" ? today : plantingDate || undefined}
+                  max={status === "Completed" ? today : undefined}
                 />
+                {dateErrors.harvest && <span className="text-xs text-red-500">{dateErrors.harvest}</span>}
               </div>
 
               <div className="space-y-2">
@@ -515,7 +570,8 @@ function AddCropPlan() {
             <button
               type="button"
               onClick={handleSubmit}
-              className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2"
+              disabled={dateErrors.planting || dateErrors.harvest}
+              className={`w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-2 ${dateErrors.planting || dateErrors.harvest ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               <Sprout className="w-6 h-6" />
               <span className="text-lg">Create Crop Plan</span>

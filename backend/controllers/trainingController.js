@@ -85,7 +85,20 @@ const createMaterial = async (req, res) => {
     // If user is authenticated, use their info
     if (req.user) {
       materialCreatedBy = req.user.name || `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || req.user.email || 'User';
-      createdByRole = req.user.role || 'user';
+      
+      // Map user roles to valid enum values
+      const userRole = (req.user.role || '').toLowerCase();
+      console.log('🔍 Backend: User role mapping - Original:', req.user.role, 'Lowercase:', userRole);
+      
+      if (userRole === 'admin' || userRole === 'administrator') {
+        createdByRole = 'admin';
+      } else if (userRole === 'farmer' || userRole === 'farmstaff' || userRole === 'farm_staff') {
+        createdByRole = 'farmer';
+      } else {
+        createdByRole = 'user'; // Default fallback
+      }
+      
+      console.log('🔍 Backend: Mapped role from', req.user.role, 'to', createdByRole);
     } else if (createdBy && createdBy.toLowerCase().includes('admin')) {
       createdByRole = 'admin';
     }

@@ -6,6 +6,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Create a payment intent
 export const createPaymentIntent = async (req, res) => {
   try {
+    // Check if Stripe is properly configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('STRIPE_SECRET_KEY is not set in environment variables');
+      return res.status(500).json({
+        success: false,
+        message: 'Payment service is not properly configured'
+      });
+    }
+
     const { amount, currency = 'lkr', orderId, contactEmail } = req.body;
 
     if (!amount || !orderId) {
@@ -15,19 +24,43 @@ export const createPaymentIntent = async (req, res) => {
       });
     }
 
+    // Validate amount is a positive number
+    if (typeof amount !== 'number' || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount must be a positive number'
+      });
+    }
+
+    // For LKR, check minimum amount (approximately 150 LKR = $0.50)
+    if (currency.toLowerCase() === 'lkr' && amount < 15000) { // 150 LKR in paisa
+      return res.status(400).json({
+        success: false,
+        message: 'Minimum payment amount is LKR 150.00 for card payments'
+      });
+    }
+
+    console.log(`Creating payment intent for order ${orderId}, amount: ${amount} ${currency}`);
+    
+
     // Create a PaymentIntent with the order amount and currency
+    // For LKR, the smallest unit is paisa (1 LKR = 100 paisa), similar to cents
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount), // Amount in cents
-      currency: currency,
-      receipt_email: contactEmail, // This automatically sends receipt emails
+      amount: Math.round(amount), // Amount in smallest currency unit (paisa for LKR, cents for USD)
+      currency: currency.toLowerCase(),
+      receipt_email: contactEmail || undefined, // This automatically sends receipt emails
       metadata: {
         orderId: orderId.toString(),
-        customerEmail: contactEmail // Store email in metadata for reference
+        customerEmail: contactEmail || 'anonymous' // Store email in metadata for reference
       },
       automatic_payment_methods: {
         enabled: true,
       },
+      description: `Payment for Order #${orderId}`
     });
+
+    console.log(`Payment intent created successfully: ${paymentIntent.id}`);
+    
 
     res.status(200).json({
       success: true,
@@ -77,7 +110,8 @@ export const handleStripeWebhook = async (req, res) => {
             paymentcompleted: true,
             paymentMethod: 'credit_card',
             paymentDetails: {
-              stripePaymentIntentId: paymentIntentSucceeded.id,
+              paymentIntentId: paymentIntentSucceeded.id,
+              stripePaymentIntentId: paymentIntentSucceeded.id, // Keep for backward compatibility
               cardBrand: paymentIntentSucceeded.payment_method_details?.card?.brand,
               last4: paymentIntentSucceeded.payment_method_details?.card?.last4
             }

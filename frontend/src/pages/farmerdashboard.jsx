@@ -1,17 +1,19 @@
-import React, { useState, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import React, { useState, Suspense, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom'; // 
 import { getLoggedInUser, getRoleDisplayName } from '../utils/userUtils';
+import sessionManager from '../utils/sessionManager';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import SoilMoistureWidget from '../components/SoilMoistureWidget';
 import WeatherWidget from '../components/WeatherWidget';
 import WeatherDashboard from '../components/WeatherDashboard';
 import BackButton from '../components/common/BackButton';
+import NotificationBell from '../features/notifications/NotificationBell';
+import Swal from "sweetalert2";
 import {
   Home, 
   Wheat, 
   Users, 
   Cloud, 
-  TrendingUp,
   Package, 
   FileText, 
   Settings, 
@@ -22,13 +24,17 @@ import {
   ShoppingBag,
   Truck,
   BookOpen,
+  ChefHat,
   X,
   AlertTriangle,
   Calendar,
   Activity,
   ChevronLeft,
   ChevronRight,
-  Sprout
+  Sprout,
+  ShoppingCart,
+  BarChart3,
+  MessageSquare
 } from 'lucide-react';
 
 // Current crop yield data (2024 - tons per hectare)
@@ -47,13 +53,6 @@ const cropYieldData = [
   { month: 'Dec', yield: 35 }
 ];
 
-const recentActivities = [
-  { id: 1, activity: 'Harvested winter wheat from Field A', date: '2024-12-20', time: '14:30' },
-  { id: 2, activity: 'Applied organic fertilizer to vegetable plots', date: '2024-12-20', time: '09:15' },
-  { id: 3, activity: 'Veterinary checkup for dairy cattle', date: '2024-12-19', time: '11:45' },
-  { id: 4, activity: 'Maintenance on irrigation system', date: '2024-12-19', time: '08:20' },
-  { id: 5, activity: 'Planted cover crops in Field C', date: '2024-12-18', time: '15:30' }
-];
 
 // Reusable Card Component
 const Card = ({ children, className = "" }) => {
@@ -69,7 +68,7 @@ import ErrorFallback from '../components/common/ErrorFallback';
 
 // Lazy load components with error handling
 const ProductManagement = React.lazy(() => 
-  import('../components/products/ProductManagement')
+  import('../features/products/ProductManagement')
     .catch(error => {
       console.error('Failed to load ProductManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Product Management" /> };
@@ -77,7 +76,7 @@ const ProductManagement = React.lazy(() =>
 );
 
 const FarmerInventoryManagement = React.lazy(() => 
-  import('../components/inventory/FarmerInventoryManagement')
+  import('../features/inventory/FarmerInventoryManagement')
     .catch(error => {
       console.error('Failed to load FarmerInventoryManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Inventory Management" /> };
@@ -85,7 +84,7 @@ const FarmerInventoryManagement = React.lazy(() =>
 );
 
 const FarmerSuppliesManagement = React.lazy(() => 
-  import('../components/supplies/FarmerSuppliesManagement')
+  import('../features/supplies/FarmerSuppliesManagement')
     .catch(error => {
       console.error('Failed to load FarmerSuppliesManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Supplies Management" /> };
@@ -93,31 +92,66 @@ const FarmerSuppliesManagement = React.lazy(() =>
 );
 
 const ReportsManagement = React.lazy(() => 
-  import('../components/reports/ReportsManagement')
+  import('../features/reports/ReportsManagement')
     .catch(error => {
       console.error('Failed to load ReportsManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Reports Management" /> };
     })
 );
 
-const ProductManagementReport = React.lazy(() => 
-  import('../components/reports/ProductManagementReport')
+// Import OrdersRemade directly to avoid lazy-loading failures in critical workflow
+import OrdersRemade from '../features/orders/OrdersRemade.jsx';
+
+const ProfessionalReportDashboard = React.lazy(() => 
+  import('../features/reports/ProfessionalReportDashboard')
     .catch(error => {
-      console.error('Failed to load ProductManagementReport:', error);
-      return { default: () => <ErrorFallback error={error} componentName="Product Report" /> };
+      console.error('Failed to load ProfessionalReportDashboard:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Professional Reports" /> };
     })
 );
 
 const TrainingManagementComponent = React.lazy(() => 
-  import('../components/training/management/TrainingManagement')
+  import('../features/training/management/TrainingManagement')
     .catch(error => {
       console.error('Failed to load TrainingManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Training Management" /> };
     })
 );
 
+const AskQuestionForm = React.lazy(() =>
+  import('./user/QAManagement/UserQA.jsx').catch(error => {
+    console.error('Failed to load AskQuestionForm:', error);
+    return { default: () => <ErrorFallback error={error} componentName="Ask Question Form" /> };
+  })
+);
+
+// Use the existing RecipeList component directly in dashboard
+const RecipeListEmbedded = React.lazy(() =>
+  import('../features/recipes/RecipeList.jsx')
+    .catch(error => {
+      console.error('Failed to load RecipeList:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Recipe List" /> };
+    })
+);
+
+const ProductReport = React.lazy(() =>
+  import('../features/reports/ProductReport.jsx')
+    .catch(error => {
+      console.error('Failed to load ProductReport:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Product Report" /> };
+    })
+);
+
+const SalesReport = React.lazy(() =>
+  import('../features/reports/SalesReport.jsx')
+    .catch(error => {
+      console.error('Failed to load SalesReport:', error);
+      return { default: () => <ErrorFallback error={error} componentName="Sales Report" /> };
+    })
+);
+
 const CropLivestockManagement = React.lazy(() => 
-  import('../components/croplivestock/CropLivestockManagement')
+  import('../features/croplivestock/CropLivestockManagement')
     .catch(error => {
       console.error('Failed to load CropLivestockManagement:', error);
       return { default: () => <ErrorFallback error={error} componentName="Crop & Livestock Management" /> };
@@ -224,55 +258,27 @@ const ChartSection = () => {
   );
 };
 
-// Activity Table Component
-const ActivityTable = () => {
-  return (
-    <Card>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-gray-800">Recent Farm Activities</h3>
-        <button className="text-green-600 hover:text-green-800 text-sm font-medium transition-colors">
-          View All
-        </button>
-      </div>
-      
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-medium text-gray-600">Activity</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-600">Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentActivities.map((activity) => (
-              <tr key={activity.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className="py-4 px-4 text-gray-800">{activity.activity}</td>
-                <td className="py-4 px-4 text-gray-600">{activity.date}</td>
-                <td className="py-4 px-4 text-gray-600">{activity.time}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
-  );
-};
 
 // Sidebar Component
-const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed, toggleCollapse }) => {
+const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed, toggleCollapse, onMenuSelect }) => {
   const currentUser = getLoggedInUser();
   
   const menuItems = [
     { name: 'Home', icon: Home },
     { name: 'Products', icon: ShoppingBag },
+    { name: 'Orders', icon: ShoppingCart },
     { name: 'Supplies', icon: Truck },
     { name: 'Crop & Livestock', icon: Sprout },
     { name: 'Weather', icon: Cloud },
     { name: 'Inventory', icon: Package },
     { name: 'Training', icon: BookOpen },
+    { name: 'Recipes', icon: ChefHat },
     { name: 'Reports', icon: FileText },
+    { name: 'Sales Report', icon: BarChart3 },
+    { name: 'Ask Question', icon: MessageSquare, path: '/userqa' },
     { name: 'Settings', icon: Settings }
+   
+
   ];
 
   return (
@@ -338,7 +344,11 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem, setActiveItem, isCollapsed
               <button
                 key={item.name}
                 onClick={() => {
-                  setActiveItem(item.name);
+                  if (onMenuSelect) {
+                    onMenuSelect(item.name);
+                  } else {
+                    setActiveItem(item.name);
+                  }
                   // Auto-close sidebar on mobile after selection
                   if (window.innerWidth < 1024) {
                     toggleSidebar();
@@ -386,15 +396,16 @@ const Header = ({ toggleSidebar }) => {
   const currentUser = getLoggedInUser();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Clear all localStorage items related to user session
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userName');
-    
-    // Redirect to login page
-    navigate('/login', { replace: true });
+  const handleLogout = async () => {
+    try {
+      // Use session manager for proper logout
+      await sessionManager.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback to manual logout
+      localStorage.clear();
+      navigate('/login', { replace: true });
+    }
   };
 
   return (
@@ -408,15 +419,15 @@ const Header = ({ toggleSidebar }) => {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">{currentUser.name}</h1>
+          <h4 className="text-xl sm:text-2xl font-semibold text-gray-800">
+           <span className="text-green-600 font-bold">Welcome, </span>{' '}
+           <span className="text-gray-700">{currentUser.name}</span>
+          </h4>
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
           {/* Notifications */}
-          <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-            <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
-          </button>
+          <NotificationBell />
           
           {/* Profile Section */}
           <div className="flex items-center space-x-2 sm:space-x-3">
@@ -444,15 +455,101 @@ const Header = ({ toggleSidebar }) => {
 // Main Dashboard Component
 const FarmerDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeItem, setActiveItem] = useState('Home');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const resolveTab = () => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const t = (params.get('tab') || '').toLowerCase();
+      const map = {
+        home: 'Home',
+        products: 'Products',
+        orders: 'Orders',
+        'product-report': 'Product Report',
+        'productreport': 'Product Report',
+        supplies: 'Supplies',
+        inventory: 'Inventory',
+        weather: 'Weather',
+        training: 'Training',
+        recipes: 'Recipes',
+        reports: 'Reports',
+        'sales-report': 'Sales Report',
+        'salesreport': 'Sales Report',
+        crop: 'Crop & Livestock',
+        livestock: 'Crop & Livestock',
+        'crop & livestock': 'Crop & Livestock',
+
+        'ask-question': 'Ask Question',
+        userqa: 'Ask Question',
+      };
+      return map[t] || 'Home';
+    } catch { return 'Home'; }
+  };
+  const [activeItem, setActiveItem] = useState(resolveTab());
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  // Session management - Start monitoring when dashboard loads
+  useEffect(() => {
+    console.log('🔒 Starting session monitoring for farmer dashboard...');
+    
+    // Check if user is logged in
+    const currentUser = getLoggedInUser();
+    if (!currentUser) {
+      console.log('❌ No user found, redirecting to login');
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    // Start session monitoring
+    sessionManager.startSessionMonitoring();
+    
+    // Cleanup on unmount
+    return () => {
+      console.log('🧹 Cleaning up session monitoring...');
+      sessionManager.stopSessionMonitoring();
+    };
+  }, []); // Run only on mount
+
+  // Update tab if query param changes
+  React.useEffect(() => {
+    const next = resolveTab();
+    setActiveItem(next);
+  }, [location.search]);
+
   const toggleSidebarCollapse = () => {
     setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  // Ensure clicks update both UI state and URL (?tab=...)
+  const nameToTabSlug = (name) => {
+    const map = {
+      'Home': 'home',
+      'Products': 'products',
+      'Orders': 'orders',
+      'Product Report': 'product-report',
+      'Supplies': 'supplies',
+      'Inventory': 'inventory',
+      'Weather': 'weather',
+      'Training': 'training',
+      'Recipes': 'recipes',
+        'Reports': 'reports',
+        'Sales Report': 'sales-report',
+        'Crop & Livestock': 'crop',
+        'Settings': 'settings',
+        'Ask Question': 'userqa',
+    };
+    return map[name] || 'home';
+  };
+
+  const handleMenuSelect = (name) => {
+    setActiveItem(name);
+    const slug = nameToTabSlug(name);
+    // Update only the search part to avoid unnecessary route changes
+    navigate({ search: `?tab=${slug}` }, { replace: false });
   };
 
   // Render the appropriate content based on active sidebar item
@@ -464,6 +561,12 @@ const FarmerDashboard = () => {
         case 'Products':
           console.log('Rendering ProductManagement');
           return <ProductManagement />;
+        case 'Orders':
+          console.log('Rendering OrdersRemade');
+          return <OrdersRemade />;
+        case 'Product Report':
+          console.log('Rendering ProductReport');
+          return <ProductReport />;
         case 'Inventory':
           console.log('Rendering FarmerInventoryManagement');
           return <FarmerInventoryManagement />;
@@ -480,16 +583,25 @@ const FarmerDashboard = () => {
           console.log('Rendering TrainingManagement with all features');
           return <TrainingManagementComponent />;
         case 'Reports':
-          console.log('Rendering ProductManagementReport');
-          return <ProductManagementReport />;
+          console.log('Rendering ProfessionalReportDashboard');
+          return <ProfessionalReportDashboard />;
+        case 'Sales Report':
+          console.log('Rendering SalesReport');
+          return <SalesReport dateRange={30} />;
+        case 'Recipes':
+          console.log('Rendering RecipeList in dashboard');
+          return <RecipeListEmbedded showHeader={false} />;
         case 'Settings':
           console.log('Rendering Settings');
           return <div className="p-6 bg-white rounded-lg shadow"><h2 className="text-xl font-semibold mb-4">Settings</h2><p>Settings panel is under development.</p></div>;
-        case 'Home':
+        case 'Ask Question':
+          console.log('Rendering AskQuestionForm');
+          return <AskQuestionForm />;
+        
+          case 'Home':
         default:
           return (
             <div>
-              <DashboardStats />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="md:col-span-2">
                   <ChartSection />
@@ -542,7 +654,6 @@ const FarmerDashboard = () => {
                   </div>
                 </div>
               </div>
-              <ActivityTable />
             </div>
           );
       }
@@ -583,6 +694,7 @@ const FarmerDashboard = () => {
         setActiveItem={setActiveItem}
         isCollapsed={sidebarCollapsed}
         toggleCollapse={toggleSidebarCollapse}
+        onMenuSelect={handleMenuSelect}
       />
       
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-0'}`}>

@@ -34,7 +34,7 @@ const CategoryCard = ({ category, onClick }) => {
       case 'Livestock':
         return <Heart className="h-12 w-12 text-orange-600" />;
       case 'Equipment':
-        return <Wrench className="h-12 w-12 text-blue-600" />;
+        return <Wrench className="h-12 w-12 text-brand" />;
       case 'Finance':
         return <DollarSign className="h-12 w-12 text-yellow-600" />;
       case 'Marketing':
@@ -53,7 +53,7 @@ const CategoryCard = ({ category, onClick }) => {
       case 'Livestock':
         return 'border-orange-200 hover:border-orange-300 hover:shadow-orange-100';
       case 'Equipment':
-        return 'border-blue-200 hover:border-blue-300 hover:shadow-blue-100';
+        return 'border-green-200 hover:border-green-300 hover:shadow-green-100';
       case 'Finance':
         return 'border-yellow-200 hover:border-yellow-300 hover:shadow-yellow-100';
       case 'Marketing':
@@ -99,7 +99,7 @@ const MaterialCard = ({ material, onViewMaterial }) => {
         return <FileText className="h-5 w-5 text-red-600" />;
       case 'guide':
       case 'article':
-        return <BookOpen className="h-5 w-5 text-blue-600" />;
+        return <BookOpen className="h-5 w-5 text-brand" />;
       default:
         return <FileText className="h-5 w-5 text-gray-600" />;
     }

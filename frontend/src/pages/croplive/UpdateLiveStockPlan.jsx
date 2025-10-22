@@ -100,6 +100,7 @@ function UpdateLiveStockPlan() {
             value={form.animalType}
             onChange={handleChange}
             className="w-full px-3 py-2 border rounded"
+            disabled
           >
             <option value="">Select Type</option>
             <option value="Cow">Cow</option>
@@ -111,11 +112,13 @@ function UpdateLiveStockPlan() {
           </div>
           <div>
             <label className="block text-sm">Breed</label>
-            <input name="breed" value={form.breed} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+            <input name="breed" value={form.breed} onChange={handleChange} className="w-full px-3 py-2 border rounded"
+            disabled />
           </div>
           <div>
             <label className="block text-sm">Gender</label>
-            <select name="gender" value={form.gender} onChange={handleChange} className="w-full px-3 py-2 border rounded">
+            
+            <select name="gender" value={form.gender} onChange={handleChange} disabled className="w-full px-3 py-2 border rounded">
               <option value="">Select</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -123,7 +126,7 @@ function UpdateLiveStockPlan() {
           </div>
           <div>
             <label className="block text-sm">DOB</label>
-            <input type="date" name="dob" value={form.dob} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+            <input type="date" name="dob" value={form.dob} onChange={handleChange} disabled className ="w-full px-3 py-2 border rounded" />
           </div>
           <div>
             <label className="block text-sm">Weight (kg)</label>

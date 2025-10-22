@@ -3,10 +3,14 @@ import FarmSupply from '../models/farmSupply.js';
 import TrainingMaterial from '../models/TrainingMaterial.js';
 import SoilReading from '../models/soilReading.js';
 import WeatherService from './weatherService.js';
+import LanguageService from './languageService.js';
+import LLMService from './llmService.js';
 
 class ChatbotService {
   constructor() {
     this.weatherService = new WeatherService();
+    this.languageService = new LanguageService();
+    this.llmService = new LLMService();
     
     this.sriLankanCrops = [
       'rice', 'tea', 'coconut', 'rubber', 'cinnamon', 'cardamom', 'pepper',
@@ -66,11 +70,12 @@ class ChatbotService {
     return { intent: detectedIntent, confidence: maxScore };
   }
 
-  // Generate context-aware response based on intent and available data
-  async generateResponse(message, userId = null) {
+// Generate context-aware response based on intent and available data
+  async generateResponse(message, userId = null, extraContext = {}) {
     try {
       const { intent } = this.detectIntent(message);
       const lowerMessage = message.toLowerCase();
+      const detectedLang = this.languageService.detectLanguage(message);
 
       // Check for Sri Lankan crops/livestock mentions
       const mentionedCrops = this.sriLankanCrops.filter(crop => 
@@ -121,6 +126,36 @@ class ChatbotService {
           break;
         default:
           response = await this.handleGeneralQuery(message, mentionedCrops, mentionedLivestock);
+      }
+
+      // If response is too generic and LLM is enabled, enhance it
+      const isGeneric = !response || response === this.getFallbackResponse(message);
+      if (this.llmService?.isEnabled() && (intent === 'GENERAL' || isGeneric)) {
+        const seasonalAdvice = this.weatherService.getSeasonalAdvice();
+        const soilReading = await this.getLatestSoilData(userId);
+        const llm = await this.llmService.generateAnswer(message, {
+          systemPrompt: 'You are FarmNex AI, a professional assistant for Sri Lankan agriculture. Be concise, structured, and actionable. Use bullet lists where helpful.',
+          context: {
+            intent,
+            mentionedCrops,
+            mentionedLivestock,
+            seasonalAdvice,
+            soil: soilReading ? {
+              moisture: soilReading.moisture,
+              temperature: soilReading.temperature,
+              ph: soilReading.ph
+            } : null
+          },
+          history: Array.isArray(extraContext?.conversationHistory) ? extraContext.conversationHistory : []
+        });
+        if (llm?.response) {
+          response = llm.response;
+        }
+      }
+
+      // Multilingual prefix support
+      if (detectedLang && detectedLang !== 'en' && response) {
+        response = this.languageService.createMultilingualResponse(response, detectedLang);
       }
 
       return {

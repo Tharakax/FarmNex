@@ -21,6 +21,16 @@ export default {
           900: '#14532d',  // Darkest green
           950: '#052e16',  // Almost black green
         },
+
+        // Map Tailwind's blue/indigo to brand greens for global theming sweep
+        blue: {
+          50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#4ade80',
+          500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d', 950: '#052e16'
+        },
+        indigo: {
+          50: '#f0fdf4', 100: '#dcfce7', 200: '#bbf7d0', 300: '#86efac', 400: '#4ade80',
+          500: '#22c55e', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#14532d', 950: '#052e16'
+        },
         
         // Secondary Green (Forest/Nature)
         secondary: {
@@ -99,6 +109,21 @@ export default {
           900: '#171717',
           950: '#0a0a0a',
         },
+
+        // Brand Colors (for easy theming)
+        brand: {
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',
+          600: '#16a34a',  // Main brand color
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
+        },
+        'brand-light': '#dcfce7', // Direct color for brand-light
 
         // Status Colors
         success: {

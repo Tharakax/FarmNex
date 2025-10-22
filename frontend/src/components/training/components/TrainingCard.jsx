@@ -7,7 +7,7 @@ const TrainingCard = ({ material, onDelete }) => {
   const getTypeIcon = (type) => {
     const icons = {
       'Video': <FaVideo className="text-purple-600" />,
-      'Guide': <FaBook className="text-blue-600" />,
+'Guide': <FaBook className="text-brand" />,
       'Article': <FaFileAlt className="text-green-600" />,
       'PDF': <FaFilePdf className="text-red-600" />,
       'FAQ': <FaQuestionCircle className="text-orange-600" />
@@ -30,7 +30,7 @@ const TrainingCard = ({ material, onDelete }) => {
     const colors = {
       'Crop Management': 'bg-farmer-green-100 text-farmer-green-800',
       'Livestock': 'bg-earth-brown-100 text-earth-brown-800',
-      'Equipment': 'bg-blue-100 text-blue-800',
+'Equipment': 'bg-brand-light text-brand-dark',
       'Finance': 'bg-purple-100 text-purple-800',
       'Marketing': 'bg-pink-100 text-pink-800',
       'General': 'bg-gray-100 text-gray-800'
@@ -59,7 +59,7 @@ const TrainingCard = ({ material, onDelete }) => {
           <div className="flex space-x-2">
             <Link
               to={`/edit/${material._id}`}
-              className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+className="text-brand hover:text-brand-dark transition-colors p-1"
               title="Edit"
             >
               <FaEdit className="text-sm" />

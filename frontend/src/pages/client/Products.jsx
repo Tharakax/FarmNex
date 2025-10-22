@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { addToCart } from "../../utils/cart.js";
 import { productAPI } from "../../services/productAPI";
 import toast , { Toaster } from "react-hot-toast";
+import { resolveProductImage, handleImageError } from '../../utils/imageUtils';
 
 export default function ProductsPage() {
     const [loading, setLoading] = useState(true);
@@ -13,6 +14,7 @@ export default function ProductsPage() {
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [selectedCategories, setSelectedCategories] = useState([]);
     const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+    const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
     const Navigate = useNavigate();
     const categories = [
@@ -51,6 +53,17 @@ export default function ProductsPage() {
     useEffect(() => {
         let filtered = products;
 
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter(product =>
+                product.name.toLowerCase().includes(query) ||
+                product.description?.toLowerCase().includes(query) ||
+                product.category?.toLowerCase().includes(query) ||
+                product.tags?.some(tag => tag.toLowerCase().includes(query))
+            );
+        }
+
         // Filter by categories
         if (selectedCategories.length > 0) {
             filtered = filtered.filter(product => 
@@ -69,7 +82,7 @@ export default function ProductsPage() {
         }
 
         setFilteredProducts(filtered);
-    }, [products, selectedCategories, priceRange]);
+    }, [products, selectedCategories, priceRange, searchQuery]);
 
     const handleCategoryChange = (categoryValue) => {
         setSelectedCategories(prev => 
@@ -89,6 +102,7 @@ export default function ProductsPage() {
     const clearFilters = () => {
         setSelectedCategories([]);
         setPriceRange({ min: '', max: '' });
+        setSearchQuery('');
     };
 
     const viewOne = async (productId) => {
@@ -119,21 +133,33 @@ export default function ProductsPage() {
                     <Navigation></Navigation>
                 </div>
             <div className="max-w-7xl pt-30 mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* Header */}
-                <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">Fresh Farm Products</h1>
-                    <p className="text-xl text-gray-600 mb-8">Discover premium quality crops and animal products from local farms</p>
-                    
-                    {/* Explore More Button */}
-                    <button 
-                        onClick={() => Navigate('/login')}
-                        className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl mb-8"
-                    >
-                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Explore More Features
-                    </button>
+
+                {/* Mobile Search Bar */}
+                <div className="lg:hidden mb-6">
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search products..."
+                            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white shadow-sm"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                            >
+                                <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8">
@@ -166,6 +192,35 @@ export default function ProductsPage() {
                                 >
                                     Clear All
                                 </button>
+                            </div>
+
+                            {/* Search Bar */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Search Products</h3>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder="Search products..."
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        >
+                                            <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Category Filters */}
@@ -278,11 +333,9 @@ export default function ProductsPage() {
                                             {product.images && product.images.length > 0 ? (
                                                 <img 
                                                     className="h-56 w-full object-cover group-hover:scale-110 transition-transform duration-300" 
-                                                    src={product.images[0]} 
+                                                    src={resolveProductImage(product.images && product.images[0], product.name)} 
                                                     alt={product.name}
-                                                    onError={(e) => {
-                                                        e.target.src = '/placeholder-image.png';
-                                                    }}
+                                                    onError={(e) => handleImageError(e, 320, 224, product.name)}
                                                 />
                                             ) : (
                                                 <div className="h-56 w-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">

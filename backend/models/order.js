@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 
-
 const orderSchema = new mongoose.Schema({
   customerId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -8,7 +7,7 @@ const orderSchema = new mongoose.Schema({
   },
   items: [{
     productId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed, 
       required: true,
     },
     name: {
@@ -30,7 +29,6 @@ const orderSchema = new mongoose.Schema({
     description: {
       type: String,
     },
-    // Any other product details you want to preserve at time of purchase
   }],
   subtotal: {
     type: Number,
@@ -59,8 +57,9 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['credit_card', 'paypal', 'bank_transfer', 'cash_on_delivery'],
+    enum: ['credit_card', 'cash_on_delivery'],
     required: false,
+    default: 'credit_card',
   },
   shippingAddress: {
     name: String,
@@ -109,7 +108,7 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  // Add this to your order schema
+
   emailSent: {
     type: Boolean,
     default: false,
@@ -121,9 +120,45 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+
+  refundStatus: {
+    type: String,
+    enum: ['none', 'pending', 'processed', 'partial', 'failed'],
+    default: 'none',
+  },
+  refundAmount: {
+    type: Number,
+    default: 0,
+  },
+  refundMethod: {
+    type: String,
+  },
+  refundTxnId: {
+    type: String,
+  },
+  refundAt: {
+    type: Date,
+  },
+  refundNote: {
+    type: String,
+  },
+
+  paymentDetails: {
+    paymentIntentId: String,
+    stripePaymentIntentId: String,
+    chargeId: String,
+    cardBrand: String,
+    last4: String,
+    source: String, 
+    error: String,
+    // Cash on delivery specific fields
+    codFee: Number,
+    totalWithCod: Number,
+    status: String
+  },
 }, {
-  timestamps: true, // This automatically adds createdAt and updatedAt fields
+  timestamps: true, 
 });
 const Order = mongoose.model('Order', orderSchema);
 
-export default Order;   
+export default Order;  

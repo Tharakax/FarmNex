@@ -196,16 +196,21 @@ function AddLivestockPlan() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium">Breed *</label>
-              <input
-                type="text"
-                value={breed}
-                onChange={(e) => setBreed(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                placeholder="Enter breed"
-              />
-            </div>
+           <div>
+  <label className="block text-sm font-medium">Breed *</label>
+  <input
+    type="text"
+    value={breed}
+    onChange={(e) => {
+      // Allow only letters and spaces
+      const filtered = e.target.value.replace(/[^a-zA-Z\s]/g, "");
+      setBreed(filtered);
+    }}
+    className="w-full px-4 py-2 border rounded-lg"
+    placeholder="Enter breed"
+  />
+</div>
+
 
             <div>
               <label className="block text-sm font-medium">Gender *</label>
@@ -371,14 +376,20 @@ function AddLivestockPlan() {
 
         {/* Housing */}
         <div className="bg-white rounded-xl shadow p-6 border space-y-4">
-          <h2 className="text-2xl font-semibold text-gray-800">Housing Details *</h2>
-          <textarea
-            value={housing}
-            onChange={(e) => setHousing(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="Describe housing conditions..."
-          />
-        </div>
+  <h2 className="text-2xl font-semibold text-gray-800">Housing Details *</h2>
+  <textarea
+    value={housing}
+    onChange={(e) => {
+      // Allow letters, spaces, punctuation; block numbers
+      const filtered = e.target.value.replace(/[0-9]/g, "");
+      setHousing(filtered);
+    }}
+    className="w-full px-4 py-2 border rounded-lg"
+    placeholder="Describe housing conditions..."
+    rows={4}
+  />
+</div>
+
 
         {/* Submit */}
         <div className="bg-white rounded-xl shadow p-6 border">

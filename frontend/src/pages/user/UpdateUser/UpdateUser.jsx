@@ -94,7 +94,12 @@ function UpdateUser() {
     const fetchHandler = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get(`http://localhost:3000/users/${id}`);
+        
+        // Get JWT token for authentication
+        const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        const response = await axios.get(`http://localhost:3000/users/${id}`, { headers });
         setInputs(response.data.user);
       } catch (error) {
         console.error('Error fetching user:', error);
@@ -177,6 +182,10 @@ function UpdateUser() {
     setIsSubmitting(true);
 
     try {
+      // Get JWT token for authentication
+      const token = localStorage.getItem('token') || sessionStorage.getItem('authToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      
       await axios.put(`http://localhost:3000/users/${id}`, {
         fullName: inputs.fullName,
         email: inputs.email.toLowerCase(),
@@ -185,7 +194,7 @@ function UpdateUser() {
         username: inputs.username,
         role: inputs.role,
         address: inputs.address
-      });
+      }, { headers });
 
       // Show success message with animation
       const successDiv = document.createElement('div');
